@@ -209,6 +209,13 @@ fn tokenize(text: &str, from: usize) -> Result<Vec<Tok<'_>>> {
                 });
                 i = end;
             }
+            // Beancount refuses a BOM too (docs/DESIGN.md), so say what it is and how to fix it.
+            None if text[i..].starts_with('\u{feff}') => {
+                return fail(format!(
+                    "byte order mark at column {}: save the file as UTF-8 without BOM",
+                    text[..i].chars().count() + 1
+                ));
+            }
             None => {
                 return fail(format!(
                     "unexpected input at column {}: {:?}",
@@ -753,5 +760,16 @@ mod tests {
             panic!()
         };
         assert_eq!(m, r#"unexpected input at column 5: "%rest""#);
+    }
+
+    #[test]
+    fn a_byte_order_mark_is_named_with_the_fix() {
+        let Err(SyntaxError(m)) = tokenize("\u{feff}2026-01-01 open Assets:Cash", 0) else {
+            panic!()
+        };
+        assert_eq!(
+            m,
+            "byte order mark at column 1: save the file as UTF-8 without BOM"
+        );
     }
 }

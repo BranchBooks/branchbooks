@@ -117,7 +117,8 @@ Beancount's behaviour is found by running it, and the oracle keeps it honest.
   means sums of up to 10^8 amounts cannot overflow. A sum needing more than 28 digits in all is rounded to 28, as
   Python's default decimal context (Beancount's) does.
 - **Dates and text.** Any valid calendar date from 0000 to 9999; a date with no such day is a syntax error. A byte
-  order mark at the start of a file is an error, as it is in Beancount. Strings sort in code point order.
+  order mark is an error, as it is in Beancount, and the message says to save the file as UTF-8 without BOM. Accepting
+  it would make a book that Beancount and Fava can't open. Strings sort in code point order.
 
 ### Balance assertions
 
@@ -252,6 +253,9 @@ Velopack: a per-user install with no admin prompt, delta updates, and a feed of 
   Velopack adds the local version, the app id and a random id it keeps to the feed's URL.
 - **Trust.** HTTPS from GitHub. The feed's checksums come from the same place as the packages, and nothing is signed yet, so release rights can
   ship code to every install. That is why a release's compile job holds no write token. Code signing is the fix, and also ends the SmartScreen warning.
+- **Provenance.** Every published file has a GitHub artifact attestation, signed with Sigstore by the release run's own identity, so anyone can
+  check it was built by `release.yml` from a commit of this repository: `gh attestation verify <file> --repo BranchBooks/branchbooks`. Windows and
+  the updater don't read it; it is for people checking a download.
 - **Folders.** WebView2's data is in `%LOCALAPPDATA%\<exe name>`, also where Velopack installs, outside `current`, so updates keep it. Setup and
   uninstall can empty that folder. Books are in `%APPDATA%`, which neither touches.
 
