@@ -424,31 +424,55 @@ fn push_branch(
 
 /// HTTPS for a remote, with a token as the password: git hosts take any user name with
 /// it. No credential helpers or prompts, which an app on a phone does not have.
-struct Http(Option<String>);
+struct Http(Option<Token>);
 
 /// The client for `url`. A token only ever goes over HTTPS: anything else is refused here, the one
 /// place every clone, fetch and push passes through.
 fn http_for(url: &str, token: Option<&str>) -> Result<Http, StoreError> {
-    let token = token.filter(|t| !t.is_empty());
-    let https = url
-        .trim()
-        .get(..8)
-        .is_some_and(|s| s.eq_ignore_ascii_case("https://"));
-    if token.is_some() && !https {
+    let Some(secret) = token.filter(|t| !t.is_empty()) else {
+        return Ok(Http(None));
+    };
+    let remote = Credential::from_url(url.trim(), &ConfigSet::default());
+    let Some(Credential {
+        protocol: Some(protocol),
+        host: Some(host),
+        ..
+    }) = remote
+    else {
+        return Err(StoreError::Refused(format!(
+            "a token is sent only over HTTPS: {url} is not an https:// URL"
+        )));
+    };
+    if protocol != "https" {
         return Err(StoreError::Refused(
             "a token is sent only over HTTPS: the remote's URL must start https://".into(),
         ));
     }
-    Ok(Http(token.map(str::to_owned)))
+    Ok(Http(Some(Token {
+        secret: secret.to_owned(),
+        host,
+    })))
 }
 
-struct Token(String);
+/// A remote's token, and the only host it may go to. A remote can redirect elsewhere, and the client
+/// then asks for a login for wherever it landed: that server gets nothing.
+#[derive(Clone)]
+struct Token {
+    secret: String,
+    host: String,
+}
 
 impl CredentialProvider for Token {
     fn fill(&self, input: &Credential) -> grit_lib::error::Result<Credential> {
+        if input.protocol.as_deref() != Some("https") || input.host.as_ref() != Some(&self.host) {
+            return Err(grit_lib::error::Error::Message(format!(
+                "the remote redirected to another server; its token goes only to {}",
+                self.host
+            )));
+        }
         let mut c = input.clone();
         c.username = Some("oauth2".to_owned());
-        c.password = Some(self.0.clone());
+        c.password = Some(self.secret.clone());
         Ok(c)
     }
     fn approve(&self, _: &Credential) -> grit_lib::error::Result<()> {
@@ -462,11 +486,53 @@ impl CredentialProvider for Token {
 impl HttpClientFactory for Http {
     fn create(&self, _: &ConfigSet) -> RemoteResult<Box<dyn HttpClient>> {
         Ok(Box::new(match &self.0 {
-            Some(t) => UreqHttpClient::with_credentials(Box::new(Token(t.clone()))),
+            Some(t) => UreqHttpClient::with_credentials(Box::new(t.clone())),
             None => UreqHttpClient::new(),
         }))
     }
     fn create_for_probe(&self, config: &ConfigSet) -> RemoteResult<Box<dyn HttpClient>> {
         self.create(config)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// What the client asks for a login for: `url`, the address it ended up at.
+    fn asked_for(token: &Token, url: &str) -> grit_lib::error::Result<Credential> {
+        let input = Credential::from_url(url, &ConfigSet::default()).unwrap();
+        token.fill(&input)
+    }
+
+    #[test]
+    fn a_token_goes_only_to_its_remotes_host_over_https() {
+        let http = http_for("https://git.example/you/book.git", Some("secret")).ok();
+        let token = http.and_then(|h| h.0).unwrap();
+
+        let same = asked_for(&token, "https://git.example/you/book.git/info/refs").unwrap();
+        assert_eq!(same.password.as_deref(), Some("secret"));
+        // The same host, however it is written.
+        for url in ["https://GIT.example/x", "https://git.example:443/x"] {
+            assert!(asked_for(&token, url).is_ok(), "{url}");
+        }
+        // A redirect to anywhere else gets nothing.
+        for url in [
+            "https://other.example/you/book.git",
+            "https://git.example.evil.example/x",
+            "https://git.example:8443/x",
+            "http://git.example/you/book.git",
+        ] {
+            let e = asked_for(&token, url).unwrap_err().to_string();
+            assert!(e.contains("another server"), "{url}: {e}");
+            assert!(!e.contains("secret"), "{e}");
+        }
+    }
+
+    #[test]
+    fn no_token_needs_no_https() {
+        assert!(http_for("/a/local/path", None).is_ok_and(|h| h.0.is_none()));
+        assert!(http_for("/a/local/path", Some("")).is_ok_and(|h| h.0.is_none()));
+        assert!(http_for("/a/local/path", Some("secret")).is_err());
     }
 }

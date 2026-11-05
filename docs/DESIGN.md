@@ -203,7 +203,7 @@ the core like any commit, then one commit with `Op-Type: sync`, pushed.
   refuses.
 
 **Tokens** live in Windows Credential Manager, never in a file. The git store refuses a token for anything but HTTPS, on every clone,
-fetch and push, and changing a book's address without giving a token forgets the saved one, so it never goes to a new address.
+fetch and push, and changing a book's address without giving a token forgets the saved one, so it never goes to a new address. A token goes only to its remote's host: a remote that redirects elsewhere gets no login sent to the other server.
 
 ### Scenarios
 
