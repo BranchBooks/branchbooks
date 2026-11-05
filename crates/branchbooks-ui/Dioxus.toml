@@ -7,3 +7,5 @@ asset_dir = "public"
 identifier = "dev.branchbooks.app"
 publisher = "BranchBooks"
 short_description = "BranchBooks: envelope budgeting on a plain-text ledger in git"
+# shortcut: unproven until there is an Android build; check the launcher icon then.
+icon = ["icons/icon.png"]

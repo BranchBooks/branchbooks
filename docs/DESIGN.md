@@ -234,6 +234,12 @@ A close is an annotated tag, `close/<YYYY-MM>`, on the book's latest version. Re
 - **One exe.** `x86_64-pc-windows-msvc`, with the C runtime and WebView2's loader linked in. Release builds use thin LTO: three times faster to
   build than full LTO with one codegen unit, for 13% more exe.
 - **Tests.** Logic is in plain unit tests, and what a screen shows is in HTML tests (`tests/render.rs`, `dioxus-ssr`, no browser).
+- **Look.** Neutral greys, with ledger green (`--brand`, `#1d6b43`) for the logo and for what can be clicked: buttons, links and the
+  current page. Every other colour carries meaning, such as funded, overspent, or a positive or negative amount. Text on green
+  passes WCAG AA in both themes.
+- **Brand files** are in `crates/branchbooks-ui/icons`. The logo is hand-written SVG: `icon.svg` for 48 px and up, and `icon-small.svg`,
+  with fewer and thicker lines, for 16 to 32 px. The wordmark's letters are IBM Plex Mono SemiBold (OFL) turned into outlines, so no
+  font ships. The PNGs and `icon.ico` are rendered from the SVGs with `resvg`, and `build.rs` puts `icon.ico` in the exe.
 
 ### Install and updates
 

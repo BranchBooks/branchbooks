@@ -319,8 +319,7 @@ pub fn Screen(
 
     let Some(_) = version() else {
         return rsx! {
-            main { class: "shell",
-                p { class: "muted", "Loading…" }
+            crate::Splash {
                 if let Some((_, text)) = notice() { p { class: "notice error", "{text}" } }
             }
         };
@@ -358,7 +357,7 @@ pub fn Screen(
             // The app's frame.
             aside { class: "sidebar",
                 div { class: "brand",
-                    span { class: "logo", "aria-hidden": "true", "B" }
+                    crate::Logo {}
                     span { class: "brand-name", "BranchBooks" }
                 }
                 nav { "aria-label": "Main",

@@ -90,6 +90,7 @@ async fn the_budget_shows_unassigned_and_marks_overspent_envelopes() {
         );
     }
     assert!(html.contains("Toggle the sidebar"));
+    assert!(html.contains(r#"class="logo""#) && html.contains(r#"<svg xmlns="#));
     let topbar =
         &html[html.find(r#"class="topbar""#).unwrap()..html.find(r#"class="content""#).unwrap()];
     assert!(topbar.contains(r#"class="months""#));
