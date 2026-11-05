@@ -142,20 +142,23 @@ Budget for 2026-11 (USD); Unassigned as of 2026-11-06
 
 Envelope                        Carried     Assigned        Moved     Activity    Available  Overspent
 Expenses:Food:Dining             155.00         0.00         0.00      -230.00       -75.00  cash 30.00 / credit 45.00
-Expenses:Food:Groceries          -20.00         0.00         0.00         0.00       -20.00  cash 20.00 / credit 0.00
+Expenses:Food:Groceries            0.00         0.00         0.00         0.00         0.00
 Expenses:Housing:Rent          1,500.00         0.00         0.00         0.00     1,500.00
 Expenses:Savings:Investing         0.00       500.00         0.00      -500.00         0.00
 
 Card payment envelope         Available         Owed  Underfunded
-Liabilities:CreditCard           155.00       200.00        45.00
+Liabilities:CreditCard           155.00       200.00         0.00
+  45.00 overspent in Expenses:Food:Dining: cover it there
 
 Assigned to future months          0.00
-Unassigned                     1,100.00
+Unassigned                     1,080.00
 ```
 
 `--today` defaults to the local date. Unassigned is computed for today's month and is the same
 on every month view (docs/DESIGN.md, decision 6). A ledger with targets gets a Target column (what target
 funding put in that month) and a `shortfall:` line for each target that month could not fully fund.
+Card overspending still in a category is named under its card, to cover there (docs/BUDGET-RULES.md,
+rule 7).
 
 `branchbooks check <file> [--json]` prints ledger errors and account balances, in the same shape
 the oracle compares.
@@ -230,7 +233,12 @@ Envelope entries and targets are Beancount `custom` directives, so the files sta
   recurrence: "monthly"
 2026-01-01 custom "target" Expenses:Savings:CarFund 6000.00 USD
   due: 2026-06-01
+2026-10-01 custom "overspending" Expenses:Reimbursable "rollover"   ; or "reset"
 ```
+
+Overspending not covered by month end resets the category and comes out of next month's Unassigned.
+A category set to `"rollover"` carries it into next month as a negative balance instead
+(docs/BUDGET-RULES.md, rules 6 and 6a). In the app, it is switched under a category's target editor.
 
 ## Contributing
 

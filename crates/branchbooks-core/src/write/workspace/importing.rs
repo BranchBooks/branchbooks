@@ -187,6 +187,7 @@ impl WorkspaceCore {
             ImportKind::Assign => ("assignment", "assignments"),
             ImportKind::Move => ("move", "moves"),
             ImportKind::Target => ("target", "targets"),
+            ImportKind::Overspending => ("overspending setting", "overspending settings"),
             ImportKind::Custom => ("custom entry", "custom entries"),
             ImportKind::Balance => ("balance assertion", "balance assertions"),
             ImportKind::Other => ("other entry", "other entries"),

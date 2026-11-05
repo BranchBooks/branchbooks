@@ -228,7 +228,9 @@ impl BudgetEngine {
                 let s = split_of(c);
                 CategoryRow {
                     category: name.clone(),
-                    carried_in: c.carried_in,
+                    // Carried card overspending (rule 6a) is carried too, so Available is
+                    // still Carried + Assigned + Moved + Activity.
+                    carried_in: c.carried_in - c.carried_card.values().sum::<Decimal>(),
                     assigned: c.assigned,
                     target_allocated: c.target_allocated,
                     moved: c.moved,
@@ -238,6 +240,7 @@ impl BudgetEngine {
                     credit_overspent: s.credit,
                     target: state.targets.get(name.as_str()).cloned(),
                     shortfall: c.shortfall,
+                    rollover_overspending: state.rollover_overspending.contains(name.as_str()),
                 }
             })
             .collect();
@@ -247,11 +250,26 @@ impl BudgetEngine {
             .map(|card| {
                 let available = pay.get(card).copied().unwrap_or(ZERO);
                 let owed = state.owed.get(card).copied().unwrap_or(ZERO);
+                let in_categories: Vec<(String, Decimal)> = sorted(state.cats.keys())
+                    .into_iter()
+                    .filter_map(|name| {
+                        let c = &state.cats[name];
+                        let v = credit_by_card(c, split_of(c).credit)
+                            .get(card.as_str())
+                            .copied()
+                            .unwrap_or(ZERO);
+                        (v > ZERO).then(|| (name.clone(), v))
+                    })
+                    .collect();
+                let waiting: Decimal = in_categories.iter().map(|(_, v)| *v).sum();
                 CardRow {
                     card: card.clone(),
                     available,
                     owed,
-                    underfunded: (owed - available).max(ZERO),
+                    underfunded: (owed - available - waiting).max(ZERO),
+                    // A card in credit owes nothing, so all of its envelope is spare.
+                    overfunded: (available + waiting - owed.max(ZERO)).max(ZERO),
+                    in_categories,
                 }
             })
             .collect();

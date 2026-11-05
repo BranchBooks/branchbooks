@@ -186,6 +186,8 @@ tr.category td:first-child { padding-left: 26px; }
 .muted { color: var(--muted); }
 .small { font-size: 0.8rem; margin: 10px 0 0; }
 .small-inline { font-size: 0.8rem; font-weight: 400; }
+.waiting { display: block; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+.overspending-switch { margin: 6px 0 0; }
 
 /* ---------- Overview ---------- */
 .cards { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: var(--gap); }

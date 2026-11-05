@@ -124,6 +124,14 @@ pub struct TargetInput {
     pub rollover: Option<Rollover>,
 }
 
+/// Rollover overspending on (`rollover`) or off for a category, from the month of `date` (rule 6a).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct OverspendingInput {
+    pub date: String,
+    pub category: String,
+    pub rollover: bool,
+}
+
 /// A `balance` assertion (Reconcile, R3).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct BalanceInput {
@@ -141,6 +149,7 @@ pub enum EntryInput {
     Assign(AssignInput),
     Move(MoveInput),
     Target(TargetInput),
+    Overspending(OverspendingInput),
     Balance(BalanceInput),
 }
 
@@ -153,6 +162,7 @@ impl EntryInput {
             EntryInput::Assign(e) => &e.date,
             EntryInput::Move(e) => &e.date,
             EntryInput::Target(e) => &e.date,
+            EntryInput::Overspending(e) => &e.date,
             EntryInput::Balance(e) => &e.date,
         }
     }
@@ -488,6 +498,16 @@ pub fn render_entry(e: &EntryInput, currency: &str) -> Result<Vec<String>> {
                 out.push(format!("  rollover: {}", quote(r.as_str())));
             }
             Ok(out)
+        }
+        EntryInput::Overspending(e) => {
+            check_account(&e.category)?;
+            let how = if e.rollover { "rollover" } else { "reset" };
+            Ok(vec![format!(
+                "{} custom \"overspending\" {} {}",
+                e.date,
+                e.category,
+                quote(how)
+            )])
         }
         EntryInput::Balance(e) => {
             check_account(&e.account)?;

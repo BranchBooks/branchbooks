@@ -28,7 +28,7 @@ fn d8_a_card_payment_and_a_fee_in_one_transaction_match_two_transactions() {
     );
     for extra in [one, two] {
         let v = book_of(&extra).budget(m("2026-11"), None);
-        eq(v.unassigned, 1100);
+        eq(v.unassigned, 1080);
         eq(v.cards[0].available, 0);
         eq(v.cards[0].owed, 0);
     }
@@ -40,7 +40,7 @@ fn d8_a_balance_transfer_moves_the_set_aside_money_to_the_other_card() {
         "2026-11-01 open Liabilities:Other USD\n  budget: \"on\"\n{LUNCH}2026-11-06 * \"Transfer\"\n  Liabilities:Other  -60.00 USD\n  Liabilities:CreditCard\n"
     );
     let v = book_of(&extra).budget(m("2026-11"), None);
-    eq(v.unassigned, 1100);
+    eq(v.unassigned, 1080);
     let card = |name: &str| v.cards.iter().find(|c| c.card == name).unwrap();
     eq(card("Liabilities:CreditCard").available, 0);
     eq(card("Liabilities:CreditCard").owed, 0);
@@ -54,7 +54,7 @@ fn d8_a_cash_advance_is_not_a_transfer() {
     let extra =
         "2026-11-06 * \"Advance\"\n  Assets:Checking  100.00 USD\n  Liabilities:CreditCard\n";
     let v = book_of(extra).budget(m("2026-11"), None);
-    eq(v.unassigned, 1200);
+    eq(v.unassigned, 1180);
     eq(v.cards[0].available, 0);
     eq(v.cards[0].underfunded, 100);
 }
@@ -70,7 +70,7 @@ fn d1_example_5_same_day_assignment_and_transfer_no_warning() {
 fn d1_example_12_same_day_assignment_and_purchase_no_warning_same_numbers() {
     let v = fixture("scenarios/ex12-same-day-assign-first.bean").budget(m("2026-11"), None);
     assert_eq!(v.warnings, vec![]);
-    eq(v.unassigned, 1060);
+    eq(v.unassigned, 1040);
 }
 
 #[test]
@@ -97,7 +97,7 @@ fn d2_a_move_larger_than_the_source_available_is_skipped_and_flagged() {
     .budget(m("2026-11"), None);
     eq(cat(&v, "Rent").available, 1500);
     eq(cat(&v, "Dining").available, 155);
-    eq(v.unassigned, 1100);
+    eq(v.unassigned, 1080);
     assert_eq!(codes(&v.flags), ["blocked"]);
 }
 
@@ -117,11 +117,18 @@ fn d2_a_move_of_exactly_the_source_available_is_allowed() {
 
 #[test]
 fn d2_a_move_out_of_an_overspent_category_is_blocked() {
-    let v = book_of(&mv(
-        "2026-11-10",
-        "Expenses:Food:Groceries",
-        "Expenses:Food:Dining",
-        "5.00",
+    let groceries = "2026-11-08 * \"Groceries\"
+  Expenses:Food:Groceries  20.00 USD
+  Assets:Checking
+";
+    let v = book_of(&format!(
+        "{groceries}{}",
+        mv(
+            "2026-11-10",
+            "Expenses:Food:Groceries",
+            "Expenses:Food:Dining",
+            "5.00"
+        )
     ))
     .budget(m("2026-11"), None);
     eq(cat(&v, "Groceries").available, -20);
@@ -137,7 +144,7 @@ fn d2_a_negative_assignment_that_would_overspend_is_blocked_one_that_fits_is_app
     let ok = book_of(&assign("2026-11-10", "Expenses:Food:Dining", "-155.00"))
         .budget(m("2026-11"), None);
     eq(cat(&ok, "Dining").available, 0);
-    eq(ok.unassigned, 1255);
+    eq(ok.unassigned, 1235);
     assert_eq!(ok.flags, vec![]);
 }
 
@@ -167,7 +174,7 @@ fn d4_funded_purchase_card_share_moves_to_the_payment_envelope() {
     let v = book_of(&split("100.00", "60.00", "40.00")).budget(m("2026-11"), None);
     eq(cat(&v, "Dining").available, 55);
     eq(card(&v).available, 40);
-    eq(v.unassigned, 1100);
+    eq(v.unassigned, 1080);
     assert_eq!(v.flags, vec![]);
 }
 
@@ -188,7 +195,7 @@ fn d6_today_in_november_december_assignment_is_future_in_every_view() {
     let mut book = fixture("scenarios/ex08-future-month.bean");
     for m in ["2026-10", "2026-11", "2026-12"] {
         let v = book.budget(m.parse().unwrap(), Some(d("2026-11-03")));
-        eq(v.unassigned, 800);
+        eq(v.unassigned, 780);
         eq(v.assigned_to_future, 300);
     }
     eq(
@@ -216,6 +223,6 @@ fn d6_today_in_october_the_november_and_december_assignments_are_both_future() {
 fn d6_today_in_december_nothing_is_future() {
     let v = fixture("scenarios/ex08-future-month.bean").budget(m("2026-11"), Some(d("2026-12-02")));
     eq(v.assigned_to_future, 0);
-    eq(v.unassigned, 800);
+    eq(v.unassigned, 780);
     eq(cat(&v, "Rent").available, 1500);
 }

@@ -47,7 +47,7 @@ for evs in itertools.permutations([nov6_tx, nov6_assign]):
     results.append(state(b))
 assert results[0] == results[1]
 av, sp, pay, unassigned = results[0]
-assert av == -35 and sp == (D(0), D(35)) and pay == 165 and unassigned == 1060
+assert av == -35 and sp == (D(0), D(35)) and pay == 165 and unassigned == 1040
 print("same-day, either file order:", results[0])
 
 # Dated earlier (before the Nov 5 purchase), the same 40.00 counts as funds
@@ -56,7 +56,7 @@ run(early, [("2026-11-01", "assign", lambda b: b.assign("Dining", 40)),
             ("2026-11-05", "tx", lambda b: b.spend_card("Dining", 200)),
             ("2026-11-06", "tx", lambda b: b.spend_cash("Dining", 30))])
 av, sp, pay, unassigned = state(early)
-assert av == -35 and sp == (D(30), D(5)) and pay == 195 and unassigned == 1060
+assert av == -35 and sp == (D(30), D(5)) and pay == 195 and unassigned == 1040
 print("assigned Nov 1:", state(early))
 
 # Assign before move: the source envelope never looks short
@@ -72,6 +72,6 @@ for evs in itertools.permutations(move_events):
     assert min(mins) >= 0, "source envelope went negative mid-day"
     finals.append((b.avail("Fun"), b.avail("Groceries"), b.unassigned()))
 assert finals[0] == finals[1]
-assert finals[0][0] == 20 and finals[0][1] == 10   # Groceries -20 + 30 = 10
+assert finals[0][0] == 20 and finals[0][1] == 30   # Groceries 0 + 30 = 30
 print("assign then move:", finals[0])
 print("ALL CHECKS PASSED")

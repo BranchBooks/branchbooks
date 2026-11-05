@@ -22,6 +22,7 @@ pub(super) fn input_kind(e: &EntryInput) -> &'static str {
         EntryInput::Assign(_) => "assign",
         EntryInput::Move(_) => "move",
         EntryInput::Target(_) => "target",
+        EntryInput::Overspending(_) => "overspending",
         EntryInput::Balance(_) => "balance",
     }
 }
@@ -73,6 +74,7 @@ pub(super) fn op_type_of(kind: &str, verb: &str) -> String {
             "close" => "close-account".to_owned(),
             "assign" | "move" => kind.to_owned(),
             "target" => "set-target".to_owned(),
+            "overspending" => "set-overspending".to_owned(),
             _ => format!("add-{noun}"),
         };
     }
@@ -120,6 +122,12 @@ pub(super) fn describe(e: &EntryInput, currency: &str) -> String {
                 t.date
             )
         }
+        EntryInput::Overspending(o) => format!(
+            "{} overspending for {} from {}",
+            if o.rollover { "roll over" } else { "reset" },
+            o.category,
+            o.date
+        ),
         EntryInput::Balance(b) => format!(
             "balance {} {} {} on {}",
             b.account,

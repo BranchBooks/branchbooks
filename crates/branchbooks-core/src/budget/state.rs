@@ -7,7 +7,8 @@ use super::*;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CategoryState {
-    /// A0: opening Available, negative only for a carried cash overspend.
+    /// A0: opening Available, negative only for the cash overspend a category that rolls over
+    /// carries in (rule 6a).
     pub carried_in: Decimal,
     pub assigned: Decimal,
     pub moved: Decimal,
@@ -15,6 +16,9 @@ pub struct CategoryState {
     pub cash: Decimal,
     /// k per card: card spending this month, net of card refunds.
     pub card: IndexMap<String, Decimal>,
+    /// Card overspending carried in by a category with rollover overspending (rule 6a), per card.
+    /// A claim on the card like this month's spending, but not part of Activity.
+    pub carried_card: IndexMap<String, Decimal>,
     /// Cash overspend corrected this month.
     pub cured: Decimal,
     /// Date of the last spending in this category this month.
@@ -30,10 +34,20 @@ impl CategoryState {
         self.card.values().sum()
     }
 
+    /// What the category owes each card: this month's spending plus carried card overspending.
+    fn card_claims(&self) -> IndexMap<&str, Decimal> {
+        let mut out: IndexMap<&str, Decimal> = IndexMap::new();
+        for (card, v) in self.card.iter().chain(&self.carried_card) {
+            *out.entry(card.as_str()).or_insert(ZERO) += *v;
+        }
+        out
+    }
+
     pub fn available(&self) -> Decimal {
         self.carried_in + self.assigned + self.target_allocated + self.moved
             - self.cash
             - self.card_total()
+            - self.carried_card.values().sum::<Decimal>()
     }
 }
 
@@ -58,6 +72,8 @@ pub struct BudgetState {
     pub blocked: Vec<Diagnostic>,
     /// The target in force per category (T1). Carries from month to month.
     pub targets: IndexMap<String, Target>,
+    /// Categories with rollover overspending on (rule 6a). Carries from month to month.
+    pub rollover_overspending: IndexSet<String>,
     /// Monthly `carry-shortfall` targets: what earlier months failed to fund.
     pub target_debt: IndexMap<String, Decimal>,
     /// Targets this month could not fully fund.
@@ -103,6 +119,7 @@ impl BudgetState {
             warnings: Vec::new(),
             blocked: Vec::new(),
             targets: IndexMap::new(),
+            rollover_overspending: IndexSet::new(),
             target_debt: IndexMap::new(),
             shortfalls: Vec::new(),
             funded: false,
@@ -140,11 +157,11 @@ impl BudgetState {
         }
         for c in self.cats.values() {
             let by_card = credit_by_card(c, split_of(c).credit);
-            for (card, k) in &c.card {
+            for (card, k) in c.card_claims() {
                 add_to(
                     &mut out,
                     card,
-                    *k - by_card.get(card.as_str()).copied().unwrap_or(ZERO),
+                    k - by_card.get(card).copied().unwrap_or(ZERO),
                 );
             }
         }
@@ -308,6 +325,13 @@ impl BudgetState {
             } => self.assign(category, *amount, ev),
             EventKind::Move { from, to, amount } => self.move_(from, to, *amount, ev),
             EventKind::Target { category, target } => self.set_target(category, target),
+            EventKind::Overspending { category, rollover } => {
+                if *rollover {
+                    self.rollover_overspending.insert(category.clone());
+                } else {
+                    self.rollover_overspending.shift_remove(category);
+                }
+            }
         }
     }
 
@@ -417,17 +441,33 @@ impl BudgetState {
         }
     }
 
-    /// Month end (rules 6, 7, 12): positive Available and cash overspend carry; the credit
-    /// portion drops.
+    /// Month end (rules 6, 6a, 12). Positive Available carries. Overspending resets the category
+    /// to zero and its credit portion moves into the payment envelopes, so the next month's
+    /// Unassigned pays for all of it. With rollover overspending both portions carry instead.
     pub fn rollover(&mut self) {
-        let pay_now = self.pay();
-        for c in self.cats.values_mut() {
+        let mut pay_now = self.pay();
+        for (name, c) in &mut self.cats {
             let av = c.available();
-            let cash = split_of(c).cash;
-            *c = CategoryState {
-                carried_in: if av >= ZERO { av } else { -cash },
-                ..CategoryState::default()
-            };
+            let mut next = CategoryState::default();
+            if av >= ZERO {
+                next.carried_in = av;
+            } else {
+                let split = split_of(c);
+                let by_card: Vec<(String, Decimal)> = credit_by_card(c, split.credit)
+                    .into_iter()
+                    .filter(|(_, v)| *v > ZERO)
+                    .map(|(card, v)| (card.to_owned(), v))
+                    .collect();
+                if self.rollover_overspending.contains(name) {
+                    next.carried_in = -split.cash;
+                    next.carried_card = by_card.into_iter().collect();
+                } else {
+                    for (card, v) in by_card {
+                        add_to(&mut pay_now, &card, v);
+                    }
+                }
+            }
+            *c = next;
         }
         self.pay_carried = pay_now;
         self.payments.clear();
@@ -447,7 +487,7 @@ pub(super) fn split_of(c: &CategoryState) -> Split {
     }
     let claims = ((-c.carried_in).max(ZERO) + c.cash - c.cured).max(ZERO);
     let cash_first = over.min(claims);
-    let card_spend: Decimal = c.card.values().filter(|v| **v > ZERO).sum();
+    let card_spend: Decimal = c.card_claims().values().filter(|v| **v > ZERO).sum();
     let credit = (over - cash_first).min(card_spend);
     Split {
         cash: over - credit,
@@ -455,16 +495,19 @@ pub(super) fn split_of(c: &CategoryState) -> Split {
     }
 }
 
-/// Credit portion of a category charged to each card, in card name order.
-fn credit_by_card(c: &CategoryState, credit: Decimal) -> IndexMap<&str, Decimal> {
+/// Credit portion of a category charged to each card, in card name order (decision 3).
+pub(super) fn credit_by_card(c: &CategoryState, credit: Decimal) -> IndexMap<&str, Decimal> {
+    let claims = c.card_claims();
+    let mut cards: Vec<&str> = claims.keys().copied().collect();
+    cards.sort_unstable();
     let mut out = IndexMap::new();
     let mut left = credit;
-    for card in sorted(c.card.keys()) {
+    for card in cards {
         if left <= ZERO {
             break;
         }
-        let take = left.min(c.card[card].max(ZERO));
-        out.insert(card.as_str(), take);
+        let take = left.min(claims[card].max(ZERO));
+        out.insert(card, take);
         left -= take;
     }
     out

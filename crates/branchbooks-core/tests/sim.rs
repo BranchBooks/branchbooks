@@ -103,14 +103,42 @@ impl Sim {
     fn rollover(&mut self) {
         self.s.rollover();
     }
+    /// Rollover overspending for a category (rule 6a).
+    fn roll_over(&mut self, n: &str, on: bool) {
+        if on {
+            self.s.rollover_overspending.insert(n.to_owned());
+        } else {
+            self.s.rollover_overspending.shift_remove(n);
+        }
+    }
+    /// sim4 `overfunded` (rule 7a).
+    fn overfunded(&self) -> Decimal {
+        let names: Vec<String> = self.s.cats.keys().cloned().collect();
+        let in_categories: Decimal = names.iter().map(|n| self.s.split(n).credit).sum();
+        (self.pay() + in_categories - self.owed().max(ZERO)).max(ZERO)
+    }
+    fn assign_card(&mut self, x: i64) {
+        self.s.assign_card(CARD, d(x), None);
+    }
+    /// sim4 `underfunded`: what the card owes beyond its envelope and the overspending still in
+    /// categories (rule 7).
+    fn underfunded(&self) -> Decimal {
+        let names: Vec<String> = self.s.cats.keys().cloned().collect();
+        let in_categories: Decimal = names.iter().map(|n| self.s.split(n).credit).sum();
+        (self.owed() - self.pay() - in_categories).max(ZERO)
+    }
 }
 
 fn split(cash: &str, credit: &str) -> [String; 2] {
     [cash.to_owned(), credit.to_owned()]
 }
 
-fn base() -> Sim {
+/// sim4 `october`: Examples 1 to 4, through the Nov 1 month end.
+fn october(rollover: &[&str]) -> Sim {
     let mut b = Sim::new();
+    for n in rollover {
+        b.roll_over(n, true);
+    }
     b.income(3900);
     eq(b.unassigned(), 3900);
     for (n, x) in [
@@ -143,14 +171,28 @@ fn base() -> Sim {
     eq(fixed.avail("Groceries"), 0);
     eq(fixed.unassigned(), 1580);
     b.rollover();
-    eq(b.avail("Groceries"), -20);
-    eq(b.unassigned(), 1600);
+    b
+}
+
+/// sim4 `investing`: Example 5.
+fn investing(mut b: Sim) -> Sim {
+    let before = b.unassigned();
     b.assign("Investing", 500);
-    eq(b.unassigned(), 1100);
+    assert_eq!(b.unassigned(), before - d(500));
     b.spend_cash("Investing", 500); // transfer to brokerage with category
-    eq(b.unassigned(), 1100);
+    assert_eq!(b.unassigned(), before - d(500));
     eq(b.cash(), 2735);
     eq(b.avail("Investing"), 0);
+    b
+}
+
+fn base() -> Sim {
+    let b = october(&[]);
+    // Ex 4 uncorrected: the overspend resets and comes out of November's Unassigned (rule 6)
+    eq(b.avail("Groceries"), 0);
+    eq(b.unassigned(), 1580);
+    let b = investing(b);
+    eq(b.unassigned(), 1080);
     b
 }
 
@@ -167,18 +209,19 @@ fn ex6_credit_overspending_only() {
     assert_eq!(a.split("Dining"), split("0", "45"));
     eq(a.pay(), 155);
     eq(a.owed(), 200);
-    eq(a.unassigned(), 1100);
+    eq(a.unassigned(), 1080);
+    eq(a.underfunded(), 0);
     let mut cov = a.clone();
     cov.assign("Dining", 45);
     eq(cov.avail("Dining"), 0);
     eq(cov.pay(), 200);
-    eq(cov.unassigned(), 1055);
+    eq(cov.unassigned(), 1035);
     let mut unc = a.clone();
     unc.rollover();
     eq(unc.avail("Dining"), 0);
-    eq(unc.pay(), 155);
-    eq(unc.owed() - unc.pay(), 45);
-    eq(unc.unassigned(), 1100);
+    eq(unc.pay(), 200);
+    eq(unc.underfunded(), 0);
+    eq(unc.unassigned(), 1035);
 }
 
 #[test]
@@ -189,59 +232,65 @@ fn ex7_refund() {
     eq(r.avail("Dining"), 120);
     eq(r.pay(), 35);
     eq(r.owed(), 35);
-    eq(r.unassigned(), 1100);
+    eq(r.unassigned(), 1080);
 }
 
 #[test]
 fn ex8_future_month() {
     let f = base();
-    eq(f.unassigned_future(300), 800);
+    eq(f.unassigned_future(300), 780);
     eq(f.avail("Rent"), 1500);
+}
+
+fn ex9() -> Sim {
+    let mut m = base();
+    m.spend_card("Dining", 200);
+    m.spend_cash("Dining", 30);
+    m
 }
 
 #[test]
 fn ex9_mixed_overspending_corrections_cover_cash_first() {
-    let mut m = base();
-    m.spend_card("Dining", 200);
-    m.spend_cash("Dining", 30);
+    let m = ex9();
     eq(m.avail("Dining"), -75);
     assert_eq!(m.split("Dining"), split("30", "45"));
     eq(m.cash(), 2705);
     eq(m.pay(), 155);
     eq(m.owed(), 200);
-    eq(m.unassigned(), 1100);
+    eq(m.unassigned(), 1080);
+    eq(m.underfunded(), 0);
 
     let mut p20 = m.clone();
     p20.assign("Dining", 20);
     eq(p20.avail("Dining"), -55);
     assert_eq!(p20.split("Dining"), split("10", "45"));
     eq(p20.pay(), 155);
-    eq(p20.unassigned(), 1080);
+    eq(p20.unassigned(), 1060);
 
     let mut p40 = m.clone();
     p40.assign("Dining", 40);
     eq(p40.avail("Dining"), -35);
     assert_eq!(p40.split("Dining"), split("0", "35"));
     eq(p40.pay(), 165);
-    eq(p40.unassigned(), 1060);
+    eq(p40.unassigned(), 1040);
     p40.rollover();
     eq(p40.avail("Dining"), 0);
-    eq(p40.pay(), 165);
-    eq(p40.owed() - p40.pay(), 35);
-    eq(p40.unassigned(), 1060);
+    eq(p40.pay(), 200);
+    eq(p40.underfunded(), 0);
+    eq(p40.unassigned(), 1005);
 
     let mut p75 = m.clone();
     p75.assign("Dining", 75);
     eq(p75.avail("Dining"), 0);
     eq(p75.pay(), 200);
-    eq(p75.unassigned(), 1025);
+    eq(p75.unassigned(), 1005);
 
     let mut none = m.clone();
     none.rollover();
-    eq(none.avail("Dining"), -30);
-    eq(none.pay(), 155);
-    eq(none.owed() - none.pay(), 45);
-    eq(none.unassigned(), 1100);
+    eq(none.avail("Dining"), 0);
+    eq(none.pay(), 200);
+    eq(none.underfunded(), 0);
+    eq(none.unassigned(), 1005);
 
     let mut pre = base();
     pre.assign("Dining", 40);
@@ -250,7 +299,7 @@ fn ex9_mixed_overspending_corrections_cover_cash_first() {
     eq(pre.avail("Dining"), -35);
     assert_eq!(pre.split("Dining"), split("30", "5"));
     eq(pre.pay(), 195);
-    eq(pre.unassigned(), 1060);
+    eq(pre.unassigned(), 1040);
 }
 
 #[test]
@@ -281,12 +330,73 @@ fn ex10_and_11() {
     s.spend_cash("Groceries", -150);
     s.income(50);
     eq(s.cash(), 2935);
-    eq(s.avail("Groceries"), 130);
-    eq(s.unassigned(), 1150);
+    eq(s.avail("Groceries"), 150);
+    eq(s.unassigned(), 1130);
     let mut mv = base();
     mv.move_("Rent", "Groceries", 20);
     eq(mv.avail("Rent"), 1480);
-    eq(mv.avail("Groceries"), 0);
-    eq(mv.unassigned(), 1100);
+    eq(mv.avail("Groceries"), 20);
+    eq(mv.unassigned(), 1080);
     assert_eq!(mv.split("Groceries"), split("0", "0"));
+}
+
+#[test]
+fn ex15_rollover_overspending_keeps_the_cash_overspend() {
+    let g = october(&["Groceries"]);
+    eq(g.avail("Groceries"), -20);
+    assert_eq!(g.split("Groceries"), split("20", "0"));
+    eq(g.unassigned(), 1600);
+    let mut g20 = g.clone();
+    g20.assign("Groceries", 20);
+    eq(g20.avail("Groceries"), 0);
+    eq(g20.unassigned(), 1580);
+}
+
+#[test]
+fn ex16_rollover_overspending_carries_both_portions() {
+    let mut r = ex9();
+    r.roll_over("Dining", true);
+    r.rollover();
+    eq(r.avail("Dining"), -75);
+    assert_eq!(r.split("Dining"), split("30", "45"));
+    eq(r.pay(), 155);
+    eq(r.owed(), 200);
+    eq(r.underfunded(), 0);
+    eq(r.unassigned(), 1080);
+    r.assign("Dining", 40);
+    eq(r.avail("Dining"), -35);
+    assert_eq!(r.split("Dining"), split("0", "35"));
+    eq(r.pay(), 165);
+    eq(r.unassigned(), 1040);
+}
+
+#[test]
+fn ex17_reset_turns_rollover_overspending_off() {
+    let mut t = investing(october(&["Groceries"]));
+    eq(t.avail("Groceries"), -20);
+    eq(t.unassigned(), 1100);
+    t.roll_over("Groceries", false);
+    t.rollover();
+    eq(t.avail("Groceries"), 0);
+    eq(t.unassigned(), 1080);
+}
+
+#[test]
+fn ex18_set_aside_twice_is_overfunded() {
+    let mut a = base();
+    a.spend_card("Dining", 200);
+    eq(a.overfunded(), 0);
+    a.assign_card(45);
+    eq(a.pay(), 200);
+    eq(a.underfunded(), 0);
+    eq(a.overfunded(), 45);
+    eq(a.unassigned(), 1035);
+    a.assign("Dining", 45);
+    eq(a.pay(), 245);
+    eq(a.overfunded(), 45);
+    eq(a.unassigned(), 990);
+    a.assign_card(-45);
+    eq(a.pay(), 200);
+    eq(a.overfunded(), 0);
+    eq(a.unassigned(), 1035);
 }
