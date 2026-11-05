@@ -1,0 +1,12 @@
+2026-01-01 open Assets:Checking USD
+2026-01-01 open Expenses:Food USD
+2026-01-01 open Expenses:Rent USD
+
+2026-01-02 * "One elided amount"
+  Expenses:Food      12.34 USD
+  Assets:Checking
+
+2026-01-03 * "Two elided amounts"
+  Expenses:Food      12.34 USD
+  Expenses:Rent
+  Assets:Checking

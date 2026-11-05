@@ -1,0 +1,26 @@
+# fixtures/errors/booking.bean
+files "fixtures/errors/booking.bean"
+entry open "fixtures/errors/booking.bean" 1 1 1 2026-01-01
+entry open "fixtures/errors/booking.bean" 2 2 2 2026-01-01
+entry open "fixtures/errors/booking.bean" 3 3 3 2026-01-01
+entry txn "fixtures/errors/booking.bean" 5 7 5 2026-01-02
+  posting Expenses:Food 6 12.34 USD 2
+  posting Assets:Checking 7 -12.34 USD 2
+error "fixtures/errors/booking.bean" 12 booking "You may not have more than one auto-posting per currency"
+balance Expenses:Food USD 12.34
+balance Assets:Checking USD -12.34
+book-balance Expenses:Food USD 12.34
+book-balance Assets:Checking USD -12.34
+income 0 expenses 12.34 net -12.34
+  line Expenses:Food 12.34
+assets -12.34 liabilities 0 equity 0 net-worth -12.34
+  line Assets:Checking -12.34
+budget-diagnostic "fixtures/errors/booking.bean" 1 budget-flag "Assets:Checking has no budget flag; treated as off-budget"
+month 2026-01 USD today 2026-01-01 unassigned 0 future 0 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+  flag "fixtures/errors/booking.bean" 5 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+month 2026-02 USD today 2026-02-01 unassigned 0 future 0 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+unassigned-at 2026-02-15 0

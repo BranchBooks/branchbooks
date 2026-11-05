@@ -1,0 +1,12 @@
+# fixtures/errors/dates.bean
+files "fixtures/errors/dates.bean"
+entry open "fixtures/errors/dates.bean" 7 8 7 2026-01-03
+error "fixtures/errors/dates.bean" 3 syntax "invalid date 2026-02-31"
+error "fixtures/errors/dates.bean" 5 syntax "invalid date 2026-13-01"
+error "fixtures/errors/dates.bean" 6 syntax "invalid date 2026-02-30"
+income 0 expenses 0 net 0
+assets 0 liabilities 0 equity 0 net-worth 0
+budget-diagnostic "fixtures/errors/dates.bean" 7 budget-flag "Assets:Bank has no budget flag; treated as off-budget"
+month 2026-01 USD today 2026-01-01 unassigned 0 future 0 cash 0
+month 2026-02 USD today 2026-02-01 unassigned 0 future 0 cash 0
+unassigned-at 2026-02-15 0

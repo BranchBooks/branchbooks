@@ -1,0 +1,6 @@
+; Example 6: Nov 5 card purchase overspends Dining by 45.00, all credit.
+include "../examples-1-5.bean"
+
+2026-11-05 * "Dinner party"
+  Expenses:Food:Dining      200.00 USD
+  Liabilities:CreditCard   -200.00 USD

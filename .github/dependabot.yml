@@ -1,0 +1,32 @@
+# Weekly updates, small ones grouped so they arrive as one pull request.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # All pinned to one version. The pull request stays red until DX_VERSION in
+      # tools/dev/rust-tools.sh matches: CI checks it, and Dependabot cannot change it.
+      dioxus:
+        patterns: ["dioxus*"]
+      # Left out, so each gets its own pull request: grit-lib is the git engine, reviewed on every
+      # bump, and velopack stays red until VPK_VERSION in release.yml matches, which would hold up
+      # everything grouped with it.
+      minor-and-patch:
+        update-types: [minor, patch]
+        exclude-patterns: ["grit-lib", "velopack"]
+  # Stays red until RUST_VERSION in tools/dev/rust-tools.sh matches, as with Dioxus above.
+  - package-ecosystem: rust-toolchain
+    directory: /
+    schedule:
+      interval: weekly
+  # The dev image's digest. Not tools/android: it is built on the dev image, and nothing builds it yet.
+  - package-ecosystem: docker
+    directory: /tools/dev
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

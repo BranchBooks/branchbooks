@@ -1,0 +1,7 @@
+["check","fixtures/scenarios/ex05-uncategorized.bean"]
+--- exit 0
+--- stdout
+Assets:Brokerage                                    500 USD
+Assets:Checking                                     500 USD
+Income:Salary                                     -1000 USD
+--- stderr

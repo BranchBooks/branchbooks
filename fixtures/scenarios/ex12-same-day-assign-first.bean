@@ -1,0 +1,8 @@
+; Example 12: on Nov 6, after the Nov 5 credit overspend, the assignment is written first.
+include "ex06-credit-overspend.bean"
+
+2026-11-06 custom "envelope-assign" Expenses:Food:Dining 40.00 USD
+
+2026-11-06 * "Takeout"
+  Expenses:Food:Dining       30.00 USD
+  Assets:Checking           -30.00 USD

@@ -1,0 +1,12 @@
+["check","fixtures/scenarios/ex09-mixed-overspend.bean"]
+--- exit 0
+--- stdout
+Assets:Brokerage                                    500 USD
+Assets:Checking                                    2705 USD
+Expenses:Benefits:401k                              300 USD
+Expenses:Food:Dining                                275 USD
+Expenses:Food:Groceries                             620 USD
+Expenses:Tax:Federal                                800 USD
+Income:Salary                                     -5000 USD
+Liabilities:CreditCard                             -200 USD
+--- stderr

@@ -1,0 +1,7 @@
+["open","<dir>","--date","2026-01-05","--account","Expenses:Fun","--budget","on","--op-id","w4"]
+--- exit 0
+--- stdout
+committed <hash>  open-account  Op-Id w4
+changed: main.beancount; entry at main.beancount:14
+warning: main.beancount:14: Expenses:Fun: the only budget flag for expense accounts is "excluded"
+--- stderr

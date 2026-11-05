@@ -1,0 +1,79 @@
+; Balance assertions: checked at the start of their day, against the account and its sub-accounts,
+; in one currency, within a tolerance. Synthetic.
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Checking USD
+  budget: "on"
+2026-01-01 open Assets:Savings
+  budget: "off"
+2026-01-01 open Assets:Savings:Emergency USD
+  budget: "off"
+2026-01-01 open Assets:Savings:Travel USD
+  budget: "off"
+2026-01-01 open Assets:Cash EUR
+  budget: "off"
+2026-01-01 open Income:Salary USD
+2026-01-01 open Expenses:Food USD
+2026-01-01 open Equity:Opening-Balances
+
+2026-01-02 * "Paycheck"
+  Assets:Checking  1000.00 USD
+  Income:Salary
+
+2026-01-03 * "Save"
+  Assets:Checking  -300.00 USD
+  Assets:Savings:Emergency  200.00 USD
+  Assets:Savings:Travel  100.00 USD
+
+2026-01-04 * "Groceries, to a tenth of a cent"
+  Assets:Checking  -50.004 USD
+  Expenses:Food
+
+; Passes: 1000 - 300 - 50.004 = 649.996, within 0.01 of 650.00.
+2026-01-05 balance Assets:Checking  650.00 USD
+
+; Passes: the parent holds the sum of its sub-accounts.
+2026-01-05 balance Assets:Savings  300.00 USD
+  statement: "January"
+
+; Passes: a transaction on the assertion's own date is not counted yet.
+2026-01-06 * "Same-day spending"
+  Assets:Checking  -10.00 USD
+  Expenses:Food
+2026-01-06 balance Assets:Checking  649.996 USD
+
+; Fails: 639.996 is there, 640.00 asserted, outside a tolerance of 0.001 (three decimals).
+2026-01-07 balance Assets:Checking  640.000 USD
+
+; Passes with an explicit tolerance.
+2026-01-07 balance Assets:Checking  640.00 ~ 0.01 USD
+
+; Fails: too much asserted.
+2026-01-08 balance Assets:Savings:Travel  150.00 USD
+
+; Fails: too little asserted.
+2026-01-08 balance Assets:Savings:Emergency  150.00 USD
+
+; Passes: no EUR has arrived.
+2026-01-08 balance Assets:Cash  0 EUR
+
+; Fails: USD is not a currency Assets:Cash may hold.
+2026-01-08 balance Assets:Cash  0 USD
+
+; Fails: no such account.
+2026-01-08 balance Assets:Nowhere  0 USD
+
+; Fails: before the account opens.
+2025-12-31 balance Assets:Checking  0 USD
+
+; The tolerance two decimals give: 0.007 off passes, and so does exactly 0.01 off.
+2026-01-01 open Assets:Wallet USD
+  budget: "on"
+2026-01-02 * "Into the wallet"
+  Assets:Wallet  10.007 USD
+  Income:Salary
+2026-01-03 balance Assets:Wallet  10.00 USD
+2026-01-03 * "A little more"
+  Assets:Wallet  0.003 USD
+  Income:Salary
+2026-01-04 balance Assets:Wallet  10.00 USD

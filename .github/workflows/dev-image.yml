@@ -1,0 +1,24 @@
+# CI does not use the dev image, so this checks it still builds, only when something it depends on
+# changes (Dependabot's base image updates, say).
+name: Dev image
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - tools/dev/**
+      - compose.yaml
+      - .github/workflows/dev-image.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - run: docker compose build dev

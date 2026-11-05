@@ -1,0 +1,233 @@
+# crates/branchbooks-core/tests/snapshots/budget-edges.bean
+files "crates/branchbooks-core/tests/snapshots/budget-edges.bean"
+option "operating_currency" "USD"
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 6 7 6 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 8 9 8 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 10 11 10 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 12 13 12 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 14 14 14 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 15 16 15 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 17 18 17 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 19 20 19 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 21 22 21 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 23 24 23 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 25 25 25 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 26 27 26 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 28 29 28 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 30 30 30 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 31 31 31 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 32 32 32 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 33 34 33 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 35 36 35 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 37 37 37 2026-01-01
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 39 41 39 2026-01-02
+  posting Assets:Checking 40 2000 USD 2
+  posting Equity:Opening 41 -2000 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 43 45 43 2026-01-02
+  posting Liabilities:CardA 44 -300 USD 2
+  posting Equity:Opening 45 300 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 47 50 47 2026-01-03
+  posting Income:Salary 48 -1000 USD 2
+  posting Expenses:Tax 49 200 USD 2
+  posting Assets:Checking 50 800 USD 0
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 52 52 52 2026-01-03
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 53 53 53 2026-01-03
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 54 54 54 2026-01-03
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 55 55 55 2026-01-03
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 57 61 57 2026-01-05
+  posting Expenses:Food 58 250 USD 2
+  posting Assets:Checking 59 -50 USD 2
+  posting Liabilities:CardB 60 -100 USD 2
+  posting Liabilities:CardA 61 -100 USD 2
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 63 66 63 2026-01-06
+  posting Expenses:Food 64 80 USD 2
+  posting Expenses:Fun 65 150 USD 2
+  posting Liabilities:CardB 66 -230 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 68 71 68 2026-01-07
+  posting Expenses:Fun 69 -40 USD 2
+  posting Liabilities:CardA 70 30 USD 2
+  posting Assets:Checking 71 10 USD 2
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 73 76 73 2026-01-08
+  posting Expenses:Food 74 20 USD 2
+  posting Income:Salary 75 -20 USD 2
+  posting Assets:Checking 76 0 USD 2
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 78 78 78 2026-01-09
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 79 79 79 2026-01-09
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 80 80 80 2026-01-10
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 81 81 81 2026-01-10
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 82 82 82 2026-01-10
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 83 83 83 2026-01-10
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 84 84 84 2026-01-10
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 85 85 85 2026-01-10
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 87 89 87 2026-01-11
+  posting Liabilities:CardB 88 120 USD 2
+  posting Assets:Checking 89 -120 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 91 93 91 2026-01-12
+  posting Liabilities:CardA 92 50 USD 2
+  posting Assets:Savings 93 -50 USD 2
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 95 98 95 2026-01-13
+  posting Assets:Brokerage 96 100 USD 2
+  posting Assets:Checking 98 -100 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 100 103 100 2026-01-13
+  posting Assets:Brokerage 102 10 USD 2
+  posting Assets:Checking 103 -10 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 105 108 105 2026-01-13
+  posting Assets:Brokerage 107 10 USD 2
+  posting Assets:Checking 108 -10 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 110 112 110 2026-01-14
+  posting Assets:Checking 111 75 USD 2
+  posting Assets:Brokerage 112 -75 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 114 116 114 2026-01-14
+  posting Expenses:Food 115 15 USD 2
+  posting Assets:Brokerage 116 -15 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 118 120 118 2026-01-14
+  posting Expenses:Food 119 5 EUR 2
+  posting Assets:Euro 120 -5 EUR 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 122 124 122 2026-01-15
+  posting Liabilities:Loan 123 100 USD 2
+  posting Assets:Checking 124 -100 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 126 128 126 2026-01-15
+  posting Income:Gifts 127 -40 USD 2
+  posting Assets:Savings 128 40 USD 0
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 130 130 130 2026-01-20
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 131 131 131 2026-01-20
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 132 132 132 2026-01-20
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 133 133 133 2026-01-20
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 134 134 134 2026-01-20
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 135 135 135 2026-01-20
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 136 136 136 2026-01-20
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 137 137 137 2026-01-20
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 138 138 138 2026-01-20
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 139 139 139 2026-01-20
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 140 140 140 2026-01-20
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 142 144 142 2026-01-25
+  posting Expenses:Fun 143 400 USD 2
+  posting Assets:Checking 144 -400 USD 0
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 146 146 146 2026-01-26
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 147 147 147 2026-01-26
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 149 149 149 2026-02-01
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 150 152 150 2026-02-03
+  posting Expenses:Food 151 500 USD 2
+  posting Liabilities:CardA 152 -500 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 154 156 154 2026-02-03
+  posting Expenses:Food 155 30 USD 2
+  posting Assets:Checking 156 -30 USD 0
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 158 158 158 2026-02-04
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 159 159 159 2026-02-04
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 160 160 160 2026-02-05
+entry txn "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 163 165 163 2026-03-15
+  posting Expenses:Food 164 -60 USD 2
+  posting Liabilities:CardA 165 60 USD 0
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 161 161 161 2026-04-01
+entry custom "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 162 162 162 2026-04-01
+error "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 118 currency-constraint "Invalid currency EUR for account 'Expenses:Food'"
+balance Assets:Checking USD 2065
+balance Equity:Opening USD -1700
+balance Liabilities:CardA USD -760
+balance Income:Salary USD -1020
+balance Expenses:Tax USD 200
+balance Expenses:Food USD 835
+balance Expenses:Food EUR 5
+balance Liabilities:CardB USD -210
+balance Expenses:Fun USD 510
+balance Assets:Savings USD -10
+balance Assets:Brokerage USD 30
+balance Assets:Euro EUR -5
+balance Liabilities:Loan USD 100
+balance Income:Gifts USD -40
+book-balance Assets:Checking USD 2065
+book-balance Equity:Opening USD -1700
+book-balance Liabilities:CardA USD -760
+book-balance Income:Salary USD -1020
+book-balance Expenses:Tax USD 200
+book-balance Expenses:Food USD 835
+book-balance Expenses:Food EUR 5
+book-balance Liabilities:CardB USD -210
+book-balance Expenses:Fun USD 510
+book-balance Assets:Savings USD -10
+book-balance Assets:Brokerage USD 30
+book-balance Assets:Euro EUR -5
+book-balance Liabilities:Loan USD 100
+book-balance Income:Gifts USD -40
+income 1060 expenses 1545 net -485
+  line Income:Gifts 40
+  line Income:Salary 1020
+  line Expenses:Food 835
+  line Expenses:Fun 510
+  line Expenses:Tax 200
+assets 2085 liabilities 870 equity 1700 net-worth 1215
+  line Assets:Brokerage 30
+  line Assets:Checking 2065
+  line Assets:Savings -10
+  line Liabilities:CardA 760
+  line Liabilities:CardB 210
+  line Liabilities:Loan -100
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 14 budget-flag "Assets:House has no budget flag; treated as off-budget"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 15 budget-flag "Assets:Weird: budget flag must be \"on\" or \"off\""
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 17 budget-flag "Assets:Number: budget flag must be \"on\" or \"off\""
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 28 budget-flag "Income:Odd: the only budget flag for income accounts is \"excluded\""
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 35 budget-flag "Expenses:Strange: the only budget flag for expense accounts is \"excluded\""
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 130 envelope "Expenses:Unknown is not a budgeted category or card"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 131 envelope "Assets:Checking is not a budgeted category or card"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 132 envelope "envelope-assign amount must be in USD"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 133 envelope "envelope-assign amount must be in USD"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 134 envelope "envelope-assign takes an account and an amount"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 135 envelope "envelope-assign takes an account and an amount"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 136 envelope "Expenses:Tax is not a budgeted category"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 137 envelope "Liabilities:CardA is not a budgeted category"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 138 envelope "envelope-move amount must be in USD"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 139 envelope "envelope-move takes two accounts and an amount"
+blocked "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 82 blocked "2026-01-10 envelope-assign skipped: it would leave Expenses:Rent at -1530.00"
+blocked "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 83 blocked "2026-01-10 envelope-assign skipped: it would leave Liabilities:CardA's payment envelope at -330.00"
+blocked "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 81 blocked "2026-01-10 envelope-move skipped: it would leave Expenses:Food at -1020.00"
+blocked "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 162 blocked "2026-04-01 envelope-assign skipped: it would leave Expenses:Fun at -10100.00"
+month 2026-01 USD today 2026-01-01 unassigned 11070 future -9285 cash 2085
+  category Expenses:Food 0 310 0 -330 -20 20 0
+  category Expenses:Fun 0 150 60 -510 -300 300 0
+  category Expenses:Rent 0 500 -60 -100 340 0 0
+  category Expenses:Strange 0 0 0 0 0 0 0
+  card Liabilities:CardA 70 320 250
+  card Liabilities:CardB 210 210 0
+  warning "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 78 late-correction "2026-01-09 envelope-assign into Expenses:Food corrects an overspend from spending on 2026-01-06"
+  warning "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 79 late-correction "2026-01-09 envelope-move into Expenses:Fun corrects an overspend from spending on 2026-01-06"
+  warning "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 146 late-correction "2026-01-26 envelope-assign into Expenses:Fun corrects an overspend from spending on 2026-01-25"
+  warning "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 147 late-correction "2026-01-26 envelope-move into Expenses:Fun corrects an overspend from spending on 2026-01-25"
+  flag "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 73 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 100 uncategorized "category Expenses:Tax is not a budgeted category; transfer to an off-budget account is uncategorized"
+  flag "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 105 uncategorized "transfer to an off-budget account has no category: metadata"
+  flag "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 114 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 122 uncategorized "transfer to an off-budget account has no category: metadata"
+  flag "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 82 blocked "2026-01-10 envelope-assign skipped: it would leave Expenses:Rent at -1530.00"
+  flag "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 83 blocked "2026-01-10 envelope-assign skipped: it would leave Liabilities:CardA's payment envelope at -330.00"
+  flag "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 81 blocked "2026-01-10 envelope-move skipped: it would leave Expenses:Food at -1020.00"
+month 2026-02 USD today 2026-02-01 unassigned 11070 future -9850 cash 2055
+  category Expenses:Food -20 40 0 -530 -510 10 500
+  category Expenses:Fun -300 200 0 0 -100 100 0
+  category Expenses:Rent 340 300 0 0 640 0 0
+  category Expenses:Strange 0 0 0 0 0 0 0
+  card Liabilities:CardA 70 820 750
+  card Liabilities:CardB 235 210 0
+  warning "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 158 late-correction "2026-02-04 envelope-assign into Expenses:Food corrects an overspend from spending on 2026-02-03"
+month 2026-03 USD today 2026-03-01 unassigned 11070 future -9850 cash 2055
+  category Expenses:Food -10 0 0 60 50 0 0
+  category Expenses:Fun -100 0 0 0 -100 100 0
+  category Expenses:Rent 640 0 0 0 640 0 0
+  category Expenses:Strange 0 0 0 0 0 0 0
+  card Liabilities:CardA 10 760 750
+  card Liabilities:CardB 235 210 0
+month 2026-04 USD today 2026-04-01 unassigned 1070 future 0 cash 2055
+  category Expenses:Food 50 150 0 0 200 0 0
+  category Expenses:Fun -100 0 0 0 -100 100 0
+  category Expenses:Rent 640 0 0 0 640 0 0
+  category Expenses:Strange 0 0 0 0 0 0 0
+  card Liabilities:CardA 10 760 750
+  card Liabilities:CardB 235 210 0
+  flag "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 162 blocked "2026-04-01 envelope-assign skipped: it would leave Expenses:Fun at -10100.00"
+month 2026-05 USD today 2026-05-01 unassigned 1070 future 0 cash 2055
+  category Expenses:Food 200 0 0 0 200 0 0
+  category Expenses:Fun -100 0 0 0 -100 100 0
+  category Expenses:Rent 640 0 0 0 640 0 0
+  category Expenses:Strange 0 0 0 0 0 0 0
+  card Liabilities:CardA 10 760 750
+  card Liabilities:CardB 235 210 0
+unassigned-at 2026-05-15 1070

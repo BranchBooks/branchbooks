@@ -1,0 +1,57 @@
+option "title" "BranchBooks examples 1 to 5"
+option "operating_currency" "USD"
+
+2026-10-01 open Assets:Checking USD
+  budget: "on"
+2026-10-01 open Liabilities:CreditCard USD
+  budget: "on"
+2026-10-01 open Assets:Brokerage USD
+  budget: "off"
+2026-10-01 open Income:Salary USD
+2026-10-01 open Income:Other USD
+2026-10-01 open Expenses:Tax:Federal USD
+  budget: "excluded"
+2026-10-01 open Expenses:Benefits:401k USD
+  budget: "excluded"
+2026-10-01 open Expenses:Housing:Rent USD
+2026-10-01 open Expenses:Food:Groceries USD
+2026-10-01 open Expenses:Food:Dining USD
+2026-10-01 open Expenses:Savings:Investing USD
+
+; Example 1
+2026-10-15 * "Paycheck"
+  Income:Salary            -5000.00 USD
+  Expenses:Tax:Federal       800.00 USD
+  Expenses:Benefits:401k     300.00 USD
+  Assets:Checking           3900.00 USD
+
+; Example 2
+2026-10-15 custom "envelope-assign" Expenses:Housing:Rent     1500.00 USD
+2026-10-15 custom "envelope-assign" Expenses:Food:Groceries    600.00 USD
+2026-10-15 custom "envelope-assign" Expenses:Food:Dining       200.00 USD
+
+; Example 3
+2026-10-16 * "Grocery store"
+  Expenses:Food:Groceries    120.00 USD
+  Assets:Checking           -120.00 USD
+
+2026-10-17 * "Restaurant"
+  Expenses:Food:Dining        45.00 USD
+  Liabilities:CreditCard     -45.00 USD
+
+2026-10-28 * "Card payment"
+  Liabilities:CreditCard      45.00 USD
+  Assets:Checking            -45.00 USD
+
+; Example 4
+2026-10-30 * "Bulk grocery run"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking           -500.00 USD
+
+; Example 5
+2026-11-02 custom "envelope-assign" Expenses:Savings:Investing 500.00 USD
+
+2026-11-02 * "Move to brokerage"
+  category: "Expenses:Savings:Investing"
+  Assets:Brokerage    500.00 USD
+  Assets:Checking    -500.00 USD

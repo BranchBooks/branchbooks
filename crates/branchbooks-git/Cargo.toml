@@ -1,0 +1,19 @@
+[package]
+name = "branchbooks-git"
+description = "Git backend for the BranchBooks file store (grit-lib): one commit per operation, and sync"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+branchbooks-core.workspace = true
+chrono.workspace = true
+grit-lib = { workspace = true, features = ["http-ureq"] }
+indexmap.workspace = true
+unicode-normalization.workspace = true
+
+[lints]
+workspace = true

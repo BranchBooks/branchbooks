@@ -1,0 +1,8 @@
+; Dates with no such day, in metadata and in a custom value: errors here and in Beancount.
+2026-01-01 open Assets:Cash USD
+  when: 2026-02-31
+2026-01-01 custom "target" Assets:Cash 10.00 USD
+  due: 2026-13-01
+2026-01-02 custom "note" 2026-02-30
+2026-01-03 open Assets:Bank USD
+  when: 2026-02-28

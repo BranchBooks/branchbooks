@@ -1,0 +1,207 @@
+; Opening balances as GnuCash exports them, then October and November.
+2026-10-01 * "Opening Balance"
+  Assets:Fixed-Assets:House  310000.00 USD
+  Equity:Opening-Balances   -310000.00 USD
+
+2026-10-01 * "Opening Balance"
+  Assets:Fixed-Assets:Car   18500.00 USD
+  Equity:Opening-Balances  -18500.00 USD
+
+2026-10-01 * "Current Balance"
+  Equity:Opening-Balances       254321.77 USD
+  Liabilities:Loans:Mortgage   -254321.77 USD
+
+2026-10-01 * "Current Balance"
+  Equity:Opening-Balances     9876.54 USD
+  Liabilities:Loans:Car-Loan -9876.54 USD
+
+2026-10-01 * "Current Balance"
+  Assets:Current-Assets:Escrow  3150.20 USD
+  Equity:Opening-Balances      -3150.20 USD
+
+2026-10-01 * "Current Balance"
+  Assets:Investments:Retirement:Plan-401k  41250.00 USD
+  Equity:Opening-Balances                 -41250.00 USD
+
+2026-10-22 * "Open Balance"
+  Equity:Opening-Balances                 812.45 USD
+  Liabilities:Credit-Cards:Rewards-Card  -812.45 USD
+
+2026-10-23 * "Opening Balance"
+  Assets:Current-Assets:Checking  2400.00 USD
+  Equity:Opening-Balances        -2400.00 USD
+
+2026-10-23 * "Opening Balance"
+  Assets:Current-Assets:Savings  6500.00 USD
+  Equity:Opening-Balances       -6500.00 USD
+
+2026-10-23 * "Opening Balance"
+  Assets:Current-Assets:Wallet   60.00 USD
+  Equity:Opening-Balances       -60.00 USD
+
+2026-10-24 * "Example Employer" "Paycheck"
+  Income:Salary                            -5200.00 USD
+  Expenses:Taxes:Federal                     620.00 USD
+  Expenses:Taxes:State                       210.00 USD
+  Expenses:Taxes:Social-Security             322.40 USD
+  Expenses:Taxes:Medicare                     75.40 USD
+  Expenses:Insurance:Health                  180.00 USD
+  Expenses:Insurance:Dental                   22.50 USD
+  Expenses:Insurance:Vision                    6.10 USD
+  Expenses:Insurance:Life                      9.80 USD
+  Expenses:Benefits:Commuter                  40.00 USD
+  Expenses:Benefits:Gym                       15.00 USD
+  Assets:Investments:Retirement:Plan-401k    312.00 USD
+  Assets:Current-Assets:Checking            3386.80 USD
+
+2026-10-24 custom "envelope-assign" Expenses:Taxes:Federal 620.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Taxes:State 210.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Taxes:Social-Security 322.40 USD
+2026-10-24 custom "envelope-assign" Expenses:Taxes:Medicare 75.40 USD
+2026-10-24 custom "envelope-assign" Expenses:Insurance:Health 180.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Insurance:Dental 22.50 USD
+2026-10-24 custom "envelope-assign" Expenses:Insurance:Vision 6.10 USD
+2026-10-24 custom "envelope-assign" Expenses:Insurance:Life 9.80 USD
+2026-10-24 custom "envelope-assign" Expenses:Benefits:Commuter 40.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Benefits:Gym 15.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Groceries 400.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Dining 120.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Pet:Food 80.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Pet:Vet 100.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Utilities:Electric 130.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Utilities:Water 45.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Utilities:Internet 70.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Auto:Fuel 150.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Auto:Insurance 135.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Auto:Loan 325.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Auto:Loan-Interest 45.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Housing:Mortgage 1020.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Housing:Mortgage-Interest 1110.00 USD
+2026-10-24 custom "envelope-assign" Expenses:Housing:HOA 225.00 USD
+
+2026-10-25 * "Corner Market"
+  Expenses:Groceries                     142.37 USD
+  Liabilities:Credit-Cards:Rewards-Card -142.37 USD
+
+2026-10-25 * "Pet Supply Co"
+  Expenses:Pet:Food                       64.99 USD
+  Liabilities:Credit-Cards:Rewards-Card  -64.99 USD
+
+2026-10-25 * "Noodle Bar"
+  Expenses:Dining                         38.20 USD
+  Liabilities:Credit-Cards:Rewards-Card  -38.20 USD
+
+2026-10-25 * "Fuel Stop"
+  Expenses:Auto:Fuel                      51.06 USD
+  Liabilities:Credit-Cards:Rewards-Card  -51.06 USD
+
+2026-10-25 * "City Power"
+  Expenses:Utilities:Electric      118.44 USD
+  Assets:Current-Assets:Checking  -118.44 USD
+
+2026-10-25 * "Fiber Net"
+  Expenses:Utilities:Internet       69.99 USD
+  Assets:Current-Assets:Checking   -69.99 USD
+
+2026-10-25 * "City Water"
+  Expenses:Utilities:Water          41.12 USD
+  Assets:Current-Assets:Checking   -41.12 USD
+
+2026-10-25 * "Maple Court HOA"
+  Expenses:Housing:HOA             225.00 USD
+  Assets:Current-Assets:Checking  -225.00 USD
+
+; The principal and escrow go to off-budget accounts, so the payment names the category that funds them.
+2026-10-25 * "Home Lender" "Mortgage payment"
+  category: "Expenses:Housing:Mortgage"
+  Liabilities:Loans:Mortgage                612.30 USD
+  Assets:Current-Assets:Escrow              402.15 USD
+  Expenses:Housing:Mortgage-Interest       1104.88 USD
+  Assets:Current-Assets:Checking          -2119.33 USD
+
+2026-10-25 * "Auto Finance" "Car loan payment"
+  category: "Expenses:Auto:Loan"
+  Liabilities:Loans:Car-Loan        325.00 USD
+  Expenses:Auto:Loan-Interest        41.20 USD
+  Assets:Current-Assets:Checking   -366.20 USD
+
+2026-10-25 * "Rewards Card" "Card payment"
+  Liabilities:Credit-Cards:Rewards-Card  812.45 USD
+  Assets:Current-Assets:Checking        -812.45 USD
+
+2026-10-25 * "Transfer to savings"
+  Assets:Current-Assets:Savings    300.00 USD
+  Assets:Current-Assets:Checking  -300.00 USD
+
+2026-10-25 * "Food Truck"
+  Expenses:Dining                  12.50 USD
+  Assets:Current-Assets:Wallet    -12.50 USD
+
+2026-10-26 * "Animal Clinic"
+  Expenses:Pet:Vet                        95.00 USD
+  Liabilities:Credit-Cards:Rewards-Card  -95.00 USD
+
+2026-10-26 * "Farmers Market"
+  Expenses:Groceries               33.18 USD
+  Assets:Current-Assets:Wallet    -33.18 USD
+
+2026-10-26 * "Savings interest"
+  Assets:Current-Assets:Savings     4.17 USD
+  Income:Interest                  -4.17 USD
+
+2026-10-26 * "Safe Auto"
+  Expenses:Auto:Insurance          132.60 USD
+  Assets:Current-Assets:Checking  -132.60 USD
+
+2026-11-03 * "Corner Market"
+  Expenses:Groceries                     156.02 USD
+  Liabilities:Credit-Cards:Rewards-Card -156.02 USD
+
+2026-11-04 * "Noodle Bar"
+  Expenses:Dining                         44.80 USD
+  Liabilities:Credit-Cards:Rewards-Card  -44.80 USD
+
+2026-11-05 * "Marketplace" "Sold an old bike"
+  Assets:Current-Assets:Checking   25.00 USD
+  Income:Other                    -25.00 USD
+
+2026-11-07 * "Example Employer" "Paycheck"
+  Income:Salary                            -5200.00 USD
+  Expenses:Taxes:Federal                     620.00 USD
+  Expenses:Taxes:State                       210.00 USD
+  Expenses:Taxes:Social-Security             322.40 USD
+  Expenses:Taxes:Medicare                     75.40 USD
+  Expenses:Insurance:Health                  180.00 USD
+  Expenses:Insurance:Dental                   22.50 USD
+  Expenses:Insurance:Vision                    6.10 USD
+  Expenses:Insurance:Life                      9.80 USD
+  Expenses:Benefits:Commuter                  40.00 USD
+  Expenses:Benefits:Gym                       15.00 USD
+  Assets:Investments:Retirement:Plan-401k    312.00 USD
+  Assets:Current-Assets:Checking            3386.80 USD
+
+2026-11-07 custom "envelope-assign" Expenses:Taxes:Federal 620.00 USD
+2026-11-07 custom "envelope-assign" Expenses:Taxes:State 210.00 USD
+2026-11-07 custom "envelope-assign" Expenses:Taxes:Social-Security 322.40 USD
+2026-11-07 custom "envelope-assign" Expenses:Taxes:Medicare 75.40 USD
+2026-11-07 custom "envelope-assign" Expenses:Insurance:Health 180.00 USD
+2026-11-07 custom "envelope-assign" Expenses:Insurance:Dental 22.50 USD
+2026-11-07 custom "envelope-assign" Expenses:Insurance:Vision 6.10 USD
+2026-11-07 custom "envelope-assign" Expenses:Insurance:Life 9.80 USD
+2026-11-07 custom "envelope-assign" Expenses:Benefits:Commuter 40.00 USD
+2026-11-07 custom "envelope-assign" Expenses:Benefits:Gym 15.00 USD
+2026-11-07 custom "envelope-assign" Expenses:Groceries 380.00 USD
+2026-11-07 custom "envelope-assign" Expenses:Dining 100.00 USD
+2026-11-07 custom "envelope-assign" Expenses:Utilities:Electric 110.00 USD
+2026-11-07 custom "envelope-assign" Expenses:Clothing 60.00 USD
+
+2026-11-09 * "City Power"
+  Expenses:Utilities:Electric      102.30 USD
+  Assets:Current-Assets:Checking  -102.30 USD
+
+2026-11-10 * "Home Lender" "Mortgage payment"
+  category: "Expenses:Housing:Mortgage"
+  Liabilities:Loans:Mortgage                615.12 USD
+  Assets:Current-Assets:Escrow              402.15 USD
+  Expenses:Housing:Mortgage-Interest       1102.06 USD
+  Assets:Current-Assets:Checking          -2119.33 USD

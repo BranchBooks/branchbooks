@@ -1,0 +1,28 @@
+["check","fixtures/errors/unbalanced.bean","--json"]
+--- exit 1
+--- stdout
+{
+  "balances": {
+    "Assets:Checking": {
+      "USD": "-30"
+    },
+    "Expenses:Food": {
+      "USD": "31.014"
+    }
+  },
+  "errors": [
+    {
+      "file": "<repo>/fixtures/errors/unbalanced.bean",
+      "line": 5,
+      "code": "unbalanced",
+      "message": "Transaction does not balance: (0.01 USD)"
+    },
+    {
+      "file": "<repo>/fixtures/errors/unbalanced.bean",
+      "line": 13,
+      "code": "unbalanced",
+      "message": "Transaction does not balance: (1 USD)"
+    }
+  ]
+}
+--- stderr

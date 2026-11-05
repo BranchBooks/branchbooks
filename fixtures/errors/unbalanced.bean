@@ -1,0 +1,15 @@
+option "operating_currency" "USD"
+2026-01-01 open Assets:Checking USD
+2026-01-01 open Expenses:Food USD
+
+2026-01-02 * "Off by a cent"
+  Expenses:Food      10.01 USD
+  Assets:Checking   -10.00 USD
+
+2026-01-03 * "Within tolerance"
+  Expenses:Food      10.004 USD
+  Assets:Checking   -10.00 USD
+
+2026-01-04 * "Integers, off by one"
+  Expenses:Food      11 USD
+  Assets:Checking   -10 USD

@@ -1,0 +1,170 @@
+; Edge cases for the parser and ledger. Not a fixture: real Beancount rejects some of these
+; differently. The snapshot test records what the core does with them.
+option "operating_currency" "USD"
+option "title" "Edges \"quoted\" \\ é"
+option "operating_currency" "CAD"
+option "bad"
+plugin "beancount.plugins.auto_accounts"
+plugin "some.plugin" "config"
+plugin
+* An org-mode heading
+# A hash line
+  indented outside a directive
+
+2026-01-01 open Assets:Checking USD,CAD "STRICT"
+  budget: "on"
+  number: 12
+  amount: 1,000.50 USD
+  flag: TRUE
+  off: FALSE
+  empty:
+  nothing: NULL
+  when: 2026-01-01
+  acct: Assets:Checking
+  cur: USD
+  tag: #tagged
+  budget: "off"
+2026-01-01 open Expenses:Food
+2026-01-01 open Expenses:Rent USD
+2026-01-01 open Income:Salary
+2026-01-01 open Equity:Opening
+2026-01-01 open Liabilities:Card-1 USD
+2026-01-01 open Assets:Cash USD
+  ; an indented comment
+2026-01-01 open Assets:Unicode-É
+2026-01-01 open Bogus:Root
+2026-01-01 open Assets
+2026-01-01 open Assets:Checking USD
+
+2026-01-02 txn "Payee" "Narration" #a #b ^l1 ^l2
+  note: "txn meta"
+  Expenses:Food   1,234.50 USD
+    memo: "posting meta"
+    deep: 1
+  ! Assets:Checking
+  after: "back on the txn"
+
+2026-01-02 ! "flagged"
+  * Expenses:Food   .5 USD
+  Assets:Checking  -0.50 USD
+
+2026-01-02 * "one" "two" "three"
+  Expenses:Food  1 USD
+  Assets:Checking
+
+2026-01-02 * "tag then string" #t "late"
+  Expenses:Food  1 USD
+  Assets:Checking
+
+2026-01-03 * "multi-currency fill"
+  Expenses:Food   10.00 USD
+  Expenses:Food   7.125 CAD
+  Assets:Checking
+
+2026-01-03 * "zero residual, elided posting vanishes"
+  Expenses:Food   10.00 USD
+  Assets:Checking -10.00 USD
+  Assets:Cash
+
+2026-01-03 * "trailing zeros fill"
+  Expenses:Food   10.10 USD
+  Expenses:Food   0.40 USD
+  Assets:Checking
+
+2026-01-03 * "currency constraint"
+  Expenses:Rent   5 CAD
+  Expenses:Rent   5 CAD
+  Assets:Checking
+
+2026-01-03 * "unknown and repeated accounts"
+  Expenses:Nowhere   5 USD
+  Expenses:Nowhere   5 USD
+  Assets:Checking
+
+2026-01-03 * "tiny residual"
+  Expenses:Food   0.00000001 USD
+  Assets:Checking  0 USD
+
+2026-01-03 * "tolerance from the coarsest scale"
+  Expenses:Food   10.004 USD
+  Assets:Checking -10.0 USD
+
+2026-01-03 * "cost"
+  Expenses:Food   1 HOOL {10.00 USD}
+  Assets:Checking
+
+2026-01-03 * "price"
+  Expenses:Food   1 HOOL @ 10.00 USD
+  Assets:Checking
+
+2026-01-03 * "number without currency"
+  Expenses:Food   10.00
+  Assets:Checking
+
+2026-01-03 open Assets:Posting
+  Assets:Checking  1 USD
+
+2026-01-04 custom "envelope-assign" Expenses:Food 600.00 USD
+2026-01-04 custom "values" "s" Assets:Cash 2026-01-04 12 TRUE FALSE 5.00 USD
+2026-01-04 custom "bad value" NULL
+2026-01-04 custom "bad account" Bogus:Thing
+2026-01-04 custom "envelope-assign" Expenses:Unopened 1.00 USD
+2026-01-04 custom
+2026-01-04 custom "meta"
+  key: "value"
+
+2026-01-05 commodity USD
+2026-01-05 price USD 1.35 CAD
+2026-01-05 event "location" "Home"
+2026-01-05 note Assets:Checking "a note"
+2026-01-05 document Assets:Checking "/x.pdf"
+2026-01-05 query "q" "SELECT 1"
+2026-01-05 balance Assets:Checking 0 USD
+2026-01-05 pad Assets:Checking Equity:Opening
+pushtag #x
+poptag #x
+pushmeta k: "v"
+popmeta k:
+nonsense
+2026-01-05 nonsense
+2026-01-05 @
+2026-01-05
+
+2026-02-30 * "bad date"
+2026-13-01 * "bad month"
+2024-02-29 * "leap day"
+  Expenses:Food  1 USD
+  Assets:Checking
+2026-01-0 * "short date"
+2026-01-06 * "unterminated
+2026-01-06 * "bad input" %%%%
+2026-01-06 * "bad input" %xxxxxxxxxxxxxxxxxx😀 tail
+2026-01-06 * "escape" "a\tb\nc\"d"
+  key:value
+2026-01-06 * "posting errors skip the rest"
+  Expenses:Food  1 USD USD
+  Assets:Checking
+  key: "skipped"
+  Expenses:Food  1 USD USD
+
+2026-01-07 close Assets:Cash
+2026-01-07 close Assets:Cash
+2026-01-07 close Assets:Never
+2026-01-08 * "after close"
+  Assets:Cash  1 USD
+  Assets:Checking
+
+2026-01-08 * "two auto postings"
+  Expenses:Food  1 USD
+  Assets:Checking
+  Assets:Cash
+  Expenses:Rent
+
+include "missing.bean"
+include "syntax-edges.bean"
+include "edges/inner.bean"
+include "edges/inner.bean"
+include
+2026-01-09 * "after the includes"
+  Expenses:Food  2 USD
+  Assets:Checking

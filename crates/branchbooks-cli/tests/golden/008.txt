@@ -1,0 +1,6 @@
+["check","fixtures/errors/opens.bean"]
+--- exit 1
+--- stdout
+<repo>/fixtures/errors/opens.bean:2: duplicate-open: Duplicate open directive for Assets:Checking
+<repo>/fixtures/errors/opens.bean:3: close-unopened: Unopened account Assets:Savings is being closed
+--- stderr

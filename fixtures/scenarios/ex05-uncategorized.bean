@@ -1,0 +1,18 @@
+; Example 5 variant: the transfer to the brokerage has no category line, so it is flagged.
+option "title" "Uncategorized off-budget transfer"
+option "operating_currency" "USD"
+
+2026-10-01 open Assets:Checking USD
+  budget: "on"
+2026-10-01 open Assets:Brokerage USD
+  budget: "off"
+2026-10-01 open Income:Salary USD
+2026-10-01 open Expenses:Savings:Investing USD
+
+2026-10-15 * "Paycheck"
+  Income:Salary            -1000.00 USD
+  Assets:Checking
+
+2026-11-02 * "Move to brokerage"
+  Assets:Brokerage    500.00 USD
+  Assets:Checking    -500.00 USD

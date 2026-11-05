@@ -1,0 +1,13 @@
+["budget","fixtures/errors/opens.bean","--month","2026-11","--today","2026-11-30"]
+--- exit 1
+--- stdout
+Budget for 2026-11 (USD); Unassigned as of 2026-11-30
+
+Envelope      Carried     Assigned        Moved     Activity    Available  Overspent
+
+Assigned to future months         0.00
+Unassigned         0.00
+--- stderr
+error: <repo>/fixtures/errors/opens.bean:2: Duplicate open directive for Assets:Checking
+error: <repo>/fixtures/errors/opens.bean:3: Unopened account Assets:Savings is being closed
+budget: <repo>/fixtures/errors/opens.bean:1: Assets:Checking has no budget flag; treated as off-budget

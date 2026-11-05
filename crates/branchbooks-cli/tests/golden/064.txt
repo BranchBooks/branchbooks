@@ -1,0 +1,12 @@
+["check","fixtures/scenarios/sim5-assign-then-move.bean"]
+--- exit 0
+--- stdout
+Assets:Brokerage                                    500 USD
+Assets:Checking                                    2735 USD
+Expenses:Benefits:401k                              300 USD
+Expenses:Food:Dining                                 45 USD
+Expenses:Food:Groceries                             620 USD
+Expenses:Tax:Federal                                800 USD
+Income:Salary                                     -5000 USD
+Liabilities:CreditCard                                0 USD
+--- stderr

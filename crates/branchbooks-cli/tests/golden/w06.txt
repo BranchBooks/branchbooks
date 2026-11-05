@@ -1,0 +1,6 @@
+["close","<dir>","--date","2026-02-01","--account","Expenses:Fun","--op-id","w6"]
+--- exit 0
+--- stdout
+committed <hash>  close-account  Op-Id w6
+changed: main.beancount; entry at main.beancount:18
+--- stderr

@@ -1,0 +1,19 @@
+["budget","fixtures/errors/accounts.bean","--month","2026-11","--today","2026-11-30"]
+--- exit 1
+--- stdout
+Budget for 2026-11 (USD); Unassigned as of 2026-11-30
+
+Envelope             Carried     Assigned        Moved     Activity    Available  Overspent
+Expenses:Closed         0.00         0.00         0.00         0.00         0.00
+Expenses:Food           0.00         0.00         0.00         0.00         0.00
+
+Assigned to future months         0.00
+Unassigned              0.00
+--- stderr
+error: <repo>/fixtures/errors/accounts.bean:7: Invalid reference to inactive account 'Expenses:Food'
+error: <repo>/fixtures/errors/accounts.bean:11: Invalid reference to unknown account 'Expenses:Nowhere'
+error: <repo>/fixtures/errors/accounts.bean:19: Invalid reference to inactive account 'Expenses:Closed'
+error: <repo>/fixtures/errors/accounts.bean:25: Invalid currency EUR for account 'Assets:Checking'
+error: <repo>/fixtures/errors/accounts.bean:25: Invalid currency EUR for account 'Expenses:Food'
+budget: <repo>/fixtures/errors/accounts.bean:2: Assets:Checking has no budget flag; treated as off-budget
+budget: <repo>/fixtures/errors/accounts.bean:23: Expenses:Unopened is not a budgeted category or card

@@ -1,0 +1,7 @@
+; Example 10: a deposit that is partly a grocery reimbursement and partly other income.
+include "../examples-1-5.bean"
+
+2026-11-04 * "Roommate" "Groceries share plus extra"
+  Assets:Checking           200.00 USD
+  Expenses:Food:Groceries  -150.00 USD
+  Income:Other              -50.00 USD

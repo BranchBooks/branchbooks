@@ -1,0 +1,6 @@
+; A scenario on targets.bean: from March, the car is due in December instead of June. Merging it
+; adopts the new rule from its date; January and February stay as they were (T1).
+include "targets.bean"
+
+2026-03-01 custom "target" Expenses:Savings:CarFund 6000.00 USD
+  due: 2026-12-01

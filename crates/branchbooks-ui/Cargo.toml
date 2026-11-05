@@ -1,0 +1,43 @@
+[package]
+name = "branchbooks-ui"
+description = "The BranchBooks app (Dioxus): books in git, synced to a remote; Windows and Android"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+branchbooks-core.workspace = true
+branchbooks-git.workspace = true
+branchbooks-gnucash.workspace = true
+chrono.workspace = true
+dioxus = "=0.7.10"
+indexmap.workspace = true
+rust_decimal.workspace = true
+uuid.workspace = true
+# Clone and sync run off the UI thread (spawn_blocking), on the runtime the app already has.
+tokio = { workspace = true, features = ["rt", "time"] }
+
+# A book's token, in Windows Credential Manager.
+[target.'cfg(windows)'.dependencies]
+keyring-core = "1.0.1"
+windows-native-keyring-store = "1.1.0"
+# Install and update on Windows. vpk in .github/workflows/release.yml must be the same version.
+velopack = "=1.3.39-g8d2844f"
+
+[features]
+# The Windows app: tools\windows\build.ps1 (`desktop`, for x86_64-pc-windows-msvc). Android: dx
+# turns on `mobile` (`dx bundle --platform android`).
+mobile = ["dioxus/mobile"]
+desktop = ["dioxus/desktop"]
+
+[lints]
+workspace = true
+
+# Screens drawn to HTML in plain `cargo test` (tests/render.rs).
+[dev-dependencies]
+dioxus-core = "=0.7.10"
+dioxus-ssr = "=0.7.10"
+tokio = { workspace = true, features = ["time", "macros"] }

@@ -1,0 +1,6 @@
+["open","<dir>","--date","2026-01-05","--account","Assets:Euro","--currency","EUR","--currency","GBP","--budget","off","--op-id","w5"]
+--- exit 0
+--- stdout
+committed <hash>  open-account  Op-Id w5
+changed: main.beancount; entry at main.beancount:16
+--- stderr

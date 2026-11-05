@@ -1,0 +1,8 @@
+["check","fixtures/errors/syntax.bean"]
+--- exit 1
+--- stdout
+<repo>/fixtures/errors/syntax.bean:9: syntax: unexpected "USD" after posting
+<repo>/fixtures/errors/syntax.bean:12: syntax: unknown directive "bogus"
+Assets:Checking                                      -3 USD
+Expenses:Food                                         3 USD
+--- stderr

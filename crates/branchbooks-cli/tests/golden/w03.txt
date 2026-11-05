@@ -1,0 +1,6 @@
+["txn","<dir>","--date","2026-01-04","--payee","Shop","--narration","Snacks","--posting","Expenses:Food:Groceries 7.25 USD","--posting","Assets:Checking","--meta","note=hi","--op-id","w3"]
+--- exit 0
+--- stdout
+committed <hash>  add-transaction  Op-Id w3
+changed: 2026.beancount; entry at 2026.beancount:8
+--- stderr

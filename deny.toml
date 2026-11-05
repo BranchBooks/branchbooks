@@ -1,0 +1,70 @@
+# cargo deny: advisories, licences, banned crates and where crates may come from.
+
+[advisories]
+# Unmaintained crates fail only when we depend on them directly. Dioxus's tree has some that only
+# Dioxus can replace.
+unmaintained = "workspace"
+yanked = "deny"
+
+[licenses]
+# Permissive only, so BranchBooks can always be relicensed by its owner. A crate offering
+# a choice, such as MIT OR LGPL, passes on its permissive option.
+allow = [
+    "0BSD",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+unused-allowed-license = "allow"
+# Named crates from Dioxus's tree, none used directly and none modified. MPL-2.0 is copyleft per file:
+# it does not reach BranchBooks' code and is compatible with the GPL. NCSA is permissive. A new crate
+# under anything else fails until someone decides.
+exceptions = [
+    { allow = ["MPL-2.0"], crate = "cssparser" },
+    { allow = ["MPL-2.0"], crate = "cssparser-macros" },
+    { allow = ["MPL-2.0"], crate = "dtoa-short" },
+    { allow = ["MPL-2.0"], crate = "option-ext" },
+    { allow = ["MPL-2.0"], crate = "selectors" },
+    { allow = ["NCSA"], crate = "libfuzzer-sys" },
+]
+
+[licenses.private]
+# BranchBooks' own crates are GPL-3.0-only.
+ignore = true
+
+[bans]
+multiple-versions = "allow"
+# A reference only, never linked (CLAUDE.md). Its licence alone would fail above; this
+# says why, if it is ever proposed.
+deny = [
+    { name = "rustledger" },
+    { name = "rustledger-booking" },
+    { name = "rustledger-budget" },
+    { name = "rustledger-completion" },
+    { name = "rustledger-core" },
+    { name = "rustledger-ffi-wasi" },
+    { name = "rustledger-importer" },
+    { name = "rustledger-loader" },
+    { name = "rustledger-lsp" },
+    { name = "rustledger-ops" },
+    { name = "rustledger-parser" },
+    { name = "rustledger-plugin" },
+    { name = "rustledger-plugin-types" },
+    { name = "rustledger-query" },
+    { name = "rustledger-returns" },
+    { name = "rustledger-validate" },
+    { name = "rustledger-wasm" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

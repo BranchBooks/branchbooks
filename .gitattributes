@@ -1,0 +1,3 @@
+* text=auto eol=lf
+# Kept byte for byte: the parser snapshot tests need its CRLF line endings.
+crates/branchbooks-core/tests/snapshots/edges/deeper.bean -text

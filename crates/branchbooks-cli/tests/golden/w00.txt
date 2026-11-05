@@ -1,0 +1,6 @@
+["assign","<dir>","--date","2026-01-02","--category","Expenses:Food:Groceries","--amount","50.00","--op-id","w1"]
+--- exit 0
+--- stdout
+committed <hash>  assign  Op-Id w1
+changed: 2026.beancount; entry at 2026.beancount:5
+--- stderr

@@ -1,0 +1,146 @@
+; A synthetic ledger shaped like a real one imported from GnuCash: every account opened on the day of
+; the import with its GnuCash name as metadata, budget flags on the cash, card and loan accounts only
+; (every expense is a budgeted category), opening balances, a paycheck split thirteen ways, and the
+; month's envelope assignments in the year file. The accounts, amounts and payees are invented.
+option "title" "GnuCash import"
+option "operating_currency" "USD"
+
+include "2026.beancount"
+
+2026-10-01 open Assets:Current-Assets:Wallet USD
+  budget: "on"
+  gnucash: "Wallet"
+
+2026-10-01 open Assets:Current-Assets:Checking USD
+  budget: "on"
+  gnucash: "Checking"
+
+2026-10-01 open Assets:Current-Assets:Savings USD
+  budget: "on"
+  gnucash: "Savings"
+
+2026-10-01 open Assets:Current-Assets:Escrow USD
+  budget: "off"
+  gnucash: "Escrow"
+
+2026-10-01 open Assets:Current-Assets:Reimbursements-Receivable USD
+  budget: "off"
+  gnucash: "Reimbursements Receivable"
+
+2026-10-01 open Assets:Fixed-Assets:House USD
+  budget: "off"
+  gnucash: "House"
+
+2026-10-01 open Assets:Fixed-Assets:Car USD
+  budget: "off"
+  gnucash: "Car"
+
+2026-10-01 open Assets:Investments:Retirement:Plan-401k USD
+  budget: "off"
+  gnucash: "401k Plan"
+
+2026-10-01 open Liabilities:Credit-Cards:Rewards-Card USD
+  budget: "on"
+  gnucash: "Rewards Card"
+
+2026-10-01 open Liabilities:Credit-Cards:Store-Card USD
+  budget: "off"
+  gnucash: "Store Card"
+
+2026-10-01 open Liabilities:Loans:Mortgage USD
+  budget: "off"
+  gnucash: "Mortgage"
+
+2026-10-01 open Liabilities:Loans:Car-Loan USD
+  budget: "off"
+  gnucash: "Car Loan"
+
+2026-10-01 open Equity:Opening-Balances USD
+  gnucash: "Opening Balances"
+
+2026-10-01 open Income:Salary USD
+  gnucash: "Salary"
+
+2026-10-01 open Income:Interest USD
+  gnucash: "Interest"
+
+2026-10-01 open Income:Other USD
+  gnucash: "Other Income"
+
+2026-10-01 open Income:Bonus:Annual USD
+  gnucash: "Annual Bonus"
+
+2026-10-01 open Expenses:Groceries USD
+  gnucash: "Groceries"
+
+2026-10-01 open Expenses:Dining USD
+  gnucash: "Dining"
+
+2026-10-01 open Expenses:Pet:Food USD
+  gnucash: "Pet Food"
+
+2026-10-01 open Expenses:Pet:Vet USD
+  gnucash: "Vet"
+
+2026-10-01 open Expenses:Utilities:Electric USD
+  gnucash: "Electric"
+
+2026-10-01 open Expenses:Utilities:Water USD
+  gnucash: "Water"
+
+2026-10-01 open Expenses:Utilities:Internet USD
+  gnucash: "Internet"
+
+2026-10-01 open Expenses:Auto:Fuel USD
+  gnucash: "Fuel"
+
+2026-10-01 open Expenses:Auto:Insurance USD
+  gnucash: "Auto Insurance"
+
+2026-10-01 open Expenses:Auto:Loan USD
+  gnucash: "Car Loan Payment"
+
+2026-10-01 open Expenses:Auto:Loan-Interest USD
+  gnucash: "Car Loan Interest"
+
+2026-10-01 open Expenses:Housing:Mortgage USD
+  gnucash: "Mortgage Payment"
+
+2026-10-01 open Expenses:Housing:Mortgage-Interest USD
+  gnucash: "Mortgage Interest"
+
+2026-10-01 open Expenses:Housing:HOA USD
+  gnucash: "HOA"
+
+2026-10-01 open Expenses:Taxes:Federal USD
+  gnucash: "Federal Tax"
+
+2026-10-01 open Expenses:Taxes:State USD
+  gnucash: "State Tax"
+
+2026-10-01 open Expenses:Taxes:Social-Security USD
+  gnucash: "Social Security"
+
+2026-10-01 open Expenses:Taxes:Medicare USD
+  gnucash: "Medicare"
+
+2026-10-01 open Expenses:Insurance:Health USD
+  gnucash: "Health Insurance"
+
+2026-10-01 open Expenses:Insurance:Dental USD
+  gnucash: "Dental Insurance"
+
+2026-10-01 open Expenses:Insurance:Vision USD
+  gnucash: "Vision Insurance"
+
+2026-10-01 open Expenses:Insurance:Life USD
+  gnucash: "Life Insurance"
+
+2026-10-01 open Expenses:Benefits:Commuter USD
+  gnucash: "Commuter Benefit"
+
+2026-10-01 open Expenses:Benefits:Gym USD
+  gnucash: "Gym"
+
+2026-10-01 open Expenses:Clothing USD
+  gnucash: "Clothing"

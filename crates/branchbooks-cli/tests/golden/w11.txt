@@ -1,0 +1,11 @@
+["log","<dir>"]
+--- exit 0
+--- stdout
+<hash>  close-account    Close Expenses:Fun on 2026-02-01  [w6]
+<hash>  open-account     Open Assets:Euro on 2026-01-05  [w5]
+<hash>  open-account     Open Expenses:Fun on 2026-01-05  [w4]
+<hash>  add-transaction  Transaction 2026-01-04 "Shop: Snacks"  [w3]
+<hash>  move             Move 5 USD from Expenses:Food:Groceries to Expenses:Housing:Rent on 2026-01-03  [w2]
+<hash>  assign           Assign 50.00 USD to Expenses:Food:Groceries on 2026-01-02  [w1]
+<hash>  -                Initial ledger
+--- stderr

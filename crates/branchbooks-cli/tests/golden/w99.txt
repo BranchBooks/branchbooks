@@ -1,0 +1,6 @@
+["delete","<dir>","--at","2026.beancount:8","--op-id","w8"]
+--- exit 0
+--- stdout
+committed <hash>  delete-transaction  Op-Id w8
+changed: 2026.beancount
+--- stderr

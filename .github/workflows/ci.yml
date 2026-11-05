@@ -1,0 +1,205 @@
+# Everything runs directly on GitHub's runners, which come with git and rustup, so there is no image
+# to build. rust-cache keeps the downloaded crates and the compiled dependencies between runs; only main
+# saves them, and branches and tags reuse its, so branches do not fill GitHub's 10 GB of cache.
+#
+# Actions are pinned to full commit SHAs, which Dependabot updates, so nobody can change what runs here
+# by moving a tag. Rulesets should require the `ci-ok` job, not the jobs under it, which a docs-only
+# change skips.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  # The merge with main, and pull requests from forks, whose token can only read.
+  pull_request:
+  workflow_dispatch:
+  # A version tag runs these from release.yml, before it publishes.
+  workflow_call:
+  # Weekly, so an advisory published while nothing is pushed still turns main red.
+  schedule:
+    - cron: "0 6 * * 1"
+
+# A new push replaces a branch's older run. main keeps every run, so each merge gets its own result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # Whether this run needs the checks: not when only documents changed, since nothing compiled reads them.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          code=true
+          case "$GITHUB_EVENT_NAME:$GITHUB_REF_TYPE" in
+            pull_request:* | push:branch)
+              if git cat-file -e "$BASE^{commit}" 2>/dev/null \
+                && ! git diff --name-only "$BASE" "$GITHUB_SHA" | grep -qvE '\.md$|^LICENSE$'; then
+                code=false
+              fi
+              ;;
+          esac
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+  # Format, lints, docs, tests, cargo deny, and the oracle (real Beancount 3.2.3, a separate program
+  # never linked to BranchBooks).
+  rust:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: No npm (CLAUDE.md)
+        run: |
+          if git ls-files | grep -E '(^|/)(package\.json|package-lock\.json|node_modules/)'; then
+            exit 1
+          fi
+      # Each version is kept in two files, and nothing else fails when they drift: CI does not build
+      # Android, the only thing dx is for.
+      - name: Tool versions match
+        run: |
+          same() {
+            test -n "$2" && test "$2" = "$3" || {
+              echo "::error::$1: $tools has '$2', $4 has '$3'. Change them to match."
+              exit 1
+            }
+          }
+          tools=tools/dev/rust-tools.sh
+          ui=crates/branchbooks-ui/Cargo.toml
+          same DX_VERSION "$(sed -n 's/^DX_VERSION=//p' $tools)" "$(sed -n 's/^dioxus = "=\(.*\)"/\1/p' $ui)" $ui
+          same RUST_VERSION "$(sed -n 's/^RUST_VERSION=//p' $tools)" "$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)" rust-toolchain.toml
+          tools=.github/workflows/release.yml
+          same VELOPACK "$(sed -n 's/^  VPK_VERSION: //p' $tools)" "$(sed -n 's/^velopack = "=\(.*\)"/\1/p' $ui)" $ui
+      - name: Install the toolchain in rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Install cargo-deny
+        run: CARGO_HOME=$HOME/.cargo sh tools/dev/rust-tools.sh deny
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo doc --no-deps --locked --workspace
+        env:
+          RUSTDOCFLAGS: -D warnings
+      - run: cargo test --locked
+      - run: cargo deny --all-features --locked check
+      # Python as in the dev image, and Beancount and its dependencies at the versions the image uses.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        id: python
+        with:
+          python-version: "3.13"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: tools/oracle/.venv
+          key: beancount-${{ steps.python.outputs.python-version }}-${{ hashFiles('tools/dev/oracle-requirements.txt') }}
+      - name: Install Beancount, unless cached
+        run: |
+          tools/oracle/.venv/bin/python -c 'import beancount' 2>/dev/null || {
+            python -m venv --clear tools/oracle/.venv
+            tools/oracle/.venv/bin/pip install -r tools/dev/oracle-requirements.txt
+          }
+      - run: cargo run -q --locked -p branchbooks-oracle
+
+  # The Windows-only code's lints, and the tests on real Windows with the target the app ships on, for
+  # what Linux cannot show: paths, line endings and Windows-only code. Not on the weekly schedule,
+  # which only looks for advisories.
+  windows-tests:
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'schedule'
+    runs-on: windows-2025
+    timeout-minutes: 60
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install the toolchain in rust-toolchain.toml
+        run: |
+          rustup toolchain install
+          rustup target add x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: cargo clippy -p branchbooks-ui --features desktop --target x86_64-pc-windows-msvc --locked -- -D warnings
+      - run: cargo test --locked --no-fail-fast --target x86_64-pc-windows-msvc
+
+  # The one result a ruleset requires: passes when the checks passed or had nothing to check.
+  ci-ok:
+    needs: [changes, rust, windows-tests]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          case "$RESULTS" in
+            *failure* | *cancelled*) exit 1 ;;
+          esac
+
+  # What CLAUDE.md says must keep passing but is too slow for every push: the benchmark, beside
+  # Beancount's reference times, and the budget rules' reference simulations.
+  slow-checks:
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.workflow == 'CI'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install the toolchain in rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: python3 -I reference/sim4.py
+      - run: python3 -I reference/sim5.py
+      - run: cargo bench --locked -p branchbooks-core
+
+  # The Windows app (tools/windows/build.ps1): one BranchBooks.exe, to download from the run. Only by
+  # hand, since the optimised build is slow and the tests have already compiled the same code.
+  windows:
+    needs: [rust, windows-tests]
+    if: github.event_name == 'workflow_dispatch' && github.workflow == 'CI'
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install the toolchain in rust-toolchain.toml
+        run: |
+          rustup toolchain install
+          rustup target add x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          shared-key: windows-app
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: tools/windows/build.ps1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: BranchBooks-windows-${{ github.sha }}
+          path: dist/windows/
+          retention-days: 30
+          if-no-files-found: error

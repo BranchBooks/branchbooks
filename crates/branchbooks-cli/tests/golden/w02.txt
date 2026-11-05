@@ -1,0 +1,6 @@
+["move","<dir>","--date","2026-01-03","--from","Expenses:Food:Groceries","--to","Expenses:Housing:Rent","--amount","5","--op-id","w2"]
+--- exit 0
+--- stdout
+committed <hash>  move  Op-Id w2
+changed: 2026.beancount; entry at 2026.beancount:6
+--- stderr

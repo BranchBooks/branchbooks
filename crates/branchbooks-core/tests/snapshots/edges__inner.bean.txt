@@ -1,0 +1,23 @@
+# crates/branchbooks-core/tests/snapshots/edges/inner.bean
+files "crates/branchbooks-core/tests/snapshots/edges/inner.bean" "crates/branchbooks-core/tests/snapshots/edges/deeper.bean"
+option "operating_currency" "EUR"
+entry open "crates/branchbooks-core/tests/snapshots/edges/inner.bean" 2 3 2 2026-01-02
+entry txn "crates/branchbooks-core/tests/snapshots/edges/inner.bean" 4 6 4 2026-01-02
+  posting Assets:Inner 5 3 USD 0
+  posting Assets:Checking 6 -3 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/edges/deeper.bean" 1 3 10000001 2026-01-02
+  posting Assets:Inner 2 4 USD 0
+  posting Assets:Checking 3 -4 USD 0
+error "crates/branchbooks-core/tests/snapshots/edges/deeper.bean" 1 unknown-account "Invalid reference to unknown account 'Assets:Checking'"
+error "crates/branchbooks-core/tests/snapshots/edges/deeper.bean" 4 syntax "unknown directive \"oops\""
+error "crates/branchbooks-core/tests/snapshots/edges/inner.bean" 4 unknown-account "Invalid reference to unknown account 'Assets:Checking'"
+balance Assets:Inner USD 7
+balance Assets:Checking USD -7
+book-balance Assets:Inner USD 7
+book-balance Assets:Checking USD -7
+income 0 expenses 0 net 0
+assets 0 liabilities 0 equity 0 net-worth 0
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/edges/inner.bean" 2 budget-flag "Assets:Inner has no budget flag; treated as off-budget"
+month 2026-01 EUR today 2026-01-01 unassigned 0 future 0 cash 0
+month 2026-02 EUR today 2026-02-01 unassigned 0 future 0 cash 0
+unassigned-at 2026-02-15 0

@@ -1,0 +1,33 @@
+# fixtures/errors/unbalanced.bean
+files "fixtures/errors/unbalanced.bean"
+option "operating_currency" "USD"
+entry open "fixtures/errors/unbalanced.bean" 2 2 2 2026-01-01
+entry open "fixtures/errors/unbalanced.bean" 3 3 3 2026-01-01
+entry txn "fixtures/errors/unbalanced.bean" 5 7 5 2026-01-02
+  posting Expenses:Food 6 10.01 USD 2
+  posting Assets:Checking 7 -10 USD 2
+entry txn "fixtures/errors/unbalanced.bean" 9 11 9 2026-01-03
+  posting Expenses:Food 10 10.004 USD 3
+  posting Assets:Checking 11 -10 USD 2
+entry txn "fixtures/errors/unbalanced.bean" 13 15 13 2026-01-04
+  posting Expenses:Food 14 11 USD 0
+  posting Assets:Checking 15 -10 USD 0
+error "fixtures/errors/unbalanced.bean" 5 unbalanced "Transaction does not balance: (0.01 USD)"
+error "fixtures/errors/unbalanced.bean" 13 unbalanced "Transaction does not balance: (1 USD)"
+balance Expenses:Food USD 31.014
+balance Assets:Checking USD -30
+book-balance Expenses:Food USD 31.014
+book-balance Assets:Checking USD -30
+income 0 expenses 31.014 net -31.014
+  line Expenses:Food 31.014
+assets -30 liabilities 0 equity 0 net-worth -30
+  line Assets:Checking -30
+budget-diagnostic "fixtures/errors/unbalanced.bean" 2 budget-flag "Assets:Checking has no budget flag; treated as off-budget"
+month 2026-01 USD today 2026-01-01 unassigned 0 future 0 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  flag "fixtures/errors/unbalanced.bean" 5 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "fixtures/errors/unbalanced.bean" 9 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "fixtures/errors/unbalanced.bean" 13 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+month 2026-02 USD today 2026-02-01 unassigned 0 future 0 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+unassigned-at 2026-02-15 0

@@ -1,0 +1,124 @@
+//! Words and numbers for people.
+
+use branchbooks_core::date::{Date, Month};
+use rust_decimal::{Decimal, RoundingStrategy};
+
+/// Two decimals with thousands separators: "1,050.00". Never "-0.00".
+pub fn fmt(value: Decimal) -> String {
+    let rounded = value.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
+    let fixed = format!("{rounded:.2}");
+    let (negative, body) = match fixed.strip_prefix('-') {
+        Some(rest) => (true, rest),
+        None => (false, fixed.as_str()),
+    };
+    let (int, frac) = body.split_once('.').unwrap_or((body, "00"));
+    let mut grouped = String::new();
+    for (i, c) in int.chars().enumerate() {
+        if i > 0 && (int.len() - i) % 3 == 0 {
+            grouped.push(',');
+        }
+        grouped.push(c);
+    }
+    let out = format!("{grouped}.{frac}");
+    if negative && out.chars().any(|c| ('1'..='9').contains(&c)) {
+        format!("-{out}")
+    } else {
+        out
+    }
+}
+
+/// "Expenses:Food:Dining" -> "Food:Dining".
+pub fn short(account: &str) -> &str {
+    ["Expenses:", "Liabilities:", "Assets:", "Income:", "Equity:"]
+        .iter()
+        .find_map(|p| account.strip_prefix(p))
+        .unwrap_or(account)
+}
+
+/// A name part for people: "Repair-And-Maintenance" -> "Repair And Maintenance".
+pub fn words(part: &str) -> String {
+    part.replace('-', " ")
+}
+
+const MONTHS: [&str; 12] = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
+
+/// "2026-01" -> "January 2026".
+pub fn month_label(month: Month) -> String {
+    let name = MONTHS[usize::from(month.number()) - 1];
+    format!("{name} {:04}", month.year())
+}
+
+/// Envelope entries for a month are dated today in the current month, else at its edge.
+pub fn envelope_date(month: Month, today: Date) -> Date {
+    match month.cmp(&today.month()) {
+        std::cmp::Ordering::Equal => today,
+        std::cmp::Ordering::Greater => month.first_day(),
+        std::cmp::Ordering::Less => month.last_day(),
+    }
+}
+
+/// More than 50 years from `today`: a mistyped year, not a date anyone means.
+pub fn is_far_date(date: Date, today: Date) -> bool {
+    (date.year() - today.year()).abs() > 50
+}
+
+/// "20" -> "20.00", "1,050.5" -> "1050.50"; anything with more decimals, or not a plain number,
+/// is left for the write path to judge.
+pub fn norm_amount(text: &str) -> String {
+    let t = text.trim().replace(',', "");
+    let digits = t.strip_prefix('-').unwrap_or(&t);
+    let (int, frac) = digits.split_once('.').unwrap_or((digits, ""));
+    let plain = !int.is_empty()
+        && int.bytes().all(|b| b.is_ascii_digit())
+        && frac.len() <= 2
+        && frac.bytes().all(|b| b.is_ascii_digit());
+    match Decimal::from_str_exact(&t) {
+        Ok(d) if plain => format!("{d:.2}"),
+        _ => t,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn formats_money_and_months() {
+        let d = |s| Decimal::from_str(s).unwrap();
+        assert_eq!(fmt(d("1050")), "1,050.00");
+        assert_eq!(fmt(d("-1234567.5")), "-1,234,567.50");
+        assert_eq!(fmt(d("-0.001")), "0.00");
+        assert_eq!(fmt(d("999.995")), "1,000.00");
+        let (m, day) = (
+            |s: &str| s.parse::<Month>().unwrap(),
+            |s: &str| s.parse::<Date>().unwrap(),
+        );
+        assert_eq!(month_label(m("2026-01")), "January 2026");
+        let today = day("2026-10-27");
+        assert_eq!(envelope_date(m("2026-10"), today), today);
+        assert_eq!(envelope_date(m("2026-11"), today), day("2026-11-01"));
+        assert_eq!(envelope_date(m("2026-02"), today), day("2026-02-28"));
+        assert!(!is_far_date(day("2076-12-31"), today) && !is_far_date(day("1976-01-01"), today));
+        assert!(is_far_date(day("2077-01-01"), today) && is_far_date(day("0026-10-27"), today));
+        assert_eq!(short("Expenses:Food:Dining"), "Food:Dining");
+        assert_eq!(norm_amount(" 20 "), "20.00");
+        assert_eq!(norm_amount("1,050.5"), "1050.50");
+        assert_eq!(norm_amount("-3.25"), "-3.25");
+        assert_eq!(norm_amount("1.005"), "1.005");
+        assert_eq!(norm_amount("abc"), "abc");
+    }
+}

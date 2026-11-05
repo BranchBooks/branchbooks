@@ -1,0 +1,5 @@
+["check","fixtures/missing.bean"]
+--- exit 1
+--- stdout
+<repo>/fixtures/missing.bean:0: include: File not found: <repo>/fixtures/missing.bean
+--- stderr

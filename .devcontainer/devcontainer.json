@@ -1,0 +1,12 @@
+// VS Code works inside the dev service from compose.yaml, so the integrated terminal has Rust
+// and Beancount.
+// Needs the Dev Containers extension: "Dev Containers: Reopen in Container", which builds the image.
+{
+  "name": "BranchBooks",
+  "dockerComposeFile": "../compose.yaml",
+  "service": "dev",
+  "runServices": ["dev"],
+  "workspaceFolder": "/src",
+  // Leave the dev container running when the window closes.
+  "shutdownAction": "none"
+}

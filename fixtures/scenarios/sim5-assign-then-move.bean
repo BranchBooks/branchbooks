@@ -1,0 +1,7 @@
+; sim5.py: on the same day, an assignment applies before a move, so the source never looks short.
+include "../examples-1-5.bean"
+
+2026-11-01 open Expenses:Fun USD
+
+2026-11-10 custom "envelope-move" Expenses:Fun Expenses:Food:Groceries 30.00 USD
+2026-11-10 custom "envelope-assign" Expenses:Fun 50.00 USD

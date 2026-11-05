@@ -1,0 +1,6 @@
+["txn","<dir>","--date","2026-01-04","--narration","Bad","--posting","Expenses:Nowhere 1.00 USD","--posting","Assets:Checking","--op-id","w7"]
+--- exit 1
+--- stdout
+--- stderr
+refused (rejected): the change would add 1 ledger error(s): Invalid reference to unknown account 'Expenses:Nowhere'
+  2026.beancount:13: Invalid reference to unknown account 'Expenses:Nowhere'

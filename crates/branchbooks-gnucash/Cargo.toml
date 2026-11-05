@@ -1,0 +1,21 @@
+[package]
+name = "branchbooks-gnucash"
+description = "Reads a GnuCash book (compressed XML) into Beancount files for BranchBooks"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+branchbooks-core.workspace = true
+indexmap.workspace = true
+rust_decimal.workspace = true
+unicode-normalization.workspace = true
+# GnuCash's file: gzip (flate2, pure Rust by default), then XML (roxmltree, no dependencies).
+flate2 = "1"
+roxmltree = "0.21"
+
+[lints]
+workspace = true

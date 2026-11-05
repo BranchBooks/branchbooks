@@ -1,0 +1,28 @@
+# fixtures/errors/syntax.bean
+files "fixtures/errors/syntax.bean"
+entry open "fixtures/errors/syntax.bean" 1 1 1 2026-01-01
+entry open "fixtures/errors/syntax.bean" 2 2 2 2026-01-01
+entry txn "fixtures/errors/syntax.bean" 4 6 4 2026-01-02
+  posting Expenses:Food 5 1 USD 2
+  posting Assets:Checking 6 -1 USD 2
+entry txn "fixtures/errors/syntax.bean" 14 16 14 2026-01-05
+  posting Expenses:Food 15 2 USD 2
+  posting Assets:Checking 16 -2 USD 2
+error "fixtures/errors/syntax.bean" 9 syntax "unexpected \"USD\" after posting"
+error "fixtures/errors/syntax.bean" 12 syntax "unknown directive \"bogus\""
+balance Expenses:Food USD 3
+balance Assets:Checking USD -3
+book-balance Expenses:Food USD 3
+book-balance Assets:Checking USD -3
+income 0 expenses 3 net -3
+  line Expenses:Food 3
+assets -3 liabilities 0 equity 0 net-worth -3
+  line Assets:Checking -3
+budget-diagnostic "fixtures/errors/syntax.bean" 1 budget-flag "Assets:Checking has no budget flag; treated as off-budget"
+month 2026-01 USD today 2026-01-01 unassigned 0 future 0 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  flag "fixtures/errors/syntax.bean" 4 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "fixtures/errors/syntax.bean" 14 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+month 2026-02 USD today 2026-02-01 unassigned 0 future 0 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+unassigned-at 2026-02-15 0

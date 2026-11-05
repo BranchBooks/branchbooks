@@ -1,0 +1,5 @@
+# Keep the channel in step with RUST_VERSION in tools/dev/rust-tools.sh.
+[toolchain]
+channel = "1.99.1"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

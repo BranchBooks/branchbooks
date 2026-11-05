@@ -1,0 +1,17 @@
+; Storage layout: main.beancount holds options and account open/close and includes one file per year.
+option "title" "BranchBooks multi-file layout"
+option "operating_currency" "USD"
+
+2025-12-01 open Assets:Checking USD
+  budget: "on"
+2025-12-01 open Liabilities:Visa USD
+  budget: "on"
+2025-12-01 open Equity:Opening-Balances
+2025-12-01 open Income:Salary USD
+2025-12-01 open Expenses:Food:Groceries USD
+2025-12-01 open Expenses:Housing:Rent USD
+2025-12-01 open Expenses:Old:Category USD
+2026-12-31 close Expenses:Old:Category
+
+include "2025.beancount"
+include "2026.beancount"
