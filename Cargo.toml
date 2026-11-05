@@ -18,7 +18,7 @@ branchbooks-git = { path = "crates/branchbooks-git" }
 branchbooks-gnucash = { path = "crates/branchbooks-gnucash" }
 # The git engine under branchbooks-git: pure Rust, so no git program on Android or Windows.
 # Exact: a young library (0.5), so every update is a reviewed bump.
-grit-lib = "=0.5.27"
+grit-lib = "=0.5.28"
 # Money: exact 96-bit decimals with 28 significant digits.
 rust_decimal = { version = "1", default-features = false, features = ["std"] }
 # Maps that iterate in insertion order, (options, accounts, balances).
