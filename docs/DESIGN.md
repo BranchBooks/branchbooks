@@ -117,7 +117,8 @@ Beancount's behaviour is found by running it, and the oracle keeps it honest.
   means sums of up to 10^8 amounts cannot overflow. A sum needing more than 28 digits in all is rounded to 28, as
   Python's default decimal context (Beancount's) does.
 - **Dates and text.** Any valid calendar date from 0000 to 9999; a date with no such day is a syntax error. A byte
-  order mark at the start of a file is an error, as it is in Beancount. Strings sort in code point order.
+  order mark is an error, as it is in Beancount, and the message says to save the file as UTF-8 without BOM. Accepting
+  it would make a book that Beancount and Fava can't open. Strings sort in code point order.
 
 ### Balance assertions
 

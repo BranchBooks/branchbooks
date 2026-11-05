@@ -4,8 +4,7 @@ BranchBooks is a double-entry accounting app with envelope budgeting and target 
 on your own device. Your books are plain-text, Beancount-compatible ledgers in git: stay local, or
 sync over HTTPS to any git host you choose. There is no BranchBooks server and no account to create.
 
-**Early software.** No release is published yet; 0.1.0 will be the first. Keep your own copy of
-anything you put in it.
+**Early software.** Keep your own copy of anything you put in it.
 
 ## Install on Windows
 
@@ -50,12 +49,11 @@ needed. Every fixture is checked in CI against real Beancount 3.2.3, run as a se
 
 **Not yet:**
 
-- **Android:** planned; it needs a two-line patch to grit-lib first.
+- **Android:** planned; it needs a two-line patch to grit-lib first
+  ([#9](https://github.com/BranchBooks/branchbooks/issues/9)).
 - **The rest of Beancount's syntax.** `pad`, tag and metadata stacks (`pushtag`, `pushmeta`), and costs
   and prices on postings are reported as syntax errors, never miscounted. `price` and `query`
   directives are read and ignored, and plugins are not run.
-- **Files saved with a byte order mark** fail to load, as they do in Beancount
-  ([#1](https://github.com/BranchBooks/branchbooks/issues/1)).
 - **Bank connections and foreign currency.** One budget currency; accounts in other currencies are
   off-budget.
 
