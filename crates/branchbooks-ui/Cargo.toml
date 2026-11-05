@@ -27,6 +27,10 @@ windows-native-keyring-store = "1.1.0"
 # Install and update on Windows. vpk in .github/workflows/release.yml must be the same version.
 velopack = "=1.3.39-g8d2844f"
 
+[build-dependencies]
+# The exe's icon (build.rs), used only when building the Windows app.
+winresource = { version = "0.1.34", default-features = false }
+
 [features]
 # The Windows app: tools\windows\build.ps1 (`desktop`, for x86_64-pc-windows-msvc). Android: dx
 # turns on `mobile` (`dx bundle --platform android`).

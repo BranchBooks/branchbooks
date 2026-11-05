@@ -67,7 +67,8 @@ jobs:
           repo="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
           vpk download github --repoUrl "$repo" --token "$GH_TOKEN" -c win -o releases
           vpk pack -u BranchBooks -v "$VERSION" -p dist/windows -e BranchBooks.exe -r win-x64 \
-            --packTitle BranchBooks --packAuthors "Joshua Crump" -f webview2 -c win -o releases
+            --packTitle BranchBooks --packAuthors BranchBooks -f webview2 -c win -o releases \
+            --icon crates/branchbooks-ui/icons/icon.ico --splashImage crates/branchbooks-ui/icons/splash.png
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: releases
