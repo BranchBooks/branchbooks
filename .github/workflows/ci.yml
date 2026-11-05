@@ -72,29 +72,22 @@ jobs:
           if git ls-files | grep -E '(^|/)(package\.json|package-lock\.json|node_modules/)'; then
             exit 1
           fi
-      # Each version is kept in two files, and nothing else fails when they drift: CI does not build
-      # Android, the only thing dx is for.
-      - name: Tool versions match
+      # Kept in two files, and nothing else fails when they drift until a release.
+      - name: Velopack's crate and CLI versions match
         run: |
-          same() {
-            test -n "$2" && test "$2" = "$3" || {
-              echo "::error::$1: $tools has '$2', $4 has '$3'. Change them to match."
-              exit 1
-            }
-          }
-          tools=tools/dev/rust-tools.sh
-          ui=crates/branchbooks-ui/Cargo.toml
-          same DX_VERSION "$(sed -n 's/^DX_VERSION=//p' $tools)" "$(sed -n 's/^dioxus = "=\(.*\)"/\1/p' $ui)" $ui
-          same RUST_VERSION "$(sed -n 's/^RUST_VERSION=//p' $tools)" "$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)" rust-toolchain.toml
-          tools=.github/workflows/release.yml
-          same VELOPACK "$(sed -n 's/^  VPK_VERSION: //p' $tools)" "$(sed -n 's/^velopack = "=\(.*\)"/\1/p' $ui)" $ui
+          cli=$(sed -n 's/^  VPK_VERSION: //p' .github/workflows/release.yml)
+          crate=$(sed -n 's/^velopack = "=\(.*\)"/\1/p' crates/branchbooks-ui/Cargo.toml)
+          if test -z "$cli" || test "$cli" != "$crate"; then
+            echo "::error::VPK_VERSION in release.yml is '$cli', velopack in branchbooks-ui is '$crate'. Change them to match."
+            exit 1
+          fi
       - name: Install the toolchain in rust-toolchain.toml
         run: rustup toolchain install
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Install cargo-deny
-        run: CARGO_HOME=$HOME/.cargo sh tools/dev/rust-tools.sh deny
+        run: sh tools/ci/install-cargo-deny.sh
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --locked -- -D warnings
       - run: cargo doc --no-deps --locked --workspace
@@ -102,7 +95,7 @@ jobs:
           RUSTDOCFLAGS: -D warnings
       - run: cargo test --locked
       - run: cargo deny --all-features --locked check
-      # Python as in the dev image, and Beancount and its dependencies at the versions the image uses.
+      # Beancount and its dependencies at the versions in tools/oracle/requirements.txt.
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         id: python
         with:
@@ -110,12 +103,12 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: tools/oracle/.venv
-          key: beancount-${{ steps.python.outputs.python-version }}-${{ hashFiles('tools/dev/oracle-requirements.txt') }}
+          key: beancount-${{ steps.python.outputs.python-version }}-${{ hashFiles('tools/oracle/requirements.txt') }}
       - name: Install Beancount, unless cached
         run: |
           tools/oracle/.venv/bin/python -c 'import beancount' 2>/dev/null || {
             python -m venv --clear tools/oracle/.venv
-            tools/oracle/.venv/bin/pip install -r tools/dev/oracle-requirements.txt
+            tools/oracle/.venv/bin/pip install -r tools/oracle/requirements.txt
           }
       - run: cargo run -q --locked -p branchbooks-oracle
 
