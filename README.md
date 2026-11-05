@@ -14,7 +14,8 @@ Microsoft's WebView2 runtime if Windows doesn't already have it.
 
 **Windows will warn you.** The app isn't code-signed yet, so Microsoft Defender SmartScreen may say
 it is unrecognized when you first open it. If you got it from this repository, choose More info,
-then Run anyway.
+then Run anyway. To check a download was built from this repository, use
+`gh attestation verify BranchBooks-win-Setup.exe --repo BranchBooks/branchbooks`.
 
 **Updates.** Each time it starts, the app asks GitHub for a newer release and downloads it in the
 background. "Restart to update" then appears beside the book switcher; if you ignore it, the update

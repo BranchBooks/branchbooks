@@ -253,6 +253,9 @@ Velopack: a per-user install with no admin prompt, delta updates, and a feed of 
   Velopack adds the local version, the app id and a random id it keeps to the feed's URL.
 - **Trust.** HTTPS from GitHub. The feed's checksums come from the same place as the packages, and nothing is signed yet, so release rights can
   ship code to every install. That is why a release's compile job holds no write token. Code signing is the fix, and also ends the SmartScreen warning.
+- **Provenance.** Every published file has a GitHub artifact attestation, signed with Sigstore by the release run's own identity, so anyone can
+  check it was built by `release.yml` from a commit of this repository: `gh attestation verify <file> --repo BranchBooks/branchbooks`. Windows and
+  the updater don't read it; it is for people checking a download.
 - **Folders.** WebView2's data is in `%LOCALAPPDATA%\<exe name>`, also where Velopack installs, outside `current`, so updates keep it. Setup and
   uninstall can empty that folder. Books are in `%APPDATA%`, which neither touches.
 
