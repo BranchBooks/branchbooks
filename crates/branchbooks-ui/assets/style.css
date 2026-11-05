@@ -109,6 +109,9 @@ code { font-size: 0.85em; }
 .start .logo { background: var(--accent); color: var(--accent-text); }
 .brand-name { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; }
 .sidebar nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.nav-group + .nav-group { margin-top: 14px; }
+.nav-heading { margin: 0 0 4px; padding: 0 10px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sidebar-muted); }
+.app[data-collapsed="true"] .nav-heading { display: none; }
 .sidebar nav a {
   display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: var(--radius-sm);
   color: var(--sidebar-text); text-decoration: none; font-weight: 500;
@@ -139,10 +142,14 @@ code { font-size: 0.85em; }
   display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: var(--surface);
   border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 3;
 }
+.topbar { flex-wrap: wrap; }
+.topbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-left: auto; }
 .crumbs { display: grid; }
 .ledger-title { font-size: 0.8rem; color: var(--muted); }
 .menu, .scrim { display: none; }
-.content { padding: 20px 28px 48px; max-width: 1120px; width: 100%; }
+.content { padding: 20px 28px 48px; max-width: 1280px; width: 100%; }
+h2.band { margin: 24px 0 10px; font-size: 1.05rem; }
+h2.band:first-of-type { margin-top: 0; }
 .view-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: var(--gap); }
 .view-head p { margin: 0; }
 
@@ -292,6 +299,8 @@ table.accounts tr.closed td { color: var(--muted); }
 table.accounts tr.folder td { color: var(--muted); }
 form.inline { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .report-grid { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; }
+table.report tr.parent td { font-weight: 600; }
+section > .segmented { margin-bottom: 10px; }
 table.report tfoot th, table.report tfoot td { font-weight: 700; border-bottom: none; font-size: 0.95rem; text-transform: none; letter-spacing: 0; color: var(--text); }
 .history { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .files { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }

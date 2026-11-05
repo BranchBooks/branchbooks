@@ -43,9 +43,9 @@ const GENERAL: &str = "General";
 /// The views in the sidebar: id, name, icon path.
 const PAGES: [(&str, &str, &str); 7] = [
     ("overview", "Overview", "M3 12l9-8 9 8M5 10v10h14V10"),
-    ("budget", "Budget", "M3 7h18v12H3zM3 7l3-3h12l3 3M8 12h8"),
     ("journal", "Journal", "M5 4h14v16H5zM9 8h6M9 12h6M9 16h4"),
     ("accounts", "Accounts", "M4 6h16v12H4zM4 10h16M8 15h3"),
+    ("budget", "Budget", "M3 7h18v12H3zM3 7l3-3h12l3 3M8 12h8"),
     ("reports", "Reports", "M4 20V10M10 20V4M16 20v-7M22 20H2"),
     ("files", "Files", "M6 3h9l5 5v13H6zM14 3v6h6"),
     (
@@ -53,6 +53,14 @@ const PAGES: [(&str, &str, &str); 7] = [
         "Scenarios",
         "M6 3v12M18 9a3 3 0 1 0 0-.1M6 21a3 3 0 1 0 0-.1M18 12c0 4-6 3-12 6",
     ),
+];
+
+/// The sidebar's groups, each a heading (none for the first) and the views under it.
+const NAV: [(&str, &[&str]); 4] = [
+    ("", &["overview"]),
+    ("Ledger", &["journal", "accounts", "budget", "reports"]),
+    ("Import", &["files"]),
+    ("Advanced", &["scenarios"]),
 ];
 
 /// Categories grouped by the part after "Expenses:": Expenses:Insurance:Auto-Insurance is "Auto
@@ -206,6 +214,8 @@ pub fn Screen(
     let value = use_signal(String::new);
     let mut collapsed = use_signal(Vec::<String>::new);
     let mut page = use_signal(|| page.unwrap_or("overview"));
+    // The sidebar: collapsed to icons on a wide window, opened over the page on a narrow one.
+    let mut sidebar_toggled = use_signal(|| false);
     // The account or category the Journal is filtered to, from Accounts or the Budget's Activity.
     let mut filter = use_signal(|| None::<String>);
     // The category whose target editor is open.
@@ -316,7 +326,10 @@ pub fn Screen(
     entries.sort_by(|a, b| b.0.date.cmp(&a.0.date).then(b.0.seq.cmp(&a.0.seq)));
 
     rsx! {
-        div { class: "app",
+        div { class: "app", "data-collapsed": sidebar_toggled(), "data-menu": sidebar_toggled(),
+            button { r#type: "button", class: "scrim", "aria-label": "Close the sidebar",
+                onclick: move |_| sidebar_toggled.set(false),
+            }
             // The app's frame.
             aside { class: "sidebar",
                 div { class: "brand",
@@ -324,33 +337,67 @@ pub fn Screen(
                     span { class: "brand-name", "BranchBooks" }
                 }
                 nav { "aria-label": "Main",
-                    ul {
-                        for (id, label, d) in PAGES {
-                            li { key: "{id}",
-                                a { href: "#", title: label, "aria-current": if page() == id { "page" } else { "false" },
-                                    onclick: move |e| {
-                                        e.prevent_default();
-                                        page.set(id);
-                                        filter.set(None);
-                                    },
-                                    svg { class: "icon", view_box: "0 0 24 24", "aria-hidden": "true",
-                                        path { d }
+                    for (heading, ids) in NAV {
+                        div { key: "{heading}", class: "nav-group",
+                            if !heading.is_empty() {
+                                p { class: "nav-heading", "{heading}" }
+                            }
+                            ul {
+                                for (id, label, d) in PAGES.into_iter().filter(|p| ids.contains(&p.0)) {
+                                    li { key: "{id}",
+                                        a { href: "#", title: label, "aria-current": if page() == id { "page" } else { "false" },
+                                            onclick: move |e| {
+                                                e.prevent_default();
+                                                page.set(id);
+                                                filter.set(None);
+                                                // A narrow window's sidebar covers the page: get out of the way.
+                                                sidebar_toggled.set(false);
+                                            },
+                                            svg { class: "icon", view_box: "0 0 24 24", "aria-hidden": "true",
+                                                path { d }
+                                            }
+                                            span { class: "nav-label", {label} }
+                                        }
                                     }
-                                    span { class: "nav-label", {label} }
                                 }
                             }
                         }
                     }
                 }
                 div { class: "sidebar-foot",
-                    {children}
                     span { class: "muted small-inline", "data-testid": "storage", "Saved on this device" }
                     span { class: "muted small-inline", "BranchBooks {env!(\"CARGO_PKG_VERSION\")}" }
                 }
             }
             div { class: "main",
                 header { class: "topbar",
+                    button { r#type: "button", class: "icon", "aria-label": "Toggle the sidebar",
+                        "aria-pressed": sidebar_toggled(),
+                        onclick: move |_| sidebar_toggled.toggle(),
+                        svg { class: "chevron-icon", view_box: "0 0 16 16", "aria-hidden": "true",
+                            path { d: "M2 4h12M2 8h12M2 12h12" }
+                        }
+                    }
                     div { class: "crumbs", h1 { {PAGES.iter().find(|p| p.0 == page()).map_or("", |p| p.1)} } }
+                    if !["accounts", "files", "overview"].contains(&page()) {
+                        nav { class: "months", "aria-label": "Month",
+                            button { r#type: "button", class: "icon", "aria-label": "Previous month",
+                                onclick: move |_| { let m = month.peek().prev(); month.set(m) },
+                                Chevron { dir: "left" }
+                            }
+                            span { class: "month-label", {month_label(shown)} }
+                            button { r#type: "button", class: "icon", "aria-label": "Next month",
+                                onclick: move |_| { let m = month.peek().next(); month.set(m) },
+                                Chevron { dir: "right" }
+                            }
+                            if shown != this_month {
+                                button { r#type: "button", class: "link",
+                                    onclick: move |_| month.set(this_month), "Today"
+                                }
+                            }
+                        }
+                    }
+                    div { class: "topbar-actions", {children} }
                 }
                 if let Some(s) = backend.scenario() {
                     div { class: "notice scenario", role: "status", "data-testid": "scenario-banner",
@@ -380,26 +427,6 @@ pub fn Screen(
                     }
                 }
                 main { class: "content", "data-view": page(),
-                    if !["accounts", "files", "overview"].contains(&page()) {
-                    div { class: "view-head",
-                        nav { class: "months", "aria-label": "Month",
-                            button { r#type: "button", class: "icon", "aria-label": "Previous month",
-                                onclick: move |_| { let m = month.peek().prev(); month.set(m) },
-                                Chevron { dir: "left" }
-                            }
-                            span { class: "month-label", {month_label(shown)} }
-                            button { r#type: "button", class: "icon", "aria-label": "Next month",
-                                onclick: move |_| { let m = month.peek().next(); month.set(m) },
-                                Chevron { dir: "right" }
-                            }
-                            if shown != this_month {
-                                button { r#type: "button", class: "link",
-                                    onclick: move |_| month.set(this_month), "Today"
-                                }
-                            }
-                        }
-                    }
-                    }
                     if page() == "overview" {
                         Overview { core: Shared(core.clone()), version, today: today,
                             onopen: move |p: &'static str| {
