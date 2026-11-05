@@ -31,6 +31,24 @@ fn Stylesheet() -> Element {
     rsx! { document::Style { {include_str!("../assets/style.css")} } }
 }
 
+/// The logo: a ledger book whose right page holds a git branch, drawn for small sizes.
+#[component]
+pub fn Logo() -> Element {
+    rsx! { span { class: "logo", "aria-hidden": "true", dangerous_inner_html: include_str!("../icons/icon-small.svg") } }
+}
+
+/// What shows while the app or a book loads, with anything to say under it.
+#[component]
+pub fn Splash(children: Element) -> Element {
+    rsx! {
+        main { class: "splash",
+            Logo {}
+            p { class: "muted", "Loading…" }
+            {children}
+        }
+    }
+}
+
 /// Runs `f` off the UI thread: git and the network block.
 async fn blocking<T: Send + 'static, E: std::fmt::Display + Send + 'static>(
     f: impl FnOnce() -> Result<T, E> + Send + 'static,
@@ -185,7 +203,7 @@ pub fn App() -> Element {
     }));
     let list = match &*books.read() {
         None => {
-            return rsx! { Stylesheet {} main { class: "shell", p { class: "muted", "Loading…" } } };
+            return rsx! { Stylesheet {} Splash {} };
         }
         Some(Err(e)) => {
             return rsx! { Stylesheet {} main { class: "shell", p { class: "notice error", "{e}" } } };

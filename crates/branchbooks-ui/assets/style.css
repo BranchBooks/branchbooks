@@ -1,19 +1,21 @@
 /* BranchBooks. Tokens first; light by default, dark when the system asks. */
 :root {
-  /* Neutral grays; colour is kept for meaning only (funded, credit and cash overspent, +/-). */
+  /* Neutral grays, with ledger green for what can be clicked and the logo. Other colour carries
+     meaning (funded, credit and cash overspent, +/-). */
+  --brand: #1d6b43;
   --bg: #f3f4f5;
   --surface: #ffffff;
   --surface-2: #f7f8f9;
   --sidebar: #202225;
   --sidebar-text: #d5d7da;
   --sidebar-muted: #8b9096;
-  --sidebar-active: #3b3e43;
+  --sidebar-active: var(--brand);
   --text: #1c1e21;
   --muted: #63676d;
   --line: #e3e5e8;
   --line-strong: #ccd0d5;
-  --accent: #3f4449;
-  --accent-hover: #2a2e32;
+  --accent: var(--brand);
+  --accent-hover: #155234;
   --accent-text: #ffffff;
   --funded: #dcefe3;
   --funded-text: #1d5a3c;
@@ -56,13 +58,12 @@
     --sidebar: #0d0e0f;
     --sidebar-text: #d0d2d5;
     --sidebar-muted: #868a90;
-    --sidebar-active: #2e3135;
     --text: #e7e8ea;
     --muted: #9a9ea4;
     --line: #2a2c2f;
     --line-strong: #3b3e42;
-    --accent: #c9ccd1;
-    --accent-hover: #e2e4e7;
+    --accent: #7fd3a6;
+    --accent-hover: #a0e2bf;
     --accent-text: #121314;
     --funded: #1f3d2e;
     --funded-text: #a8e2c2;
@@ -102,11 +103,8 @@ code { font-size: 0.85em; }
   background: var(--sidebar); color: var(--sidebar-text); padding: 14px 10px; overflow-y: auto;
 }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 12px; }
-.logo {
-  display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 8px;
-  background: var(--sidebar-active); color: #fff; font-weight: 700;
-}
-.start .logo { background: var(--accent); color: var(--accent-text); }
+.logo { display: block; width: 30px; height: 30px; flex: none; }
+.logo svg { display: block; width: 100%; height: 100%; }
 .brand-name { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; }
 .sidebar nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .nav-group + .nav-group { margin-top: 14px; }
@@ -229,7 +227,8 @@ tr.category td:first-child { padding-left: 26px; }
   display: grid; gap: 4px; padding: 16px 18px; border-radius: var(--radius); background: var(--surface);
   border: 1px solid var(--line); box-shadow: var(--shadow); color: var(--text); text-decoration: none;
 }
-.stat:hover { border-color: var(--accent); }
+/* A card is a button, so hovering must undo the button fill; the good and bad cards below keep theirs. */
+.stat:hover { border-color: var(--accent); background: var(--surface); }
 .stat .label { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
 .stat strong { font-size: 1.7rem; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 .stat .sub { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -284,6 +283,7 @@ table.accounts td { vertical-align: middle; }
 table.accounts tr.closed td { color: var(--muted); }
 table.accounts tr.parent td:nth-child(-n+2), table.accounts tr.parent button.cell.name { font-weight: 600; }
 .tree-toggle { display: inline-block; width: 1.4em; padding: 0; border: none; background: none; color: var(--muted); text-align: left; }
+.tree-toggle:hover { background: none; color: var(--accent); }
 table.accounts tr.folder td { color: var(--muted); }
 form.inline { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .report-grid { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; }
@@ -300,7 +300,9 @@ pre.ledger { overflow: auto; max-height: 420px; background: var(--surface-2); pa
 
 /* ---------- Start screen ---------- */
 .shell { max-width: 720px; margin: 0 auto; padding: 32px 16px; }
-.start .brand { padding: 0 0 8px; }
+/* While the app and a book load: the logo, centred. */
+.splash { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 14px; }
+.splash .logo { width: 72px; height: 72px; }
 .start form { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
 
 /* ---------- Narrower screens ---------- */
