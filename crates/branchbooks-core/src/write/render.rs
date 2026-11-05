@@ -271,7 +271,33 @@ pub fn parse_date(d: &str) -> Result<Date> {
 }
 
 fn check_account(a: &str) -> Result<()> {
-    check(is_account(a), || format!("invalid account name {a:?}"))
+    check(is_account(a), || {
+        let mut m = format!(
+            "invalid account name {a:?}: a name starts with Assets, Liabilities, Equity, Income or \
+             Expenses, and each part after a colon starts with a capital letter or digit, with no spaces"
+        );
+        if let Some(fix) = suggest_account(a) {
+            m.push_str(&format!(". Try {fix:?}"));
+        }
+        m
+    })
+}
+
+/// A name typed with spaces or lowercase, as other apps allow, spelled the way Beancount takes it:
+/// "Liabilities:credit card" becomes "Liabilities:Credit-card". `None` when that is still invalid.
+fn suggest_account(a: &str) -> Option<String> {
+    let fixed = a
+        .split(':')
+        .map(|part| {
+            let part = part.split_whitespace().collect::<Vec<_>>().join("-");
+            let mut c = part.chars();
+            c.next()
+                .map(|f| f.to_ascii_uppercase().to_string() + c.as_str())
+                .unwrap_or_default()
+        })
+        .collect::<Vec<_>>()
+        .join(":");
+    is_account(&fixed).then_some(fixed)
 }
 
 fn check_currency(c: &str) -> Result<()> {
@@ -508,6 +534,22 @@ mod tests {
         assert_eq!(postings[0].flag, None);
         assert_eq!(postings[1].flag.as_deref(), Some("!"));
         assert!(render_entry(&txn(Some("x")), "USD").is_err());
+    }
+
+    #[test]
+    fn an_invalid_account_name_says_why_and_suggests_one() {
+        let Err(InputError(m)) = check_account("Liabilities:Credit Card") else {
+            panic!()
+        };
+        assert!(m.contains("with no spaces"), "{m}");
+        assert!(m.ends_with(r#"Try "Liabilities:Credit-Card""#), "{m}");
+        assert_eq!(
+            suggest_account("Liabilities:chase  visa"),
+            Some("Liabilities:Chase-visa".into())
+        );
+        // Nothing to suggest without a root.
+        assert_eq!(suggest_account("Chase Visa"), None);
+        assert_eq!(suggest_account("Liabilities:Visa!"), None);
     }
 
     #[test]

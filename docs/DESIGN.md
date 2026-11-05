@@ -156,6 +156,12 @@ text edit, so everything outside the edited lines stays byte for byte.
   (Assets stays Assets), and a name already taken is refused. Text in a narration that is exactly the account name is
   renamed too.
 
+- **New accounts** are added by kind, which sets the root and the budget flag (a credit card is `Liabilities`, on budget), and
+  named in words: "Chase Visa" is written `Liabilities:Chase-Visa`, as the account list shows hyphens as spaces. A balance today
+  is a transaction against `Equity:Opening-Balances`, opened the first time it is needed. The open, that open and the
+  transaction are separate commits, in that order, so a refused balance leaves the account opened and says so. An opening balance
+  on cash arrives as money to assign (rule 3); on a card, it is owed and underfunded (decision 7 covers paying it down).
+
 ### Imports
 
 An import previews what it would add. Only entries the ledger lacks are added: a transaction matches on its date and
@@ -235,6 +241,9 @@ A close is an annotated tag, `close/<YYYY-MM>`, on the book's latest version. Re
 - **One exe.** `x86_64-pc-windows-msvc`, with the C runtime and WebView2's loader linked in. Release builds use thin LTO: three times faster to
   build than full LTO with one codegen unit, for 13% more exe.
 - **Tests.** Logic is in plain unit tests, and what a screen shows is in HTML tests (`tests/render.rs`, `dioxus-ssr`, no browser).
+- **Light and dark.** Each colour token is a `light-dark()` pair, so one list serves both. The app follows the system unless
+  Settings chooses light or dark, which sets `data-theme` on the root and is kept in a `theme` file beside the books folder: it is
+  this device's choice, not the book's, so it never syncs.
 - **Look.** Neutral greys, with ledger green (`--brand`, `#1d6b43`) for the logo and for what can be clicked: buttons, links and the
   current page. Every other colour carries meaning, such as funded, overspent, or a positive or negative amount. Text on green
   passes WCAG AA in both themes.

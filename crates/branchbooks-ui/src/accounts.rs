@@ -6,14 +6,17 @@ use std::str::FromStr;
 
 use branchbooks_core::date::Date;
 use branchbooks_core::types::Entry;
-use branchbooks_core::write::render::{BudgetFlag, CloseInput, EntryInput, OpenInput};
+use branchbooks_core::write::render::{
+    BudgetFlag, CloseInput, EntryInput, OpenInput, PostingInput, TransactionInput, is_account,
+};
 use branchbooks_core::write::workspace::{Operation, ReconcileInput};
 use dioxus::prelude::*;
 use rust_decimal::Decimal;
 
+use crate::budget::apply;
 use crate::journal::{Shared, meta, run, use_today_date};
 use crate::store::Backend;
-use crate::text::{fmt, norm_amount, short, words};
+use crate::text::{fmt, ledger_part, norm_amount, parse_amount, short, words};
 
 /// Account types in the order shown, with their headings. Liabilities, income and equity are
 /// credits: shown positive, as amounts owed or earned.
@@ -97,8 +100,11 @@ pub fn Accounts(
 ) -> Element {
     let mut mode = use_signal(|| None as Mode);
     let mut show_closed = use_signal(|| false);
-    // The one account type shown; all of them when `None`.
-    let mut only = use_signal(|| None::<&'static str>);
+    // "all", "accounts" (what you have and owe) or "categories" (income and expenses).
+    let mut view = use_signal(|| "all");
+    // Types whose whole group is folded to its heading. Equity is mostly opening balances.
+    let mut folded = use_signal(|| vec!["Equity"]);
+    let mut adding = use_signal(|| false);
     // Parents whose sub-accounts are hidden, as GnuCash's tree collapses.
     let collapsed = use_signal(Vec::<String>::new);
     let _ = version();
@@ -134,35 +140,52 @@ pub fn Accounts(
         move |e: &Entry| core.0.borrow().ref_of(e)
     };
     let mode_of = |a: &str| mode().filter(|(m, _)| m == a).map(|(_, k)| k);
+    let categories = |root: &str| root == "Income" || root == "Expenses";
+    // Two columns on a wide window: what you have and owe, then the expense categories.
+    let columns: Vec<Vec<(&'static str, &'static str, bool)>> = [false, true]
+        .into_iter()
+        .map(|right| {
+            ROOTS
+                .into_iter()
+                .filter(|r| (r.0 == "Expenses") == right)
+                .filter(|r| match view() {
+                    "accounts" => !categories(r.0),
+                    "categories" => categories(r.0),
+                    _ => true,
+                })
+                .collect::<Vec<_>>()
+        })
+        .filter(|c| !c.is_empty())
+        .collect();
     rsx! {
-        OpenAccount { today: today, onopen: {
-            let save = save.clone();
-            move |input: OpenInput| {
-                let done = format!("Opened {}.", input.account);
-                save(Operation::Add(EntryInput::Open(input)), done);
-            }
-        }}
-        section { "aria-label": "Accounts",
-            div { class: "section-head",
+        div { class: "accounts-page",
+            div { class: "accounts-toolbar",
                 h2 { "Accounts and categories" }
+                div { class: "segmented", role: "group", "aria-label": "Show",
+                    for (id, text) in [("all", "All"), ("accounts", "Accounts"), ("categories", "Categories")] {
+                        button { key: "{id}", r#type: "button", "aria-pressed": view() == id,
+                            onclick: move |_| view.set(id), {text}
+                        }
+                    }
+                }
                 if closed > 0 {
                     button { r#type: "button", class: "link", onclick: move |_| show_closed.toggle(),
                         if show_closed() { "Hide closed" } else { "Show closed ({closed})" }
                     }
                 }
-            }
-            div { class: "segmented", role: "group", "aria-label": "Account type",
-                button { r#type: "button", "aria-pressed": only().is_none(), onclick: move |_| only.set(None), "All" }
-                for (root, _, _) in ROOTS {
-                    button { key: "{root}", r#type: "button", "aria-pressed": only() == Some(root),
-                        onclick: move |_| only.set(Some(root)),
-                        "{root}"
-                    }
+                button { r#type: "button", class: "add-button", "aria-expanded": adding(),
+                    onclick: move |_| adding.toggle(), "Add account"
                 }
             }
-            table { class: "accounts",
-                thead { tr { th { "Name" } th { class: "num", "Balance" } th { "Budget" } th { "Opened" } th {} } }
-                for (root, heading, credit) in ROOTS.into_iter().filter(|r| only().is_none_or(|k| k == r.0)) {
+            if adding() {
+                AddAccount { backend: backend.clone(), core: core.clone(), version, notice, today: today,
+                    onclose: move |()| adding.set(false),
+                }
+            }
+            div { class: "account-cols",
+            for column in columns {
+            div { key: "{column[0].0}", class: "account-col",
+                for (root, heading, credit) in column {
                     {
                         let group: Vec<&Row> = rows
                             .iter()
@@ -171,14 +194,26 @@ pub fn Accounts(
                             .collect();
                         let sign = if credit { Decimal::NEGATIVE_ONE } else { Decimal::ONE };
                         let total: Decimal = group.iter().map(|r| r.balance).sum::<Decimal>() * sign;
+                        let shut = folded.read().contains(&root);
                         rsx! {
                             if !group.is_empty() {
-                                tbody { key: "{root}", class: "group",
-                                    tr { class: "group-head",
-                                        th { scope: "rowgroup", "{heading}" }
-                                        td { class: "num", {fmt(total)} }
-                                        td { colspan: 3 }
+                                section { key: "{root}", class: "group", "aria-label": heading,
+                                    button { r#type: "button", class: "group-head", "aria-expanded": !shut,
+                                        onclick: move |_| {
+                                            let mut f = folded.write();
+                                            match f.iter().position(|r| *r == root) {
+                                                Some(i) => {
+                                                    f.remove(i);
+                                                }
+                                                None => f.push(root),
+                                            }
+                                        },
+                                        span { span { class: "chevron", "aria-hidden": "true", if shut { "▸" } else { "▾" } } "{heading}" }
+                                        span { class: "num", {fmt(total)} }
                                     }
+                                    if !shut {
+                                    table { class: "accounts",
+                                    tbody {
                                     for node in tree(&group.iter().map(|r| (r.account.as_str(), r.balance)).collect::<Vec<_>>())
                                         .into_iter()
                                         .filter(|n| !collapsed.read().iter().any(|c| n.path.starts_with(&format!("{c}:"))))
@@ -191,12 +226,12 @@ pub fn Accounts(
                                                     "{node.label}"
                                                 }
                                                 td { class: "num", {fmt(node.total * sign)} }
-                                                td { colspan: 3 }
+                                                td {}
                                             }
                                         } else if let Some(r) = group.iter().find(|r| r.account == node.path).copied() {
                                         if mode_of(&r.account) == Some("edit") {
                                             tr { key: "{r.account}", class: "editing",
-                                                td { colspan: 5,
+                                                td { colspan: 3,
                                                     OpenEditor { open: r.open.clone(), close: r.close.clone(),
                                                         oncancel: move |()| mode.set(None),
                                                         onsave: {
@@ -213,7 +248,7 @@ pub fn Accounts(
                                             }
                                         } else if mode_of(&r.account) == Some("reconcile") {
                                             tr { key: "{r.account}", class: "editing",
-                                                td { colspan: 5,
+                                                td { colspan: 3,
                                                     ReconcileForm { core: core.clone(), version, account: r.account.clone(),
                                                         today: today, sign,
                                                         oncancel: move |()| mode.set(None),
@@ -238,20 +273,23 @@ pub fn Accounts(
                                                         "{node.label}"
                                                     }
                                                     if let Some(c) = &r.close { " " span { class: "badge", "closed {c.date}" } }
-                                                }
-                                                td { class: "num", title: if node.parent { "With its sub-accounts" } else { "" }, {fmt(node.total * sign)} }
-                                                td {
-                                                    match r.open.meta.str("budget") {
-                                                        Some("on") => "on budget",
-                                                        Some("off") => "off budget",
-                                                        Some("excluded") => "excluded",
-                                                        Some("placeholder") => "placeholder",
-                                                        _ if root == "Expenses" => "category",
-                                                        _ => "",
+                                                    if let Some(tag) = budget_tag(root, r.open.meta.str("budget")) {
+                                                        " " span { class: "badge", {tag} }
                                                     }
                                                 }
-                                                td { class: "date", "{r.open.date}" }
-                                                td { class: "actions",
+                                                td { class: "num", title: if node.parent { "With its sub-accounts" } else { "" }, {fmt(node.total * sign)} }
+                                                td { class: "menu-cell",
+                                                details { class: "row-menu",
+                                                    summary { "aria-label": "More for {r.account}", "⋯" }
+                                                    div { class: "menu",
+                                                    span { class: "muted small-inline", "Opened {r.open.date}" }
+                                                    button { r#type: "button", class: "link", "aria-label": "Transactions in {r.account} (menu)",
+                                                        onclick: {
+                                                            let a = r.account.clone();
+                                                            move |_| onshow.call(a.clone())
+                                                        },
+                                                        "Transactions"
+                                                    }
                                                     if let Some(input) = placeholder_of(&r.open).filter(|_| node.parent && r.close.is_none()) {
                                                         button { r#type: "button", class: "link", "aria-label": "Make {r.account} a placeholder",
                                                             onclick: {
@@ -295,10 +333,15 @@ pub fn Accounts(
                                                             move |()| save(Operation::Delete(at(&open)), format!("Deleted {a}."))
                                                         },
                                                     }
+                                                    }
+                                                }
                                                 }
                                             }
                                         }
                                         }
+                                    }
+                                    }
+                                    }
                                     }
                                 }
                             }
@@ -306,11 +349,25 @@ pub fn Accounts(
                     }
                 }
             }
+            }
+            }
             p { class: "muted small",
                 "Deleting an account removes its open entry; it is refused while transactions or envelope entries use it. "
                 "Close it instead to keep its history."
             }
         }
+    }
+}
+
+/// A badge for a budget flag worth noticing; none for the usual ones (on budget, a category).
+/// An asset or liability with no flag is off budget too (DESIGN.md, decision 5).
+fn budget_tag(root: &str, flag: Option<&str>) -> Option<&'static str> {
+    match flag {
+        Some("off") => Some("off budget"),
+        Some("excluded") => Some("excluded"),
+        Some("placeholder") => Some("placeholder"),
+        None if root == "Assets" || root == "Liabilities" => Some("off budget"),
+        _ => None,
     }
 }
 
@@ -748,52 +805,416 @@ fn ReconcileForm(
     }
 }
 
-/// Opens an account or a category: its name, budget flag and date.
+/// What someone is adding, and where it goes in the ledger.
+#[derive(Clone, Copy)]
+struct Kind {
+    id: &'static str,
+    label: &'static str,
+    root: &'static str,
+    flag: Option<BudgetFlag>,
+    /// What the budget does with it, in words.
+    effect: &'static str,
+    /// It holds money, so it can start with a balance.
+    holds_money: bool,
+}
+
+/// The kinds offered. "other" picks the root and the budget flag by hand.
+const KINDS: [Kind; 7] = [
+    Kind {
+        id: "cash",
+        label: "Checking or cash",
+        root: "Assets",
+        flag: Some(BudgetFlag::On),
+        effect: "on budget: its money is yours to assign",
+        holds_money: true,
+    },
+    Kind {
+        id: "card",
+        label: "Credit card",
+        root: "Liabilities",
+        flag: Some(BudgetFlag::On),
+        effect: "on budget: purchases set money aside for the payment",
+        holds_money: true,
+    },
+    Kind {
+        id: "track",
+        label: "Savings or investments",
+        root: "Assets",
+        flag: Some(BudgetFlag::Off),
+        effect: "off budget: tracked, not budgeted",
+        holds_money: true,
+    },
+    Kind {
+        id: "loan",
+        label: "Loan or mortgage",
+        root: "Liabilities",
+        flag: Some(BudgetFlag::Off),
+        effect: "off budget: tracked, not budgeted",
+        holds_money: true,
+    },
+    Kind {
+        id: "category",
+        label: "Spending category",
+        root: "Expenses",
+        flag: None,
+        effect: "a budget category",
+        holds_money: false,
+    },
+    Kind {
+        id: "income",
+        label: "Income",
+        root: "Income",
+        flag: None,
+        effect: "income: money that arrives is yours to assign",
+        holds_money: false,
+    },
+    Kind {
+        id: "other",
+        label: "More…",
+        root: "Expenses",
+        flag: None,
+        effect: "",
+        holds_money: false,
+    },
+];
+
+/// Where opening balances come from, as `GnuCash` names it.
+const OPENING: &str = "Equity:Opening-Balances";
+
+/// The full ledger name for a kind's `root`, an optional parent typed as "Food" or "Food:Dining",
+/// and a name typed in words; or what is wrong with it.
+fn new_account_name(root: &str, parent: &str, name: &str) -> Result<String, &'static str> {
+    let name = ledger_part(name);
+    if name.is_empty() {
+        return Err("Type a name.");
+    }
+    let mut parts = vec![root.to_owned()];
+    parts.extend(parent.split(':').map(ledger_part).filter(|p| !p.is_empty()));
+    parts.push(name);
+    let full = parts.join(":");
+    if is_account(&full) {
+        Ok(full)
+    } else {
+        Err("Use letters, digits, spaces and hyphens.")
+    }
+}
+
+/// Adds an account or category: a kind, a name in words, an optional parent, the date it opened, and
+/// for an account its balance today, written against `OPENING`. Each is its own commit, in order.
 #[component]
-fn OpenAccount(today: Date, onopen: EventHandler<OpenInput>) -> Element {
-    let mut account = use_signal(String::new);
-    let mut budget = use_signal(String::new);
+fn AddAccount(
+    backend: Backend,
+    core: Shared,
+    version: Signal<Option<String>>,
+    notice: Signal<Option<(bool, String)>>,
+    today: Date,
+    onclose: EventHandler<()>,
+) -> Element {
+    let mut kind = use_signal(|| "cash");
+    let mut name = use_signal(String::new);
+    let mut parent = use_signal(String::new);
+    let mut balance = use_signal(String::new);
+    let mut other_root = use_signal(|| "Expenses".to_owned());
+    let mut other_flag = use_signal(String::new);
     let mut date = use_today_date(today);
+    let mut error = use_signal(|| None::<String>);
+    let Kind {
+        label,
+        root,
+        flag,
+        effect,
+        holds_money,
+        ..
+    } = KINDS
+        .into_iter()
+        .find(|k| k.id == kind())
+        .unwrap_or(KINDS[0]);
+    let other = kind() == "other";
+    let root = if other { other_root() } else { root.to_owned() };
+    let flag = if other {
+        BudgetFlag::parse(&other_flag())
+    } else {
+        flag
+    };
+    let full = new_account_name(&root, &parent(), &name());
+    let _ = version();
+    let (existing, parents, currency) = {
+        let mut c = core.0.borrow_mut();
+        let book = c.book();
+        let info = book.account_info();
+        let under = format!("{root}:");
+        // Every level of the names under this root, in words: "Food", "Food:Dining".
+        let parents: std::collections::BTreeSet<String> = info
+            .keys()
+            .filter_map(|a| a.strip_prefix(&under))
+            .flat_map(|rest| {
+                let parts: Vec<&str> = rest.split(':').collect();
+                (1..=parts.len())
+                    .map(|i| {
+                        parts[..i]
+                            .iter()
+                            .map(|p| words(p))
+                            .collect::<Vec<_>>()
+                            .join(":")
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        let existing = full.as_ref().is_ok_and(|f| info.contains_key(f.as_str()));
+        (existing, parents, book.currency().to_owned())
+    };
+    let amount = balance().trim().to_owned();
+    let amount_ok = amount.is_empty() || parse_amount(&amount).is_ok();
+    let problem = match &full {
+        Err(e) => Some((*e).to_owned()),
+        Ok(f) if existing => Some(format!("{} already exists.", short(f))),
+        Ok(_) if holds_money && !amount_ok => {
+            Some(format!("{amount:?} is not an amount, such as 1,500.00."))
+        }
+        Ok(_) => None,
+    };
+    let add = {
+        let (backend, core) = (backend.clone(), core.clone());
+        let (full, root) = (full.clone(), root.clone());
+        move |e: FormEvent| {
+            e.prevent_default();
+            let Ok(account) = full.clone() else { return };
+            let opened_on = date.peek().clone();
+            let open = OpenInput {
+                date: opened_on.clone(),
+                account: account.clone(),
+                budget: flag,
+                ..Default::default()
+            };
+            let typed = balance.peek().trim().to_owned();
+            let sign = if root == "Liabilities" {
+                Decimal::NEGATIVE_ONE
+            } else {
+                Decimal::ONE
+            };
+            let opening = (holds_money
+                && !typed.is_empty()
+                && parse_amount(&typed).is_ok_and(|d| !d.is_zero()))
+            .then(|| ledger_balance(&typed, sign));
+            match add_account(&backend, &core, open, opening, &currency) {
+                Ok(done) => {
+                    notice.clone().set(Some((true, done)));
+                    error.set(None);
+                    name.set(String::new());
+                    balance.set(String::new());
+                    onclose.call(());
+                }
+                Err(e) => error.set(Some(e)),
+            }
+            let v = core.0.borrow().version.clone();
+            version.clone().set(Some(v));
+        }
+    };
     rsx! {
-        section {
-            form { class: "inline-form", "aria-label": "Open account",
-                onsubmit: move |e: FormEvent| {
-                    e.prevent_default();
-                    onopen.call(OpenInput {
-                        date: date.peek().clone(),
-                        account: account.peek().trim().to_owned(),
-                        budget: BudgetFlag::parse(&budget.peek()),
-                        ..Default::default()
-                    });
-                    account.set(String::new());
-                },
-                h2 { "Open an account or category" }
-                label { "Name"
-                    input { value: "{account}", placeholder: "Expenses:Food:Dining", required: true,
-                        oninput: move |e| account.set(e.value()),
+        form { class: "add-account", "aria-label": "Add an account or category", onsubmit: add,
+            div { class: "kinds", role: "radiogroup", "aria-label": "Kind",
+                for Kind { id, label, .. } in KINDS {
+                    label { key: "{id}",
+                        input { r#type: "radio", name: "kind", value: id, checked: kind() == id,
+                            onchange: move |_| kind.set(id),
+                        }
+                        {label}
                     }
                 }
-                label { "Budget"
-                    select { value: "{budget}", onchange: move |e| budget.set(e.value()),
-                        option { value: "", "category (expenses) / no flag" }
-                        option { value: "on", "on budget (cash or card)" }
-                        option { value: "off", "off budget (tracking)" }
-                        option { value: "excluded", "excluded expense" }
-                        option { value: "placeholder", "placeholder (groups its sub-accounts)" }
+            }
+            div { class: "fields",
+                if other {
+                    label { "Type"
+                        select { value: "{other_root}", onchange: move |e| other_root.set(e.value()),
+                            for (r, _, _) in ROOTS { option { key: "{r}", value: r, {r} } }
+                        }
+                    }
+                    label { "Budget"
+                        select { value: "{other_flag}", onchange: move |e| other_flag.set(e.value()),
+                            option { value: "", "category / no flag" }
+                            option { value: "on", "on budget" }
+                            option { value: "off", "off budget" }
+                            option { value: "excluded", "excluded expense" }
+                            option { value: "placeholder", "placeholder (groups its sub-accounts)" }
+                        }
+                    }
+                }
+                label { "Name"
+                    input { value: "{name}", required: true, autocomplete: "off",
+                        placeholder: if root == "Liabilities" { "Chase Visa" } else if root == "Expenses" { "Dining" } else { "Checking" },
+                        oninput: move |e| name.set(e.value()),
+                    }
+                }
+                label { "Inside (optional)"
+                    input { value: "{parent}", list: "account-parents", placeholder: "none", autocomplete: "off",
+                        oninput: move |e| parent.set(e.value()),
                     }
                 }
                 label { "Opened"
                     input { r#type: "date", value: "{date}", required: true, oninput: move |e| date.set(e.value()) }
                 }
-                button { r#type: "submit", "Open" }
+                if holds_money {
+                    label { if root == "Liabilities" { "Owed today" } else { "Balance today" }
+                        input { value: "{balance}", inputmode: "decimal", placeholder: "0.00", autocomplete: "off",
+                            oninput: move |e| balance.set(e.value()),
+                        }
+                    }
+                }
+            }
+            datalist { id: "account-parents",
+                for p in parents { option { key: "{p}", value: "{p}" } }
+            }
+            p { class: "preview", "aria-live": "polite",
+                match (&full, &problem) {
+                    (Ok(f), None) => rsx! {
+                        span { "Saved as " code { "{f}" } }
+                        span { class: "muted",
+                            if other { {flag.map_or("no budget flag", BudgetFlag::as_str)} } else { {effect} }
+                        }
+                    },
+                    (_, Some(p)) if !name().trim().is_empty() => rsx! { span { class: "field-error", "{p}" } },
+                    _ => rsx! { span { class: "muted", "Adding: {label}" } },
+                }
+            }
+            if let Some(e) = error() {
+                p { class: "field-error", role: "alert", "{e}" }
+            }
+            div { class: "editor-actions",
+                button { r#type: "submit", disabled: problem.is_some(), "Add" }
+                button { r#type: "button", class: "link", onclick: move |_| onclose.call(()), "Cancel" }
             }
         }
     }
 }
 
+/// Opens `open`'s account and, given `opening` (ledger signed), writes its balance against
+/// `OPENING`, opening that too the first time. What was done, or why it stopped; an account
+/// already opened stays when its balance is refused.
+fn add_account(
+    backend: &Backend,
+    core: &Shared,
+    open: OpenInput,
+    opening: Option<String>,
+    currency: &str,
+) -> Result<String, String> {
+    let account = open.account.clone();
+    let date = open.date.clone();
+    let save = |op| apply(backend, &core.0, op).map_err(|e| e.to_string());
+    save(Operation::Add(EntryInput::Open(open)))?;
+    let Some(amount) = opening else {
+        return Ok(format!("Added {}.", short(&account)));
+    };
+    let stop = |e: String| format!("Added {}, but not its balance: {e}", short(&account));
+    let has_opening = core
+        .0
+        .borrow_mut()
+        .book()
+        .account_info()
+        .contains_key(OPENING);
+    if !has_opening {
+        let equity = OpenInput {
+            date: date.clone(),
+            account: OPENING.to_owned(),
+            ..Default::default()
+        };
+        save(Operation::Add(EntryInput::Open(equity))).map_err(stop)?;
+    }
+    let posting = |account: &str, amount: Option<String>| PostingInput {
+        account: account.to_owned(),
+        currency: amount.as_ref().map(|_| currency.to_owned()),
+        amount,
+        ..Default::default()
+    };
+    let txn = TransactionInput {
+        date,
+        payee: Some("Opening balance".to_owned()),
+        narration: words(account.rsplit(':').next().unwrap_or(&account)),
+        postings: vec![posting(&account, Some(amount)), posting(OPENING, None)],
+        ..Default::default()
+    };
+    save(Operation::Add(EntryInput::Txn(txn))).map_err(stop)?;
+    Ok(format!("Added {} with its balance.", short(&account)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_new_name_is_typed_in_words() {
+        assert_eq!(
+            new_account_name("Liabilities", "", "chase visa"),
+            Ok("Liabilities:Chase-Visa".into())
+        );
+        assert_eq!(
+            new_account_name("Expenses", " food : dining ", "Take out"),
+            Ok("Expenses:Food:Dining:Take-Out".into())
+        );
+        assert_eq!(new_account_name("Assets", "", "  "), Err("Type a name."));
+        assert_eq!(
+            new_account_name("Assets", "", "Bank & Co"),
+            Err("Use letters, digits, spaces and hyphens.")
+        );
+    }
+
+    #[test]
+    fn a_card_opens_with_what_it_owes() {
+        use branchbooks_core::write::store::{CommitInfo, FileChange};
+        use branchbooks_core::write::workspace::WorkspaceCore;
+        let dir =
+            std::env::temp_dir().join(format!("branchbooks-add-account-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        branchbooks_git::GitStore::init(&dir, None).unwrap();
+        let backend = Backend {
+            dir: dir.clone(),
+            author: branchbooks_git::Author {
+                name: "test".into(),
+                email: "test@example.invalid".into(),
+            },
+            scenario: None,
+        };
+        let ledger = "option \"operating_currency\" \"USD\"\n2026-01-01 open Assets:Checking USD\n  budget: \"on\"\n";
+        let seed = FileChange {
+            path: "main.beancount".into(),
+            text: Some(ledger.into()),
+        };
+        let info = CommitInfo {
+            op_id: "seed".into(),
+            op_type: "import".into(),
+            summary: "Seed".into(),
+        };
+        backend.commit("", &[seed], &info).unwrap();
+        let snap = backend.snapshot().unwrap();
+        let mut core = WorkspaceCore::new(None);
+        core.reset(&snap.version, snap.files);
+        let core = Shared(std::rc::Rc::new(std::cell::RefCell::new(core)));
+        let open = OpenInput {
+            date: "2026-11-01".into(),
+            account: "Liabilities:Chase-Visa".into(),
+            budget: Some(BudgetFlag::On),
+            ..Default::default()
+        };
+        let owed = ledger_balance("500", Decimal::NEGATIVE_ONE);
+        assert_eq!(
+            add_account(&backend, &core, open, Some(owed), "USD"),
+            Ok("Added Chase-Visa with its balance.".into())
+        );
+        let mut c = core.0.borrow_mut();
+        let book = c.book();
+        let balances = book.balances().clone();
+        assert_eq!(
+            branchbooks_core::ledger::balance_of(&balances, "Liabilities:Chase-Visa", "USD"),
+            Decimal::from(-500)
+        );
+        assert_eq!(
+            branchbooks_core::ledger::balance_of(&balances, OPENING, "USD"),
+            Decimal::from(500)
+        );
+        assert!(book.errors().is_empty(), "{:?}", book.errors());
+        drop(c);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn a_statement_balance_takes_the_ledgers_sign() {

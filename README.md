@@ -39,10 +39,13 @@ that the updater keeps on your device. Offline, the app just runs as it is.
   scenarios, closed months and what was set aside travel too.
 - **Views:** Budget (Assigned, targets, card payments, moving money, the month's entries and notes,
   target shortfalls, the ledger's errors), Journal (add, edit, delete, filtered by an account or
-  category), Accounts (open, edit, rename everywhere, reconcile, close, reopen, delete), Overview,
+  category), Accounts (add by kind, with today's balance; edit, rename everywhere, reconcile, close,
+  reopen, delete), Overview,
   Reports, Files (errors, import, history), Scenarios (start, open, compare, merge, set aside) and
   closing a month.
-- **Book settings:** name, remote and token, who commits (the book's own git identity), delete.
+- **Settings**, from the foot of the sidebar: the book's name, remote and token, who commits (the
+  book's own git identity) and deleting it; light, dark or matching Windows; checking for updates;
+  and where the books and the crash log are kept.
 
 **Underneath:** one Rust engine for the app and the CLI: parser, ledger, envelope budget, target
 budgeting, reports and the write path. The git store is grit-lib (pure Rust), so no `git` program is

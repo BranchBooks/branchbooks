@@ -22,6 +22,21 @@ pub fn words(part: &str) -> String {
     part.replace('-', " ")
 }
 
+/// The reverse of `words`, for a name part typed by a person: "chase  visa" -> "Chase-Visa". What it
+/// can't fix, such as "&", is left for the account name check to refuse.
+pub fn ledger_part(typed: &str) -> String {
+    typed
+        .split_whitespace()
+        .map(|w| {
+            let mut c = w.chars();
+            c.next()
+                .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
+                .unwrap_or_default()
+        })
+        .collect::<Vec<_>>()
+        .join("-")
+}
+
 const MONTHS: [&str; 12] = [
     "January",
     "February",
@@ -82,6 +97,17 @@ pub fn norm_amount(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn typed_words_become_a_name_part_and_back() {
+        assert_eq!(ledger_part("chase  visa "), "Chase-Visa");
+        assert_eq!(ledger_part("401k"), "401k");
+        assert_eq!(ledger_part("  "), "");
+        assert_eq!(
+            words(&ledger_part("Repair And Maintenance")),
+            "Repair And Maintenance"
+        );
+    }
 
     #[test]
     fn formats_money_and_months() {
