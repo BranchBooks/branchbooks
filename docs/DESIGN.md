@@ -75,6 +75,13 @@ is not a transfer.
 - **Rule 13.** An account flagged `on` whose open currencies exclude the budget currency is off-budget.
   Postings in other currencies on an on-budget account are ignored by the budget.
 - **What the CLI shows.** Available = Carried + Assigned + Moved + Activity.
+- **Placeholders.** A flag value rather than a new field, so an account cannot be both on budget and a
+  placeholder. Beancount has no such idea and accepts a posting to one, so that is no ledger error: a posting
+  written by hand or imported still counts, shows the row, and is flagged `placeholder`, so no money goes
+  missing. An assignment, move or target naming one is flagged and changes nothing. The write path refuses new
+  ones, and an account with transactions cannot become a placeholder. The app offers no Reconcile on one, since a
+  statement belongs to a real account, and no Close, since closing a group would not close what is in it. The GnuCash import keeps GnuCash's own placeholders, unless one has
+  transactions, which then comes over as an ordinary account and is named in the import's notes.
 
 ## Targets
 

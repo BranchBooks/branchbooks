@@ -11,6 +11,8 @@ Budget flags are metadata on `open` directives:
 - `budget: "on"` or `budget: "off"` on asset and liability accounts.
 - `budget: "excluded"` on income and expense accounts that never touch an envelope. A category with
   no flag is budgeted.
+- `budget: "placeholder"` on any account that only groups its sub-accounts. It has no envelope and
+  takes no new postings, assignments, moves or targets. A parent you never open works the same way.
 
 ## Rules
 

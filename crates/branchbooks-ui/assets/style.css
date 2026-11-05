@@ -295,6 +295,7 @@ table.recent td { border-bottom-color: var(--line); }
 td.actions { white-space: nowrap; text-align: right; }
 table.accounts td { vertical-align: middle; }
 table.accounts tr.closed td { color: var(--muted); }
+table.accounts tr.parent td:nth-child(-n+2), table.accounts tr.parent button.cell.name { font-weight: 600; }
 .tree-toggle { display: inline-block; width: 1.4em; padding: 0; border: none; background: none; color: var(--muted); text-align: left; }
 table.accounts tr.folder td { color: var(--muted); }
 form.inline { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }

@@ -24,7 +24,8 @@ use crate::parser::{IncludeLine, parse};
 use crate::types::{Body, Diagnostic, Entry, EntryType};
 use crate::write::import::{ImportItem, ImportKind, ImportLedger, ImportPreview, preview_import};
 use crate::write::render::{
-    BalanceInput, EntryInput, InputError, amount_text, is_account, parse_date, render_entry,
+    BalanceInput, BudgetFlag, EntryInput, InputError, amount_text, is_account, parse_date,
+    render_entry,
 };
 use crate::write::store::{CommitInfo, FileChange, Store, StoreError};
 use crate::write::text::{

@@ -234,13 +234,18 @@ fn TransactionEditor(
     oncancel: EventHandler<()>,
 ) -> Element {
     let t = entry.txn().expect("a transaction").clone();
+    // Not placeholders, unless this transaction already posts to one, so it can still be shown.
     let accounts: Vec<String> = core
         .0
         .borrow_mut()
         .book()
         .account_info()
-        .keys()
-        .cloned()
+        .iter()
+        .filter(|(a, i)| {
+            i.open.meta.str("budget") != Some("placeholder")
+                || t.postings.iter().any(|p| p.account == **a)
+        })
+        .map(|(a, _)| a.clone())
         .collect();
     let mut date = use_signal(|| entry.date.to_string());
     let mut payee = use_signal(|| t.payee.clone().unwrap_or_default());
@@ -357,13 +362,14 @@ pub(crate) fn meta(m: &branchbooks_core::types::Meta) -> Vec<(String, MetaInputV
 }
 
 /// The accounts the add row offers: categories first, then income, then other accounts (a
-/// transfer); and the accounts money comes from, on-budget first. Closed accounts are left out.
+/// transfer); and the accounts money comes from, on-budget first. Closed accounts and placeholders
+/// are left out.
 fn choices(core: &mut WorkspaceCore) -> (Vec<String>, Vec<String>) {
     let info = core.book().account_info();
     let on = |a: &str| info[a].open.meta.str("budget") == Some("on");
     let mut open: Vec<&str> = info
         .iter()
-        .filter(|(_, i)| i.close.is_none())
+        .filter(|(_, i)| i.close.is_none() && i.open.meta.str("budget") != Some("placeholder"))
         .map(|(a, _)| a.as_str())
         .collect();
     open.sort_unstable();
