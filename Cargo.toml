@@ -21,7 +21,7 @@ branchbooks-gnucash = { path = "crates/branchbooks-gnucash" }
 grit-lib = "=0.5.27"
 # Money: exact 96-bit decimals with 28 significant digits.
 rust_decimal = { version = "1", default-features = false, features = ["std"] }
-# Maps that iterate in insertion order, (options, accounts, balances).
+# Maps that iterate in insertion order (options, accounts, balances).
 indexmap = "2"
 # Randomized tests: the write-incremental check (dev only).
 proptest = { version = "1", default-features = false, features = ["std"] }
