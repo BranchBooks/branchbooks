@@ -26,6 +26,19 @@ impl PartialEq for Shared {
     }
 }
 
+/// A form's date box, starting at today and moving with it, so a form left open past midnight does
+/// not date new entries yesterday.
+pub(crate) fn use_today_date(today: Date) -> Signal<String> {
+    let mut date = use_signal(|| today.to_string());
+    use_effect(use_reactive((&today,), move |(today,)| {
+        let now = today.to_string();
+        if *date.peek() != now {
+            date.set(now);
+        }
+    }));
+    date
+}
+
 /// Commits `op` and says how it went in `notice`; true when it was saved.
 pub(crate) fn run(
     backend: Backend,
@@ -285,6 +298,7 @@ fn TransactionEditor(
                                 .as_ref()
                                 .and(from.and_then(|p| p.units.as_ref()).map(|u| u.currency.clone())),
                             amount,
+                            flag: from.and_then(|p| p.flag.clone()),
                             meta: from.map(|p| meta(&p.meta)).unwrap_or_default(),
                         }
                     })
@@ -403,7 +417,7 @@ fn AddTransaction(
     let _ = version();
     let (targets, funding) = choices(&mut core.0.borrow_mut());
     let payees = core.0.borrow_mut().payees();
-    let mut date = use_signal(|| today.to_string());
+    let mut date = use_today_date(today);
     let mut payee = use_signal(String::new);
     let mut category = use_signal(String::new);
     let mut account = use_signal(|| {

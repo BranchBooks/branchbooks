@@ -32,10 +32,19 @@ pub fn Scenarios(
     let mut name = use_signal(String::new);
     let mut comparing = use_signal(|| None::<String>);
     let mut confirming = use_signal(|| None::<(String, &'static str)>);
-    let _ = changed();
-    let list = books::scenarios(&id);
     let to = year_from(month);
-    let diff = comparing().map(|n| (n.clone(), books::compare(&id, &n, month, to)));
+    // Kept, so that typing a name does not read git and load both ledgers again on each key.
+    let list = use_memo(use_reactive((&id,), move |(id,)| {
+        let _ = changed();
+        books::scenarios(&id).map_err(|e| e.to_string())
+    }))();
+    let diff = use_memo(use_reactive((&id, &month), move |(id, month)| {
+        let _ = changed();
+        comparing().map(|n| {
+            let found = books::compare(&id, &n, month, year_from(month));
+            (n, found.map_err(|e| e.to_string()))
+        })
+    }))();
     rsx! {
         section { "aria-label": "Start a scenario",
             form { class: "inline-form", "aria-label": "Start a scenario",

@@ -14,7 +14,6 @@ use branchbooks_core::write::workspace::{
 };
 use dioxus::prelude::*;
 use rust_decimal::Decimal;
-use std::str::FromStr;
 
 use crate::accounts::Accounts;
 use crate::envelopes::{
@@ -27,7 +26,7 @@ use crate::overview::Overview;
 use crate::reports::Reports;
 use crate::scenarios::Scenarios;
 use crate::store::{Backend, local_today, new_id};
-use crate::text::{envelope_date, fmt, is_far_date, month_label, short, words};
+use crate::text::{envelope_date, fmt, is_far_date, month_label, parse_amount, short, words};
 
 struct Group {
     name: String,
@@ -204,6 +203,9 @@ pub fn Screen(
     page: Option<&'static str>,
     /// Opens a scenario (`Some`) or goes back to the book (`None`).
     onscenario: Option<EventHandler<Option<String>>>,
+    /// Bumped to load the book again, after a sync brings changes in. The page, month and any form
+    /// being typed in stay as they are.
+    reloads: u32,
 ) -> Element {
     let core = use_hook(|| Rc::new(RefCell::new(WorkspaceCore::new(None))));
     // The version on screen: None while loading. Setting it redraws.
@@ -214,8 +216,10 @@ pub fn Screen(
     let value = use_signal(String::new);
     let mut collapsed = use_signal(Vec::<String>::new);
     let mut page = use_signal(|| page.unwrap_or("overview"));
-    // The sidebar: collapsed to icons on a wide window, opened over the page on a narrow one.
-    let mut sidebar_toggled = use_signal(|| false);
+    // The sidebar: collapsed to icons on a wide window, opened over the page on a narrow one. The
+    // stylesheet honours each only at its width.
+    let mut sidebar_collapsed = use_signal(|| false);
+    let mut menu_open = use_signal(|| false);
     // The account or category the Journal is filtered to, from Accounts or the Budget's Activity.
     let mut filter = use_signal(|| None::<String>);
     // The category whose target editor is open.
@@ -252,6 +256,27 @@ pub fn Screen(
             }
         }
     });
+
+    let mut loaded = use_signal(|| reloads);
+    use_effect(use_reactive((&reloads,), {
+        let (core, backend) = (core.clone(), backend.clone());
+        move |(reloads,)| {
+            if *loaded.peek() == reloads {
+                return;
+            }
+            loaded.set(reloads);
+            match backend.snapshot() {
+                Ok(snap) => {
+                    let v = snap.version.clone();
+                    core.borrow_mut().reset(&snap.version, snap.files);
+                    // Seen already: it came from a sync, so it is no commit to sync again.
+                    seen.set(Some(v.clone()));
+                    version.set(Some(v));
+                }
+                Err(e) => notice.set(Some((false, e.to_string()))),
+            }
+        }
+    }));
 
     let assign = use_callback({
         let (core, backend, today) = (core.clone(), backend.clone(), today);
@@ -326,9 +351,9 @@ pub fn Screen(
     entries.sort_by(|a, b| b.0.date.cmp(&a.0.date).then(b.0.seq.cmp(&a.0.seq)));
 
     rsx! {
-        div { class: "app", "data-collapsed": sidebar_toggled(), "data-menu": sidebar_toggled(),
+        div { class: "app", "data-collapsed": sidebar_collapsed(), "data-menu": menu_open(),
             button { r#type: "button", class: "scrim", "aria-label": "Close the sidebar",
-                onclick: move |_| sidebar_toggled.set(false),
+                onclick: move |_| menu_open.set(false),
             }
             // The app's frame.
             aside { class: "sidebar",
@@ -351,7 +376,7 @@ pub fn Screen(
                                                 page.set(id);
                                                 filter.set(None);
                                                 // A narrow window's sidebar covers the page: get out of the way.
-                                                sidebar_toggled.set(false);
+                                                menu_open.set(false);
                                             },
                                             svg { class: "icon", view_box: "0 0 24 24", "aria-hidden": "true",
                                                 path { d }
@@ -372,8 +397,11 @@ pub fn Screen(
             div { class: "main",
                 header { class: "topbar",
                     button { r#type: "button", class: "icon", "aria-label": "Toggle the sidebar",
-                        "aria-pressed": sidebar_toggled(),
-                        onclick: move |_| sidebar_toggled.toggle(),
+                        "aria-pressed": sidebar_collapsed(),
+                        onclick: move |_| {
+                            sidebar_collapsed.toggle();
+                            menu_open.toggle();
+                        },
                         svg { class: "chevron-icon", view_box: "0 0 16 16", "aria-hidden": "true",
                             path { d: "M2 4h12M2 8h12M2 12h12" }
                         }
@@ -491,7 +519,7 @@ pub fn Screen(
                                             for (c, label, cat) in g.rows.into_iter().map(|(c, l)| { let k = c.category.clone(); (c, l, k) }) {
                                                 CategoryLine { key: "{c.category}", row: c.clone(), label: label.clone(),
                                                     editing: editing() == Some(c.category.clone()),
-                                                    value, onedit: move |cat: String| editing.set(Some(cat)),
+                                                    value, notice, onedit: move |cat: String| editing.set(Some(cat)),
                                                     oncancel: move |()| editing.set(None),
                                                     onassign: move |amount: String| assign((cat.clone(), amount)),
                                                     onshow: move |cat: String| {
@@ -504,7 +532,7 @@ pub fn Screen(
                                                 if target_for() == Some(c.category.clone()) {
                                                     tr { key: "{c.category}-target", class: "editing",
                                                         td { colspan: 5,
-                                                            TargetForm { row: c.clone(),
+                                                            TargetForm { row: c.clone(), notice,
                                                                 oncancel: move |()| target_for.set(None),
                                                                 onsave: {
                                                                     let (cat, date) = (c.category.clone(), env_date.clone());
@@ -538,7 +566,7 @@ pub fn Screen(
                                 "Target: what the category's target put in this month, from Unassigned."
                             }
                         }
-                        CardPayments { cards: view.cards.clone(),
+                        CardPayments { cards: view.cards.clone(), notice,
                             onsetaside: {
                                 let date = env_date.clone();
                                 move |(card, amount): (String, String)| {
@@ -609,6 +637,7 @@ fn CategoryLine(
     label: String,
     editing: bool,
     value: Signal<String>,
+    mut notice: Signal<Option<(bool, String)>>,
     onedit: EventHandler<String>,
     oncancel: EventHandler<()>,
     onassign: EventHandler<String>,
@@ -637,7 +666,10 @@ fn CategoryLine(
                         onsubmit: move |e: FormEvent| {
                             e.prevent_default();
                             // The cell shows the month's total; assigning writes the difference.
-                            let Ok(total) = Decimal::from_str(value.peek().trim()) else { return };
+                            let total = match parse_amount(&value.peek()) {
+                                Ok(total) => total,
+                                Err(m) => return notice.set(Some((false, m))),
+                            };
                             let delta = total - assigned;
                             if delta.is_zero() {
                                 oncancel.call(());

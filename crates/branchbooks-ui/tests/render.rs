@@ -77,6 +77,7 @@ async fn the_budget_shows_unassigned_and_marks_overspent_envelopes() {
         onsaved: None,
         page: Some("budget"),
         onscenario: None,
+        reloads: 0,
     })
     .await;
     assert_eq!(text_after(&html, r#"data-testid="unassigned""#), "1,100.00");

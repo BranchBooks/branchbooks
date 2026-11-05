@@ -3,15 +3,13 @@
 // shortcut: closing a month shows no "changed since closed" yet, and the write path does not warn
 // about an edit dated in a closed month; add both when closes are used in earnest.
 
-use std::str::FromStr;
-
 use branchbooks_core::budget::{CardRow, CategoryRow, Target};
 use branchbooks_core::types::{CustomValue, Diagnostic, Entry, MetaValue};
 use branchbooks_core::write::render::{AssignInput, EntryInput, MoveInput};
 use dioxus::prelude::*;
 use rust_decimal::Decimal;
 
-use crate::text::{fmt, month_label, norm_amount, short};
+use crate::text::{fmt, month_label, norm_amount, parse_amount, short};
 use branchbooks_core::date::Month;
 
 /// A target rule in words: "1,400.00 a month", or "6,000.00 by June 2027".
@@ -48,6 +46,7 @@ pub fn TargetForm(
     row: CategoryRow,
     onsave: EventHandler<(String, Option<String>)>,
     oncancel: EventHandler<()>,
+    mut notice: Signal<Option<(bool, String)>>,
 ) -> Element {
     let t = row.target.clone();
     let mut amount = use_signal(|| {
@@ -65,9 +64,13 @@ pub fn TargetForm(
         form { class: "inline-form target-form", "aria-label": "Target for {name}",
             onsubmit: move |e: FormEvent| {
                 e.prevent_default();
-                let Ok(value) = Decimal::from_str(&norm_amount(&amount.peek())) else { return };
+                let value = match parse_amount(&amount.peek()) {
+                    Ok(value) => value,
+                    Err(m) => return notice.set(Some((false, m))),
+                };
                 if value <= Decimal::ZERO {
-                    return;
+                    let m = "A target needs an amount above zero. To remove one, use End target.";
+                    return notice.set(Some((false, m.to_owned())));
                 }
                 let due = by.peek().as_deref().and_then(|m| m.parse::<Month>().ok()).map(|m| m.first_day().to_string());
                 onsave.call((format!("{value:.2}"), due));
@@ -102,7 +105,11 @@ pub fn TargetForm(
 /// Card payment envelopes. Set aside is editable like Assigned: a new total writes an
 /// envelope-assign to the card for the difference. "Cover" sets aside what is underfunded.
 #[component]
-pub fn CardPayments(cards: Vec<CardRow>, onsetaside: EventHandler<(String, String)>) -> Element {
+pub fn CardPayments(
+    cards: Vec<CardRow>,
+    onsetaside: EventHandler<(String, String)>,
+    mut notice: Signal<Option<(bool, String)>>,
+) -> Element {
     let mut editing = use_signal(|| None::<String>);
     let mut value = use_signal(String::new);
     rsx! {
@@ -122,7 +129,10 @@ pub fn CardPayments(cards: Vec<CardRow>, onsetaside: EventHandler<(String, Strin
                                                 let (card, available) = (c.card.clone(), c.available);
                                                 move |e: FormEvent| {
                                                     e.prevent_default();
-                                                    let Ok(total) = Decimal::from_str(&norm_amount(&value.peek())) else { return };
+                                                    let total = match parse_amount(&value.peek()) {
+                                                        Ok(total) => total,
+                                                        Err(m) => return notice.set(Some((false, m))),
+                                                    };
                                                     let delta = total - available;
                                                     if !delta.is_zero() {
                                                         onsetaside.call((card.clone(), format!("{delta:.2}")));
@@ -492,6 +502,7 @@ pub fn MonthClose(
 mod tests {
     use super::*;
     use branchbooks_core::types::{Amount, Body, Custom, Meta};
+    use std::str::FromStr;
 
     fn custom(name: &str, values: Vec<CustomValue>) -> Entry {
         Entry {

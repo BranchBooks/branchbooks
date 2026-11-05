@@ -369,8 +369,25 @@ pub fn close_month(id: &str, month: Month) -> Result<(), BookError> {
 pub fn reopen_month(id: &str, month: Month) -> Result<(), BookError> {
     Ok(trunk(id).reopen(month)?)
 }
-/// A token goes only over HTTPS; a plain-http URL with one is refused.
+/// Whether a web address carries a login (`https://user:token@host/...`).
+fn has_login(url: &str) -> bool {
+    url.trim().split_once("://").is_some_and(|(scheme, rest)| {
+        (scheme.eq_ignore_ascii_case("https") || scheme.eq_ignore_ascii_case("http"))
+            && rest
+                .split('/')
+                .next()
+                .is_some_and(|host| host.contains('@'))
+    })
+}
+
+/// A token goes only over HTTPS; a plain-http URL with one is refused. A URL is saved as typed, in
+/// the book's git config, so one holding a login is refused too: tokens never go in a file.
 fn check_url(url: &str, token: &str) -> Result<(), BookError> {
+    if has_login(url) {
+        return Err(refused(
+            "Put the token in the token field, not in the URL: a URL is saved in a plain file.",
+        ));
+    }
     if !token.is_empty() && !url.trim().starts_with("https://") {
         return Err(refused(
             "A token is sent only over HTTPS: the URL must start https://.",
@@ -510,6 +527,32 @@ mod tests {
         Start::Empty {
             currency: "USD".into(),
         }
+    }
+
+    #[test]
+    fn a_url_holding_a_login_is_refused_and_leaves_nothing_behind() {
+        for url in [
+            "https://user:secret@example.invalid/b.git",
+            "https://secret@example.invalid/b.git",
+            "HTTP://user:secret@example.invalid/b.git",
+        ] {
+            let e = check_url(url, "").unwrap_err().to_string();
+            assert!(e.contains("token field"), "{url}: {e}");
+            assert!(!e.contains("secret"), "{e}");
+        }
+        // An @ further along is not a login, and neither is a folder.
+        assert!(check_url("https://example.invalid/you@work/b.git", "").is_ok());
+        assert!(check_url("/a/local/path", "").is_ok());
+
+        let dir = std::env::temp_dir().join(format!("branchbooks-login-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let leaky = Start::Clone {
+            url: "https://user:secret@example.invalid/b.git".into(),
+            token: String::new(),
+        };
+        assert!(create_in(&dir, "Leaky", leaky).is_err());
+        assert!(!dir.join("leaky").exists());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

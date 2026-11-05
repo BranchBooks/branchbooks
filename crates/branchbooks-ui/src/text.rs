@@ -1,30 +1,12 @@
 //! Words and numbers for people.
 
 use branchbooks_core::date::{Date, Month};
-use rust_decimal::{Decimal, RoundingStrategy};
+use rust_decimal::Decimal;
+use std::str::FromStr;
 
 /// Two decimals with thousands separators: "1,050.00". Never "-0.00".
 pub fn fmt(value: Decimal) -> String {
-    let rounded = value.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
-    let fixed = format!("{rounded:.2}");
-    let (negative, body) = match fixed.strip_prefix('-') {
-        Some(rest) => (true, rest),
-        None => (false, fixed.as_str()),
-    };
-    let (int, frac) = body.split_once('.').unwrap_or((body, "00"));
-    let mut grouped = String::new();
-    for (i, c) in int.chars().enumerate() {
-        if i > 0 && (int.len() - i) % 3 == 0 {
-            grouped.push(',');
-        }
-        grouped.push(c);
-    }
-    let out = format!("{grouped}.{frac}");
-    if negative && out.chars().any(|c| ('1'..='9').contains(&c)) {
-        format!("-{out}")
-    } else {
-        out
-    }
+    branchbooks_core::money::fmt(value, 2)
 }
 
 /// "Expenses:Food:Dining" -> "Food:Dining".
@@ -75,6 +57,12 @@ pub fn is_far_date(date: Date, today: Date) -> bool {
     (date.year() - today.year()).abs() > 50
 }
 
+/// What someone typed as an amount, commas allowed, or what to tell them.
+pub fn parse_amount(text: &str) -> Result<Decimal, String> {
+    Decimal::from_str(&norm_amount(text))
+        .map_err(|_| format!("{:?} is not an amount, such as 1,500.00.", text.trim()))
+}
+
 /// "20" -> "20.00", "1,050.5" -> "1050.50"; anything with more decimals, or not a plain number,
 /// is left for the write path to judge.
 pub fn norm_amount(text: &str) -> String {
@@ -94,7 +82,6 @@ pub fn norm_amount(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
 
     #[test]
     fn formats_money_and_months() {
@@ -120,5 +107,11 @@ mod tests {
         assert_eq!(norm_amount("-3.25"), "-3.25");
         assert_eq!(norm_amount("1.005"), "1.005");
         assert_eq!(norm_amount("abc"), "abc");
+        assert_eq!(parse_amount(" 1,500 "), Ok(d("1500.00")));
+        assert_eq!(parse_amount("-1,050.5"), Ok(d("-1050.50")));
+        for bad in ["", "$20", "abc"] {
+            let e = parse_amount(bad).unwrap_err();
+            assert!(e.contains("not an amount"), "{bad}: {e}");
+        }
     }
 }

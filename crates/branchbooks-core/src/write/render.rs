@@ -57,6 +57,8 @@ pub struct PostingInput {
     /// Decimal text such as "-45.00". `None` lets Beancount fill in the balancing amount.
     pub amount: Option<String>,
     pub currency: Option<String>,
+    /// The posting's own flag, `*` or `!`, when it has one.
+    pub flag: Option<String>,
     pub meta: MetaInput,
 }
 
@@ -318,6 +320,14 @@ fn meta_lines<'a>(
         .collect()
 }
 
+/// A posting's account as written, after its flag if it has one.
+fn posting_name(p: &PostingInput) -> String {
+    match &p.flag {
+        Some(flag) => format!("{flag} {}", p.account),
+        None => p.account.clone(),
+    }
+}
+
 /// Renders an entry. `currency` is the ledger's budget currency, used when an amount has none.
 pub fn render_entry(e: &EntryInput, currency: &str) -> Result<Vec<String>> {
     parse_date(e.date())?;
@@ -342,7 +352,7 @@ pub fn render_entry(e: &EntryInput, currency: &str) -> Result<Vec<String>> {
             let width = e
                 .postings
                 .iter()
-                .map(|p| p.account.chars().count())
+                .map(|p| posting_name(p).chars().count())
                 .max()
                 .unwrap_or(0);
             let amounts = e
@@ -359,12 +369,16 @@ pub fn render_entry(e: &EntryInput, currency: &str) -> Result<Vec<String>> {
             out.extend(meta_lines(&e.meta, "  ")?);
             for (p, amt) in e.postings.iter().zip(&amounts) {
                 check_account(&p.account)?;
+                check(matches!(p.flag.as_deref(), None | Some("*" | "!")), || {
+                    format!("invalid posting flag {:?}", p.flag)
+                })?;
+                let name = posting_name(p);
                 match amt {
-                    None => out.push(format!("  {}", p.account)),
+                    None => out.push(format!("  {name}")),
                     Some(amt) => {
                         let cur = p.currency.as_deref().unwrap_or(currency);
                         check_currency(cur)?;
-                        out.push(format!("  {:<width$}  {amt:>num_width$} {cur}", p.account));
+                        out.push(format!("  {name:<width$}  {amt:>num_width$} {cur}"));
                     }
                 }
                 out.extend(meta_lines(&p.meta, "    ")?);
@@ -466,6 +480,35 @@ pub fn render_entry(e: &EntryInput, currency: &str) -> Result<Vec<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_posting_keeps_its_flag_when_written_and_read_back() {
+        let posting = |account: &str, flag: Option<&str>, amount: Option<&str>| PostingInput {
+            account: account.into(),
+            amount: amount.map(Into::into),
+            flag: flag.map(Into::into),
+            ..Default::default()
+        };
+        let txn = |flag: Option<&str>| {
+            EntryInput::Txn(TransactionInput {
+                date: "2026-11-05".into(),
+                narration: "Lunch".into(),
+                postings: vec![
+                    posting("Expenses:Food", None, Some("5.00")),
+                    posting("Assets:Checking", flag, None),
+                ],
+                ..Default::default()
+            })
+        };
+        let lines = render_entry(&txn(Some("!")), "USD").unwrap();
+        assert_eq!(lines[2], "  ! Assets:Checking");
+        let parsed = crate::parser::parse(&lines.join("\n"), "x");
+        assert_eq!(parsed.errors, vec![]);
+        let postings = &parsed.entries[0].txn().unwrap().postings;
+        assert_eq!(postings[0].flag, None);
+        assert_eq!(postings[1].flag.as_deref(), Some("!"));
+        assert!(render_entry(&txn(Some("x")), "USD").is_err());
+    }
 
     #[test]
     fn patterns() {
