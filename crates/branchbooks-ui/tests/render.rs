@@ -78,6 +78,7 @@ async fn the_budget_shows_unassigned_and_marks_overspent_envelopes() {
         page: Some("budget"),
         onscenario: None,
         reloads: 0,
+        onsettings: None,
     })
     .await;
     assert_eq!(text_after(&html, r#"data-testid="unassigned""#), "1,100.00");
@@ -185,7 +186,20 @@ async fn accounts_show_balances_by_type_with_credits_positive() {
     assert_eq!(row("Assets:Checking"), "2,735.00");
     assert_eq!(row("Assets:Brokerage"), "500.00");
     assert_eq!(row("Income:Salary"), "5,000.00");
-    assert!(html.contains("Expense categories") && html.contains("on budget"));
+    assert!(html.contains("Expense categories"));
+    // Only the unusual budget flags get a badge: Brokerage is off budget, Checking is not marked.
+    let badge = |a: &str| {
+        let row = &html[html.find(&format!(r#"title="{a}""#)).unwrap()..];
+        let row = &row[..row.find("</tr>").unwrap()];
+        row.contains(r#"class="badge""#)
+            .then(|| text_after(row, r#"class="badge""#))
+    };
+    assert_eq!(badge("Assets:Brokerage").as_deref(), Some("off budget"));
+    assert_eq!(badge("Expenses:Tax:Federal").as_deref(), Some("excluded"));
+    assert_eq!(badge("Assets:Checking"), None);
+    // Each row's actions are in its ⋯ menu.
+    assert!(html.contains(r#"aria-label="More for Assets:Checking""#));
+    assert!(html.contains("Opened 2026-10-01"));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

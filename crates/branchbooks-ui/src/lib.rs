@@ -14,6 +14,7 @@ pub mod journal;
 pub mod overview;
 pub mod reports;
 pub mod scenarios;
+pub mod settings;
 pub mod store;
 pub mod text;
 pub mod update;
@@ -67,7 +68,7 @@ fn enqueue(waiting: &mut Vec<String>, id: String) {
 }
 
 /// Where a panic's message goes: a release build on Windows has no console to show it in.
-fn crash_log() -> std::path::PathBuf {
+pub(crate) fn crash_log() -> std::path::PathBuf {
     std::env::var_os("LOCALAPPDATA")
         .map_or_else(std::env::temp_dir, std::path::PathBuf::from)
         .join("BranchBooks")
@@ -171,8 +172,11 @@ pub fn App() -> Element {
         let _ = listed();
         blocking(books::list).await
     });
-    // Offline is normal, and an update that fails to arrive is tried again at the next start.
-    let update = use_resource(|| blocking(update::download));
+    // Offline is normal, and an update that fails to arrive is tried again at the next start, or
+    // from Settings.
+    let mut update = use_resource(|| blocking(update::download));
+    // How the app looks, as this device last chose it.
+    use_effect(|| settings::apply_theme(&settings::load_theme()));
     let mut open = use_signal(|| None::<String>);
     let mut adding = use_signal(|| false);
     let mut settings = use_signal(|| false);
@@ -232,13 +236,36 @@ pub fn App() -> Element {
             listed += 1;
             sync.loads += 1;
         };
-        return rsx! { Stylesheet {} BookSettings { id: book.id.clone(), ondone: done } };
+        let (update_text, update_ready) = match &*update.read() {
+            None => ("Checking for updates…".to_owned(), None),
+            Some(Ok(Some(v))) => (
+                format!("Version {v} is downloaded and ready."),
+                Some(v.clone()),
+            ),
+            Some(Ok(None)) => ("No update is waiting.".to_owned(), None),
+            Some(Err(e)) => (format!("Could not check for updates: {e}"), None),
+        };
+        return rsx! {
+            Stylesheet {}
+            settings::Settings { book_name: book.name.clone(), update_text, update_ready,
+                busy: update.read().is_none() || (sync.running)(),
+                oncheck: move |()| update.restart(),
+                onrestart: move |()| {
+                    if let Err(e) = update::restart() {
+                        sync.status.set(Some(format!("The update did not start: {e}")));
+                    }
+                },
+                onback: move |()| settings.set(false),
+                BookSettings { id: book.id.clone(), ondone: done }
+            }
+        };
     }
     let (id, remote) = (book.id.clone(), book.remote);
     rsx! {
         Screen { key: "{book.id}-{scenario().unwrap_or_default()}", reloads: (sync.loads)(),
             backend: books::backend(&book.id, scenario().as_deref()), today: today(),
             onscenario: move |s: Option<String>| scenario.set(s),
+            onsettings: move |()| settings.set(true),
             onsaved: {
                 let id = id.clone();
                 move |()| if remote { sync.start(id.clone()) }
@@ -256,7 +283,6 @@ pub fn App() -> Element {
                 }
             }
             button { r#type: "button", class: "link", onclick: move |_| adding.set(true), "New book" }
-            button { r#type: "button", class: "link", onclick: move |_| settings.set(true), "Book settings" }
             if remote {
                 button { r#type: "button", class: "link", disabled: (sync.running)(),
                     onclick: move |_| sync.start(id.clone()),
@@ -337,8 +363,8 @@ fn BookSettings(id: String, ondone: EventHandler<(bool, Option<String>)>) -> Ele
         }
     };
     rsx! {
-        main { class: "shell start",
-            h1 { "Book settings" }
+        section { "aria-label": "This book",
+            h2 { "This book" }
             form { class: "user-form", onsubmit: save,
                 label { "Name"
                     input { value: "{name}", required: true, oninput: move |e| name.set(e.value()) }
@@ -371,7 +397,7 @@ fn BookSettings(id: String, ondone: EventHandler<(bool, Option<String>)>) -> Ele
                 }
             }
             if now.remote.is_some() {
-                section { "aria-label": "Replace the remote",
+                div { class: "settings-part", "aria-label": "Replace the remote",
                     if replacing() {
                         p {
                             "Make this book the remote's? The remote's old book stays in its history and its scenarios and "
@@ -399,7 +425,7 @@ fn BookSettings(id: String, ondone: EventHandler<(bool, Option<String>)>) -> Ele
                     }
                 }
             }
-            section { "aria-label": "Delete this book",
+            div { class: "settings-part", "aria-label": "Delete this book",
                 if deleting() {
                     p { "Delete {now.name}? It moves to .deleted in the books folder, so it can be restored by hand." }
                     button { r#type: "button", class: "danger", onclick: delete, "Delete" }
@@ -408,7 +434,6 @@ fn BookSettings(id: String, ondone: EventHandler<(bool, Option<String>)>) -> Ele
                     button { r#type: "button", class: "link", onclick: move |_| deleting.set(true), "Delete this book" }
                 }
             }
-            p { class: "muted small", "BranchBooks {env!(\"CARGO_PKG_VERSION\")}" }
         }
     }
 }

@@ -1,46 +1,51 @@
-/* BranchBooks. Tokens first; light by default, dark when the system asks. */
+/* BranchBooks. Tokens first: each colour is a light and dark pair, light-dark(light, dark). The app
+   follows the system unless Settings chooses: `data-theme` on the root is "light" or "dark". */
+:root { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 :root {
   /* Neutral grays, with ledger green for what can be clicked and the logo. Other colour carries
      meaning (funded, credit and cash overspent, +/-). */
   --brand: #1d6b43;
-  --bg: #f3f4f5;
-  --surface: #ffffff;
-  --surface-2: #f7f8f9;
-  --sidebar: #202225;
-  --sidebar-text: #d5d7da;
-  --sidebar-muted: #8b9096;
+  --bg: light-dark(#f3f4f5, #121314);
+  --surface: light-dark(#ffffff, #1b1c1e);
+  --surface-2: light-dark(#f7f8f9, #161719);
+  --sidebar: light-dark(#202225, #0d0e0f);
+  --sidebar-text: light-dark(#d5d7da, #d0d2d5);
+  --sidebar-muted: light-dark(#8b9096, #868a90);
   --sidebar-active: var(--brand);
-  --text: #1c1e21;
-  --muted: #63676d;
-  --line: #e3e5e8;
-  --line-strong: #ccd0d5;
-  --accent: var(--brand);
-  --accent-hover: #155234;
-  --accent-text: #ffffff;
-  --funded: #dcefe3;
-  --funded-text: #1d5a3c;
-  --zero: #eceef0;
-  --credit: #fbe7c2;
-  --credit-text: #7a4b00;
-  --cash: #f8d4d0;
-  --cash-text: #8f1d14;
-  --pos: #1d6b43;
-  --neg: #a0281c;
+  --text: light-dark(#1c1e21, #e7e8ea);
+  --muted: light-dark(#63676d, #9a9ea4);
+  --line: light-dark(#e3e5e8, #2a2c2f);
+  --line-strong: light-dark(#ccd0d5, #3b3e42);
+  --accent: light-dark(#1d6b43, #7fd3a6);
+  --accent-hover: light-dark(#155234, #a0e2bf);
+  --accent-text: light-dark(#ffffff, #121314);
+  --funded: light-dark(#dcefe3, #1f3d2e);
+  --funded-text: light-dark(#1d5a3c, #a8e2c2);
+  --zero: light-dark(#eceef0, #26282b);
+  --credit: light-dark(#fbe7c2, #44361a);
+  --credit-text: light-dark(#7a4b00, #f3cf8a);
+  --cash: light-dark(#f8d4d0, #4a2420);
+  --cash-text: light-dark(#8f1d14, #f3aaa2);
+  --pos: light-dark(#1d6b43, #7fd3a6);
+  --neg: light-dark(#a0281c, #f19a8f);
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow: 0 1px 2px rgb(16 24 20 / 0.06), 0 1px 1px rgb(16 24 20 / 0.04);
+  /* Shadows show only on light surfaces: transparent in dark. */
+  --shadow: 0 1px 2px light-dark(rgb(16 24 20 / 0.06), transparent), 0 1px 1px light-dark(rgb(16 24 20 / 0.04), transparent);
   /* Chart series: categorical slots 1 to 8 in fixed order, validated on these surfaces (dataviz
      validator). Slots 3, 4 and 5 are under 3:1 on white: charts using them have a legend and a table. */
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --series-4: #eda100;
-  --series-5: #e87ba4;
+  --series-1: light-dark(#2a78d6, #3987e5);
+  --series-2: light-dark(#eb6834, #d95926);
+  --series-3: light-dark(#1baf7a, #199e70);
+  --series-4: light-dark(#eda100, #c98500);
+  --series-5: light-dark(#e87ba4, #d55181);
   --series-6: #008300;
-  --series-7: #6250d6;
-  --series-8: #e34948;
-  --chart-grid: #e8e9eb;
-  --chart-axis: #c5c8cc;
+  --series-7: light-dark(#6250d6, #9085e9);
+  --series-8: light-dark(#e34948, #e66767);
+  --chart-grid: light-dark(#e8e9eb, #2a2c2f);
+  --chart-axis: light-dark(#c5c8cc, #3b3e42);
   --gap: 16px;
   --sidebar-w: 224px;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -49,45 +54,6 @@
   color: var(--text);
   background: var(--bg);
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121314;
-    --surface: #1b1c1e;
-    --surface-2: #161719;
-    --sidebar: #0d0e0f;
-    --sidebar-text: #d0d2d5;
-    --sidebar-muted: #868a90;
-    --text: #e7e8ea;
-    --muted: #9a9ea4;
-    --line: #2a2c2f;
-    --line-strong: #3b3e42;
-    --accent: #7fd3a6;
-    --accent-hover: #a0e2bf;
-    --accent-text: #121314;
-    --funded: #1f3d2e;
-    --funded-text: #a8e2c2;
-    --zero: #26282b;
-    --credit: #44361a;
-    --credit-text: #f3cf8a;
-    --cash: #4a2420;
-    --cash-text: #f3aaa2;
-    --pos: #7fd3a6;
-    --neg: #f19a8f;
-    --shadow: none;
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-    --series-6: #008300;
-    --series-7: #9085e9;
-    --series-8: #e66767;
-    --chart-grid: #2a2c2f;
-    --chart-axis: #3b3e42;
-  }
-}
-
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); }
 a { color: var(--accent); }
@@ -279,6 +245,44 @@ table.recent td { border-bottom-color: var(--line); }
 
 /* ---------- Accounts, reports, files, settings ---------- */
 td.actions { white-space: nowrap; text-align: right; }
+.accounts-page { display: grid; gap: var(--gap); }
+.accounts-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.accounts-toolbar h2 { margin: 0 auto 0 0; font-size: 1.1rem; }
+/* Adding: the kind as chips, then the fields, then what it will be saved as. */
+form.add-account { display: grid; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+.kinds { display: flex; flex-wrap: wrap; gap: 6px; }
+.kinds label { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 0.85rem; }
+.kinds input { accent-color: var(--accent); margin: 0; }
+.kinds label:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.add-account .fields { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; }
+.add-account .fields label { display: grid; gap: 3px; font-size: 0.8rem; color: var(--muted); }
+.add-account .preview { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.9rem; }
+.add-account .preview code { background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+.add-account .field-error { margin: 0; }
+/* The groups in two columns on a wide window, one on a narrow one. */
+.account-cols { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); align-items: start; }
+.account-col { display: grid; gap: var(--gap); min-width: 0; }
+/* No overflow clipping: a row's menu opens over what is below the group. */
+.account-col > section.group { padding: 0; margin: 0; }
+.group-head { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; border: 0; border-radius: var(--radius) var(--radius) 0 0; background: var(--surface-2); color: var(--text); font-weight: 600; text-align: left; }
+.group-head:last-child { border-radius: var(--radius); }
+.group-head:hover { background: var(--surface-2); color: var(--accent); }
+.group-head .chevron { display: inline-block; width: 1.2em; color: var(--muted); font-size: 0.8em; }
+table.accounts { table-layout: auto; }
+table.accounts td { vertical-align: middle; padding: 4px 8px; }
+table.accounts td:first-child { padding-left: 12px; max-width: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+table.accounts tr:last-child td { border-bottom: 0; }
+/* One ⋯ per row, shown on hover or focus; always where there is no hover. */
+td.menu-cell { width: 1%; padding-right: 8px; text-align: right; }
+.row-menu { position: relative; }
+.row-menu summary { list-style: none; cursor: pointer; visibility: hidden; display: inline-grid; place-items: center; width: 28px; height: 22px; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--muted); line-height: 1; }
+.row-menu summary::-webkit-details-marker { display: none; }
+tr:hover .row-menu summary, .row-menu summary:focus-visible, .row-menu[open] summary { visibility: visible; }
+@media (hover: none) { .row-menu summary { visibility: visible; } }
+.row-menu .menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; min-width: 220px; display: grid; justify-items: start; gap: 2px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 8px; box-shadow: 0 6px 20px rgb(0 0 0 / 0.15); white-space: normal;
+}
 table.accounts td { vertical-align: middle; }
 table.accounts tr.closed td { color: var(--muted); }
 table.accounts tr.parent td:nth-child(-n+2), table.accounts tr.parent button.cell.name { font-weight: 600; }
@@ -297,6 +301,24 @@ pre.ledger { overflow: auto; max-height: 420px; background: var(--surface-2); pa
 .user-form { display: grid; gap: 10px; max-width: 24em; margin-top: 12px; }
 .user-form label { display: grid; gap: 3px; font-size: 0.8rem; color: var(--muted); }
 .user-form button[type="submit"] { justify-self: start; }
+
+/* ---------- Settings ---------- */
+.settings { display: grid; gap: var(--gap); }
+.settings h1 { margin-bottom: 4px; }
+.settings section { margin: 0; display: grid; gap: 10px; justify-items: start; }
+.settings section h2 { margin: 0; }
+.settings section p { margin: 0; }
+.settings .back { justify-self: start; padding-left: 0; }
+.settings-part { display: grid; gap: 6px; justify-items: start; padding-top: 10px; border-top: 1px solid var(--line); width: 100%; }
+.settings .links { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.settings section button.link { padding-left: 0; }
+.settings .path code { word-break: break-all; }
+.settings-link {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 10px; border: 0; border-radius: var(--radius-sm);
+  background: none; color: var(--sidebar-text); font-weight: 500; text-align: left;
+}
+.settings-link:hover { background: rgb(255 255 255 / 0.06); color: var(--sidebar-text); border-color: transparent; }
+.app[data-collapsed="true"] .settings-link { justify-content: center; }
 
 /* ---------- Start screen ---------- */
 .shell { max-width: 720px; margin: 0 auto; padding: 32px 16px; }
@@ -327,8 +349,6 @@ pre.ledger { overflow: auto; max-height: 420px; background: var(--surface-2); pa
   .notice.sticky { top: 62px; }
   section, .card { padding: 14px; }
   .envelopes th:nth-child(3), .envelopes td:nth-child(3) { display: none; }
-  table.accounts th:nth-child(4), table.accounts td:nth-child(4),
-  table.accounts th:nth-child(3), table.accounts td:nth-child(3) { display: none; }
   td.actions { white-space: normal; }
   .pill { min-width: 0; }
   .month-label { min-width: 0; }
