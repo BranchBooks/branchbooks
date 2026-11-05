@@ -1,4 +1,4 @@
-# BranchBooks
+<h1><img src="crates/branchbooks-ui/icons/wordmark.svg" alt="BranchBooks" height="56"></h1>
 
 BranchBooks is a double-entry accounting app with envelope budgeting and target budgeting, installed
 on your own device. Your books are plain-text, Beancount-compatible ledgers in git: stay local, or
@@ -63,7 +63,7 @@ needed. Every fixture is checked in CI against real Beancount 3.2.3, run as a se
 
 | Path | What |
 |---|---|
-| `crates/` | All of BranchBooks, in Rust. `branchbooks-core` is the engine (parser, loader, ledger, budget, targets, reports and the write path's planning); `branchbooks-git` is the git store, on grit-lib, with sync; `branchbooks-gnucash` reads GnuCash files; `branchbooks-ui` is the app (Dioxus), with its books in `src/books.rs` and its updates in `src/update.rs`; `branchbooks-cli` is the `branchbooks` command; `branchbooks-oracle` compares ledgers with real Beancount |
+| `crates/` | All of BranchBooks, in Rust. `branchbooks-core` is the engine (parser, loader, ledger, budget, targets, reports and the write path's planning); `branchbooks-git` is the git store, on grit-lib, with sync; `branchbooks-gnucash` reads GnuCash files; `branchbooks-ui` is the app (Dioxus), with its books in `src/books.rs`, its updates in `src/update.rs`, and the logo, icons and splash in `icons/`; `branchbooks-cli` is the `branchbooks` command; `branchbooks-oracle` compares ledgers with real Beancount |
 | `tools/ci` | `install-cargo-deny.sh`: the licence and advisory checker, at a fixed version and checksum |
 | `tools/windows` | `build.ps1`: the Windows app, built on Windows into `dist\windows\` |
 | `.github/workflows` | `ci.yml`: the checks; `release.yml`: publish a release from a version tag |
@@ -242,3 +242,6 @@ Copyright (C) 2026 Joshua Crump
 BranchBooks is free software: you can redistribute it and/or modify it under the terms of the GNU
 General Public License, version 3, as published by the Free Software Foundation. It comes with no
 warranty. See [LICENSE](LICENSE).
+
+The BranchBooks name and logo are trademarks, which the licence does not cover: see
+[TRADEMARKS.md](TRADEMARKS.md).
