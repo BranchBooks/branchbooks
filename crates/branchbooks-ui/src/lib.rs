@@ -1,7 +1,7 @@
 //! The `BranchBooks` app in Dioxus, calling branchbooks-core directly: books in git on the device
 //! (local, or synced to a remote), with the Budget, Journal and Accounts views.
 //!   tools\windows\build.ps1       the Windows app (`desktop`), into dist\windows
-//!   dx bundle --platform android  the phone app (tools/android has the SDK; needs a grit-lib patch)
+//!   dx bundle --platform android  the phone app (needs the Android SDK and a grit-lib patch)
 #![cfg_attr(not(test), deny(clippy::unwrap_used))]
 
 pub mod accounts;

@@ -1,5 +1,5 @@
 # Real Beancount, the oracle (never linked to BranchBooks), and what it needs, at exact versions so its
-# results cannot shift on their own. Used by the dev image, CI and the README's setup.
+# results cannot shift on their own. Used by CI and the README's setup.
 beancount==3.2.3
 click==8.5.0
 python-dateutil==4.0.0

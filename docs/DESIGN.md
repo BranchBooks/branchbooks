@@ -251,7 +251,7 @@ Velopack: a per-user install with no admin prompt, delta updates, and a feed of 
   models.
 - **Releases.** A version tag on `main` publishes. The job that compiles runs every dependency's build script, so it holds no write token and no cache; only
   `publish` can write, and it compiles nothing. Run by hand, `release.yml` is a rehearsal that publishes nothing.
-- **Pinned.** Actions by commit SHA, the dev image by digest, tool downloads by checksum, and the oracle's Python packages by version.
+- **Pinned.** Actions by commit SHA, CI's `cargo-deny` download by checksum, and the oracle's Python packages by version.
 - **Licences.** `cargo deny` allows permissive licences only, so the owner can always relicense BranchBooks. Six crates in Dioxus's tree are named exceptions,
   none used directly: `cssparser`, `cssparser-macros`, `dtoa-short`, `option-ext` and `selectors` (MPL-2.0, copyleft per file, which does not reach BranchBooks'
   code) and `libfuzzer-sys` (NCSA, permissive).
@@ -260,7 +260,7 @@ Velopack: a per-user install with no admin prompt, delta updates, and a feed of 
 
 ## Known limits
 
-- **Android** is planned. It needs a two-line patch to grit-lib (`libc::regoff_t` does not exist for Android), and the book's folder and token storage need Android's own.
+- **Android** is planned. It needs a two-line patch to grit-lib (`libc::regoff_t` does not exist for Android), and the book's folder and token storage need Android's own. There is no Android build setup yet, and CI does not build the `mobile` feature.
 - **The rest of Beancount's syntax**, custom reports, bank connections and foreign currency are not built.
 - **Merged lines.** Two devices adding entries at the same place conflict, and there is no conflict editor: change one side so they no longer overlap.
 - **The envelopes table** needs 423 px, more than some phones are wide.

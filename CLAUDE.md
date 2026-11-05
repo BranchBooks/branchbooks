@@ -15,8 +15,8 @@ https://github.com/BranchBooks/branchbooks.
 - **Rust for everything:** the core, the git store, the CLI, the apps and the oracle, in `crates/`. Python
   only for Beancount and the reference models, run as separate programs. Money is exact decimals
   (`rust_decimal`), never floats.
-- **The UI is Dioxus** (`crates/branchbooks-ui`): one Rust interface for Windows and Android. The Android SDK
-  lives in its own image (`tools/android`), never the dev image.
+- **The UI is Dioxus** (`crates/branchbooks-ui`): one Rust interface for Windows and Android.
+- **Development is on native Windows, with no Docker.** CI runs directly on GitHub's runners, on Linux and Windows.
 - **Installed apps, no server.** Every book is a git repository on the device, local only or synced over HTTPS
   with a token to a git remote, the source of truth. No server or browser dependencies in the core. No logins:
   the git host's access control replaces them.

@@ -64,43 +64,53 @@ needed. Every fixture is checked in CI against real Beancount 3.2.3, run as a se
 | Path | What |
 |---|---|
 | `crates/` | All of BranchBooks, in Rust. `branchbooks-core` is the engine (parser, loader, ledger, budget, targets, reports and the write path's planning); `branchbooks-git` is the git store, on grit-lib, with sync; `branchbooks-gnucash` reads GnuCash files; `branchbooks-ui` is the app (Dioxus), with its books in `src/books.rs` and its updates in `src/update.rs`; `branchbooks-cli` is the `branchbooks` command; `branchbooks-oracle` compares ledgers with real Beancount |
-| `tools/dev` | The dev image and the Rust tool versions it and CI use |
+| `tools/ci` | `install-cargo-deny.sh`: the licence and advisory checker, at a fixed version and checksum |
 | `tools/windows` | `build.ps1`: the Windows app, built on Windows into `dist\windows\` |
 | `.github/workflows` | `ci.yml`: the checks; `release.yml`: publish a release from a version tag |
-| `tools/android` | The image for Android builds, kept apart from the dev image |
 | `fixtures/` | Synthetic ledgers: the worked examples, the multi-file layout, targets, balance assertions, reconcile, and error cases |
 | `reference/` | Python models of the budget rules (`sim4.py`, `sim5.py`), whose assertions the core is held to |
-| `tools/oracle` | `beancount_dump.py`: real Beancount 3.2.3's balances and errors for a ledger, as JSON, for `branchbooks-oracle` (a separate program, never linked) |
+| `tools/oracle` | `beancount_dump.py`: real Beancount 3.2.3's balances and errors for a ledger, as JSON, for `branchbooks-oracle` (a separate program, never linked); `requirements.txt`: its exact versions |
 | `docs/` | `BUDGET-RULES.md`: the budget, target and reconcile rules, with worked examples; `DESIGN.md`: how it works and why |
 | `CLAUDE.md` | Working rules for AI coding tools |
 
 ## Setup
 
-Everything is Rust, plus Python for the Beancount oracle. No Node or npm.
+Everything is Rust, plus Python for the Beancount oracle. No Node or npm. The app is built on Windows.
 
-### With Docker (nothing else on the host)
+### On Windows
 
-`compose.yaml` runs every tool in the image from `tools/dev`: Rust (with dx and cargo-deny), git, and Beancount 3.2.3 in its own virtualenv for the oracle.
-`tools/dev/rust-tools.sh` holds the Rust tool versions for the image and CI. The repository is
-mounted at `/src` and the container runs with your user and group ids, so what it writes there is
-yours. Cargo's registry and `target/` live in volumes.
+Install [Rust](https://rustup.rs), [git](https://git-scm.com) (the tests use it) and Visual Studio Build
+Tools with its "Desktop development with C++" workload, then work on a Dev Drive if you can: builds read
+thousands of small files.
 
-```sh
-docker compose run --rm dev cargo test           # any command; with none, a shell
-docker compose run --rm dev cargo clippy --all-targets
-docker compose run --rm dev cargo run -q -p branchbooks-oracle   # compare with real Beancount
-docker compose run --rm dev cargo bench -p branchbooks-core      # load times, beside Beancount's
+```powershell
+dx serve -p branchbooks-ui --platform desktop   # run the app, with live UI reloading; your real books
+tools\windows\build.ps1                         # the release app, into dist\windows
 ```
 
-For a terminal with Rust and Beancount in VS Code, use the Dev Containers extension: "Reopen in
-Container" (`.devcontainer/`) builds the image and runs the editor inside the `dev` service. The
-image is Linux, so it cannot build the Windows app.
+`dx` is the Dioxus CLI, at the same version as `dioxus` in `crates/branchbooks-ui/Cargo.toml`. You only
+need it for `dx serve`.
 
-CI (`.github/workflows/ci.yml`) runs the tests on Linux and on real Windows for pull requests and for
-`main`, directly on GitHub's runners and without this image, which is only built when it changes
-(`dev-image.yml`). When run by hand, it also builds the Windows app and keeps it for 30 days as a
-download from the run, and runs the benchmark and the reference simulations, as it does weekly.
-`deny.toml` sets which licences and crates are allowed, and Dependabot proposes updates weekly.
+### Tests and the oracle
+
+These work on Windows and Linux, with Rust, git and Python:
+
+```sh
+cargo test                                       # the core, git store, CLI, oracle and app
+cargo clippy --all-targets
+cargo bench -p branchbooks-core                  # load times, beside Beancount's
+# The oracle: real Beancount in its own virtualenv, a separate program
+python3 -m venv tools/oracle/.venv
+tools/oracle/.venv/bin/pip install -r tools/oracle/requirements.txt    # Windows: tools\oracle\.venv\Scripts\pip
+cargo run -q -p branchbooks-oracle
+```
+
+### CI and releases
+
+CI (`.github/workflows/ci.yml`) runs the checks on Linux, including the oracle, and the lints and tests on
+real Windows, for pull requests and for `main`. When run by hand, it also builds the Windows app and keeps
+it for 30 days as a download from the run, and runs the benchmark and the reference simulations, as it does
+weekly. `deny.toml` sets which licences and crates are allowed, and Dependabot proposes updates weekly.
 
 To release, set `version` in the root `Cargo.toml`, merge, then push a matching tag on `main`
 (`git tag v0.1.0 && git push origin v0.1.0`). `release.yml` runs the same checks, then packages the
@@ -108,29 +118,6 @@ app with [Velopack](https://velopack.io) and publishes Setup, the update package
 GitHub release. Installed apps read that feed, so they can only update once the repository is public.
 Run `release.yml` by hand first to rehearse: it builds and packs, keeps the result as a download from
 the run, and publishes nothing.
-
-`docker compose down -v` deletes the named volumes (caches, the Android SDK's Gradle and emulator).
-After changing `tools/dev/Dockerfile`, run `docker compose build`.
-
-### On Windows
-
-Install [Rust](https://rustup.rs) and Visual Studio Build Tools with its "Desktop development with
-C++" workload, then work on a Dev Drive if you can: builds read thousands of small files.
-
-```powershell
-dx serve -p branchbooks-ui --platform desktop   # run the app, with live UI reloading; your real books
-tools\windows\build.ps1                         # the release app, into dist\windows
-```
-
-### With Rust on the host
-
-```sh
-cargo test               # the core, git store, CLI, oracle and app
-# Oracle: real Beancount in its own virtualenv, a separate program
-python3 -m venv tools/oracle/.venv
-tools/oracle/.venv/bin/pip install -r tools/dev/oracle-requirements.txt    # Windows: tools\oracle\.venv\Scripts\pip
-cargo run -q -p branchbooks-oracle
-```
 
 ### Testing with your own ledger
 
