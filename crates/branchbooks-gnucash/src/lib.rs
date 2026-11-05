@@ -352,6 +352,7 @@ pub fn convert(bytes: &[u8]) -> Result<Converted, ConvertError> {
                 account: name.clone(),
                 amount: Some(value.to_string()),
                 currency: Some(currency.clone()),
+                flag: None,
                 meta: pmeta,
             });
         }

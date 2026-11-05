@@ -19,7 +19,8 @@ on:
   schedule:
     - cron: "0 6 * * 1"
 
-# A new push replaces a branch's older run. main keeps every run, so each merge gets its own result.
+# A new push replaces a branch's older run. On main a run in progress finishes, but GitHub keeps only
+# the newest one waiting, so a merge can show as cancelled and share the next merge's result.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}

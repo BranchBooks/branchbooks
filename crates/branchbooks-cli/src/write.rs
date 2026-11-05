@@ -52,6 +52,7 @@ fn posting(text: &str) -> Result<PostingInput, Refusal> {
         account: account.to_owned(),
         amount: words.next().map(str::to_owned),
         currency: words.next().map(str::to_owned),
+        flag: None,
         meta: MetaInput::new(),
     };
     match words.next() {

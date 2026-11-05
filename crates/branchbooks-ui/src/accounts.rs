@@ -11,7 +11,7 @@ use branchbooks_core::write::workspace::{Operation, ReconcileInput};
 use dioxus::prelude::*;
 use rust_decimal::Decimal;
 
-use crate::journal::{Shared, meta, run};
+use crate::journal::{Shared, meta, run, use_today_date};
 use crate::store::Backend;
 use crate::text::{fmt, norm_amount, short, words};
 
@@ -255,10 +255,11 @@ pub fn Accounts(
                                                     if let Some(input) = placeholder_of(&r.open).filter(|_| node.parent && r.close.is_none()) {
                                                         button { r#type: "button", class: "link", "aria-label": "Make {r.account} a placeholder",
                                                             onclick: {
-                                                                let (save, open) = (save.clone(), at(&r.open));
+                                                                let (save, at, open) = (save.clone(), at.clone(), r.open.clone());
                                                                 move |_| {
                                                                     let done = format!("{} is now a placeholder.", input.account);
-                                                                    save(Operation::Edit(open.clone(), EntryInput::Open(input.clone())), done);
+                                                                    // Worked out on the click: it reads the whole file.
+                                                                    save(Operation::Edit(at(&open), EntryInput::Open(input.clone())), done);
                                                                 }
                                                             },
                                                             "Make placeholder"
@@ -284,15 +285,14 @@ pub fn Accounts(
                                                             }
                                                         },
                                                         onreopen: {
-                                                            let (save, a) = (save.clone(), r.account.clone());
-                                                            let close = r.close.as_ref().map(&at);
-                                                            move |()| if let Some(c) = close.clone() {
-                                                                save(Operation::Delete(c), format!("Reopened {a}."));
+                                                            let (save, a, at, close) = (save.clone(), r.account.clone(), at.clone(), r.close.clone());
+                                                            move |()| if let Some(c) = &close {
+                                                                save(Operation::Delete(at(c)), format!("Reopened {a}."));
                                                             }
                                                         },
                                                         ondelete: {
-                                                            let (save, a, open) = (save.clone(), r.account.clone(), at(&r.open));
-                                                            move |()| save(Operation::Delete(open.clone()), format!("Deleted {a}."))
+                                                            let (save, a, at, open) = (save.clone(), r.account.clone(), at.clone(), r.open.clone());
+                                                            move |()| save(Operation::Delete(at(&open)), format!("Deleted {a}."))
                                                         },
                                                     }
                                                 }
@@ -372,7 +372,7 @@ fn Actions(
     onreopen: EventHandler<()>,
     ondelete: EventHandler<()>,
 ) -> Element {
-    let mut date = use_signal(|| today.to_string());
+    let mut date = use_today_date(today);
     match mode {
         Some("close") => rsx! {
             form { class: "inline", "aria-label": "Close {account}",
@@ -632,7 +632,7 @@ fn ReconcileForm(
     oncancel: EventHandler<()>,
 ) -> Element {
     let _ = version();
-    let mut date = use_signal(|| today.to_string());
+    let mut date = use_today_date(today);
     let mut balance = use_signal(String::new);
     let mut ticked = use_signal(Vec::<String>::new);
     let d = date();
@@ -753,7 +753,7 @@ fn ReconcileForm(
 fn OpenAccount(today: Date, onopen: EventHandler<OpenInput>) -> Element {
     let mut account = use_signal(String::new);
     let mut budget = use_signal(String::new);
-    let mut date = use_signal(|| today.to_string());
+    let mut date = use_today_date(today);
     rsx! {
         section {
             form { class: "inline-form", "aria-label": "Open account",

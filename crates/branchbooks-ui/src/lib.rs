@@ -218,7 +218,7 @@ pub fn App() -> Element {
     }
     let (id, remote) = (book.id.clone(), book.remote);
     rsx! {
-        Screen { key: "{book.id}-{scenario().unwrap_or_default()}-{sync.loads}",
+        Screen { key: "{book.id}-{scenario().unwrap_or_default()}", reloads: (sync.loads)(),
             backend: books::backend(&book.id, scenario().as_deref()), today: today(),
             onscenario: move |s: Option<String>| scenario.set(s),
             onsaved: {

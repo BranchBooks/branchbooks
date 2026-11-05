@@ -94,6 +94,7 @@ fn cases(repo: &Path) -> Vec<Case> {
                 },
                 PostingInput {
                     currency: Some("USD".into()),
+                    flag: Some("!".into()),
                     ..posting("Liabilities:CreditCard", Some("-1234.50"))
                 },
             ],

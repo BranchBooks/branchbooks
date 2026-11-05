@@ -209,7 +209,7 @@ the core like any commit, then one commit with `Op-Type: sync`, pushed.
 - "Replace the remote" joins both histories in one commit with this book's files rather than force pushing, which a protected branch
   refuses.
 
-**Tokens** live in Windows Credential Manager, never in a file. The git store refuses a token for anything but HTTPS, on every clone,
+**Tokens** live in Windows Credential Manager, never in a file, so a URL holding a login is refused. The git store refuses a token for anything but HTTPS, on every clone,
 fetch and push, and changing a book's address without giving a token forgets the saved one, so it never goes to a new address. A token goes only to its remote's host: a remote that redirects elsewhere gets no login sent to the other server.
 
 ### Scenarios
