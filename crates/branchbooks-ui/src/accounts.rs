@@ -97,6 +97,8 @@ pub fn Accounts(
 ) -> Element {
     let mut mode = use_signal(|| None as Mode);
     let mut show_closed = use_signal(|| false);
+    // The one account type shown; all of them when `None`.
+    let mut only = use_signal(|| None::<&'static str>);
     // Parents whose sub-accounts are hidden, as GnuCash's tree collapses.
     let collapsed = use_signal(Vec::<String>::new);
     let _ = version();
@@ -149,9 +151,18 @@ pub fn Accounts(
                     }
                 }
             }
+            div { class: "segmented", role: "group", "aria-label": "Account type",
+                button { r#type: "button", "aria-pressed": only().is_none(), onclick: move |_| only.set(None), "All" }
+                for (root, _, _) in ROOTS {
+                    button { key: "{root}", r#type: "button", "aria-pressed": only() == Some(root),
+                        onclick: move |_| only.set(Some(root)),
+                        "{root}"
+                    }
+                }
+            }
             table { class: "accounts",
                 thead { tr { th { "Name" } th { class: "num", "Balance" } th { "Budget" } th { "Opened" } th {} } }
-                for (root, heading, credit) in ROOTS {
+                for (root, heading, credit) in ROOTS.into_iter().filter(|r| only().is_none_or(|k| k == r.0)) {
                     {
                         let group: Vec<&Row> = rows
                             .iter()

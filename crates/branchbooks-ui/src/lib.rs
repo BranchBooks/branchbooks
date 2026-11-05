@@ -23,8 +23,11 @@ use dioxus::prelude::*;
 pub use budget::{Screen, ScreenProps};
 use store::local_today;
 
-/// The stylesheet, inline: a plain `cargo build` (no `dx`) bundles no asset files.
-fn stylesheet() -> Element {
+/// The stylesheet, inline: a plain `cargo build` (no `dx`) bundles no asset files. A component of its
+/// own, with no props, so it does not redraw with the app: a `Style` cannot change once mounted, and
+/// Dioxus warns on every redraw otherwise.
+#[component]
+fn Stylesheet() -> Element {
     rsx! { document::Style { {include_str!("../assets/style.css")} } }
 }
 
@@ -182,10 +185,10 @@ pub fn App() -> Element {
     }));
     let list = match &*books.read() {
         None => {
-            return rsx! { {stylesheet()} main { class: "shell", p { class: "muted", "Loading…" } } };
+            return rsx! { Stylesheet {} main { class: "shell", p { class: "muted", "Loading…" } } };
         }
         Some(Err(e)) => {
-            return rsx! { {stylesheet()} main { class: "shell", p { class: "notice error", "{e}" } } };
+            return rsx! { Stylesheet {} main { class: "shell", p { class: "notice error", "{e}" } } };
         }
         Some(Ok(list)) => list.clone(),
     };
@@ -199,7 +202,7 @@ pub fn App() -> Element {
             adding.set(false);
             listed += 1;
         };
-        return rsx! { {stylesheet()} NewBook { ondone: done } };
+        return rsx! { Stylesheet {} NewBook { ondone: done } };
     };
     if settings() {
         let done = move |(deleted, said): (bool, Option<String>)| {
@@ -211,7 +214,7 @@ pub fn App() -> Element {
             listed += 1;
             sync.loads += 1;
         };
-        return rsx! { {stylesheet()} BookSettings { id: book.id.clone(), ondone: done } };
+        return rsx! { Stylesheet {} BookSettings { id: book.id.clone(), ondone: done } };
     }
     let (id, remote) = (book.id.clone(), book.remote);
     rsx! {
@@ -257,7 +260,7 @@ pub fn App() -> Element {
                 }
             }
         }
-        {stylesheet()}
+        Stylesheet {}
     }
 }
 

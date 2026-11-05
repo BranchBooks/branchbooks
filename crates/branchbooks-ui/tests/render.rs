@@ -81,6 +81,17 @@ async fn the_budget_shows_unassigned_and_marks_overspent_envelopes() {
     .await;
     assert_eq!(text_after(&html, r#"data-testid="unassigned""#), "1,100.00");
     assert_eq!(text_after(&html, r#"class="month-label""#), "October 2026");
+    // The frame: the sidebar's groups, its toggle, and the month in the top bar.
+    for heading in ["Ledger", "Import", "Advanced"] {
+        assert!(
+            html.contains(&format!(r#"class="nav-heading">{heading}<"#)),
+            "{heading}"
+        );
+    }
+    assert!(html.contains("Toggle the sidebar"));
+    let topbar =
+        &html[html.find(r#"class="topbar""#).unwrap()..html.find(r#"class="content""#).unwrap()];
+    assert!(topbar.contains(r#"class="months""#));
     // Groceries is 20 cash-overspent (Example 4): red.
     let groceries = &html[html
         .find(r#"data-category="Expenses:Food:Groceries""#)
@@ -198,7 +209,7 @@ async fn an_accounts_transactions_are_its_journal_filtered_with_the_months_chang
 }
 
 #[component]
-fn ReportsOf(backend: Backend) -> Element {
+fn ReportsOf(backend: Backend, view: &'static str) -> Element {
     let core = use_hook(|| {
         let dir = &backend.dir;
         let snap = branchbooks_git::GitStore::new(dir, None)
@@ -209,19 +220,43 @@ fn ReportsOf(backend: Backend) -> Element {
         Shared(Rc::new(RefCell::new(core)))
     });
     let version = use_signal(|| Some(String::new()));
-    rsx! { Reports { core, version, month: "2026-10".parse().unwrap() } }
+    rsx! { Reports { core, version, month: "2026-10".parse().unwrap(), view } }
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn reports_show_example_14() {
     let (backend, dir) = book("reports", SAMPLE);
-    let mut dom = VirtualDom::new_with_props(ReportsOf, ReportsOfProps { backend });
-    dom.rebuild_in_place();
-    let html = dioxus_ssr::render(&dom);
+    let draw = |view: &'static str| {
+        let props = ReportsOfProps {
+            backend: backend.clone(),
+            view,
+        };
+        let mut dom = VirtualDom::new_with_props(ReportsOf, props);
+        dom.rebuild_in_place();
+        dioxus_ssr::render(&dom)
+    };
+    let trends = draw("trends");
+    assert!(trends.contains("Spending by category") && trends.contains("<svg"));
     // October: income 5,000, expenses 1,765 (tax 800, 401k 300, groceries 620, dining 45).
-    assert_eq!(text_after(&html, r#"data-testid="net-income""#), "3,235.00");
-    assert_eq!(text_after(&html, r#"data-testid="net-worth""#), "3,235.00");
-    assert!(html.contains("Spending by category") && html.contains("<svg"));
+    let income = draw("income");
+    assert_eq!(
+        text_after(&income, r#"data-testid="net-income""#),
+        "3,235.00"
+    );
+    // A parent shows its sub-accounts' total, in the tree: Food is groceries 620 and dining 45.
+    assert!(income.contains(r#"title="Expenses:Food""#), "{income}");
+    assert_eq!(
+        text_after(
+            &income[income.find(r#"title="Expenses:Food""#).unwrap()..],
+            r#"class="num""#
+        ),
+        "665.00"
+    );
+    let balance = draw("balance");
+    assert_eq!(
+        text_after(&balance, r#"data-testid="net-worth""#),
+        "3,235.00"
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -255,5 +290,19 @@ async fn the_overview_shows_where_things_stand() {
         "{html}"
     );
     assert!(html.contains("Move to brokerage"));
+    // Its sections, in order.
+    let at = |text: &str| html.find(text).unwrap_or_else(|| panic!("no {text}"));
+    let order = [
+        at("Financial position"),
+        at("Needs attention"),
+        at("Money movement"),
+        at("Recent activity"),
+        at("Income vs Expenses"),
+        at("Balance sheet"),
+    ];
+    assert!(order.is_sorted(), "{order:?}");
+    // Example 14 again: of 3,235 in assets, nothing owed.
+    assert!(html.contains("Assets distribution") && html.contains("Liabilities distribution"));
+    assert!(html.contains("Nothing to show."));
     std::fs::remove_dir_all(&dir).unwrap();
 }

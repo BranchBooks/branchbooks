@@ -8,9 +8,10 @@ use branchbooks_core::reports::{ReportLine, balance_sheet, income_statement};
 use dioxus::prelude::*;
 use rust_decimal::Decimal;
 
+use crate::accounts::tree;
 use crate::charts::{BarList, ChartCard, ColumnChart, LineChart, Series};
 use crate::journal::Shared;
-use crate::text::{fmt, month_label, short, words};
+use crate::text::{fmt, month_label, words};
 
 /// Up to 12 months ending at `month`, not before `first` (the first transaction's month).
 pub fn months_to(month: Month, first: Option<Month>) -> Vec<Month> {
@@ -42,23 +43,43 @@ pub fn spending(lines: &[ReportLine]) -> Vec<(String, Decimal)> {
     groups
 }
 
+/// One side of a statement as an indented tree, parents in bold with their sub-accounts' total.
 #[component]
 fn Lines(title: &'static str, lines: Vec<ReportLine>, total: Decimal) -> Element {
+    let accounts: Vec<(&str, Decimal)> = lines
+        .iter()
+        .map(|l| (l.account.as_str(), l.amount))
+        .collect();
+    let nodes = tree(&accounts);
     rsx! {
         tbody {
             tr { class: "group-head", th { scope: "rowgroup", "{title}" } td { class: "num", {fmt(total)} } }
-            for l in lines.into_iter().filter(|l| !l.amount.is_zero()) {
-                tr { key: "{l.account}",
-                    td { class: "indent", title: "{l.account}", {short(&l.account)} }
-                    td { class: "num", {fmt(l.amount)} }
+            for n in nodes.into_iter().filter(|n| !n.total.is_zero()) {
+                tr { key: "{n.path}", class: if n.parent { "parent" } else { "" },
+                    td { title: "{n.path}", style: "padding-left: {n.depth as f32 * 1.25 + 1.5}em", "{n.label}" }
+                    td { class: "num", {fmt(n.total)} }
                 }
             }
         }
     }
 }
 
+/// The report views: id and name.
+const VIEWS: [(&str, &str); 3] = [
+    ("trends", "Trends"),
+    ("income", "Income statement"),
+    ("balance", "Balance sheet"),
+];
+
 #[component]
-pub fn Reports(core: Shared, version: Signal<Option<String>>, month: Month) -> Element {
+pub fn Reports(
+    core: Shared,
+    version: Signal<Option<String>>,
+    month: Month,
+    /// The view to open on (an id in VIEWS); Trends by default.
+    view: Option<&'static str>,
+) -> Element {
+    let mut shown = use_signal(|| view.unwrap_or("trends"));
     let mut year = use_signal(|| false);
     let _ = version();
     let mut c = core.0.borrow_mut();
@@ -117,11 +138,22 @@ pub fn Reports(core: Shared, version: Signal<Option<String>>, month: Month) -> E
     let spent = spending(&flow.expense_lines);
     rsx! {
         div { class: "view-head",
-            div { class: "segmented", role: "group", "aria-label": "Period",
-                button { r#type: "button", "aria-pressed": !year(), onclick: move |_| year.set(false), "Month" }
-                button { r#type: "button", "aria-pressed": year(), onclick: move |_| year.set(true), "Year to date" }
+            div { class: "segmented", role: "group", "aria-label": "Report",
+                for (id, name) in VIEWS {
+                    button { key: "{id}", r#type: "button", "aria-pressed": shown() == id,
+                        onclick: move |_| shown.set(id),
+                        "{name}"
+                    }
+                }
+            }
+            if shown() != "balance" {
+                div { class: "segmented", role: "group", "aria-label": "Period",
+                    button { r#type: "button", "aria-pressed": !year(), onclick: move |_| year.set(false), "Month" }
+                    button { r#type: "button", "aria-pressed": year(), onclick: move |_| year.set(true), "Year to date" }
+                }
             }
         }
+        if shown() == "trends" {
         div { class: "chart-grid",
             ChartCard { title: "Net worth", subtitle: format!("at the end of each month, to {}", month_label(month)),
                 head: vec!["Month", "Net worth"],
@@ -143,7 +175,7 @@ pub fn Reports(core: Shared, version: Signal<Option<String>>, month: Month) -> E
                 BarList { rows: spent.clone(), color: "var(--series-1)" }
             }
         }
-        div { class: "report-grid",
+        } else if shown() == "income" {
             section { "aria-label": "Income statement",
                 h2 { "Income statement " span { class: "muted small-inline", "{period}" } }
                 table { class: "report",
@@ -152,6 +184,7 @@ pub fn Reports(core: Shared, version: Signal<Option<String>>, month: Month) -> E
                     tfoot { tr { th { "Net" } td { class: if flow.net < Decimal::ZERO { "num neg" } else { "num" }, "data-testid": "net-income", {fmt(flow.net)} } } }
                 }
             }
+        } else {
             section { "aria-label": "Balance sheet",
                 h2 { "Balance sheet " span { class: "muted small-inline", "at {to}" } }
                 table { class: "report",
