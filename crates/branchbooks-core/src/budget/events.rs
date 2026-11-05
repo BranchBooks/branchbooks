@@ -184,8 +184,24 @@ pub fn tx_event(e: &Entry, cfg: &BudgetConfig, id: u64) -> Option<BudgetEvent> {
         .map(|(c, v)| (c.to_owned(), v))
         .collect();
     let on_budget_touched = !cash.is_zero() || !cards_touched.is_empty();
-    if !on_budget_touched && category_postings.is_empty() {
+    let mut on_placeholders: Vec<&str> = t
+        .postings
+        .iter()
+        .map(|p| p.account.as_str())
+        .filter(|a| cfg.is_placeholder(a))
+        .collect();
+    on_placeholders.sort_unstable();
+    on_placeholders.dedup();
+    if !on_budget_touched && category_postings.is_empty() && on_placeholders.is_empty() {
         return None;
+    }
+    // A hand edit or an import can post to a placeholder. It still counts, so no money goes missing,
+    // and it is flagged.
+    for a in on_placeholders {
+        flag(
+            "placeholder",
+            format!("{a} is a placeholder: move this posting to one of its sub-accounts"),
+        );
     }
 
     // Rule 8: money leaving the budget for an off-budget account needs a budgeted category. Only
@@ -225,7 +241,7 @@ pub fn tx_event(e: &Entry, cfg: &BudgetConfig, id: u64) -> Option<BudgetEvent> {
         let funded = fund_spends(&category_postings, cash, &cards_touched);
         spends = funded.spends;
         payments = card_payments(funded.card_inflow, funded.card_outflow);
-    } else {
+    } else if !category_postings.is_empty() {
         flag(
             "unfunded",
             "budgeted category posting with no on-budget account; ignored by the budget".to_owned(),
@@ -376,7 +392,7 @@ pub fn custom_event(
             // A card takes assignments too: money set aside to pay what it already owes (decision 7).
             let card = cfg.role(acct) == Some(AccountRole::Card);
             if !cfg.is_category(acct) && !card {
-                return bad(format!("{acct} is not a budgeted category or card"));
+                return bad(not_budgeted(cfg, acct, "category or card"));
             }
             let Some(amount) = amount_of(c.values.get(1)) else {
                 return bad(format!(
@@ -397,7 +413,7 @@ pub fn custom_event(
                 return bad("envelope-move takes two accounts and an amount".to_owned());
             };
             if let Some(a) = [from, to].into_iter().find(|a| !cfg.is_category(a)) {
-                return bad(format!("{a} is not a budgeted category"));
+                return bad(not_budgeted(cfg, a, "category"));
             }
             let Some(amount) = amount_of(c.values.get(2)) else {
                 return bad(format!("envelope-move amount must be in {}", cfg.currency));
@@ -416,13 +432,22 @@ pub fn custom_event(
     }
 }
 
+/// Why an envelope entry cannot name `account`.
+fn not_budgeted(cfg: &BudgetConfig, account: &str, what: &str) -> String {
+    if cfg.is_placeholder(account) {
+        format!("{account} is a placeholder: use one of its sub-accounts")
+    } else {
+        format!("{account} is not a budgeted {what}")
+    }
+}
+
 /// The category and rule of a `custom "target"` entry (T2, T7), or why it is not one.
 fn target_of(e: &Entry, c: &Custom, cfg: &BudgetConfig) -> Result<(String, Target), String> {
     let (Some(CustomValue::Account(category)), 2) = (c.values.first(), c.values.len()) else {
         return Err("target takes a category and an amount".to_owned());
     };
     if !cfg.is_category(category) {
-        return Err(format!("{category} is not a budgeted category"));
+        return Err(not_budgeted(cfg, category, "category"));
     }
     let Some(CustomValue::Amount(amount)) = c
         .values

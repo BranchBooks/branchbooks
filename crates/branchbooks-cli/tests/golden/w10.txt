@@ -7,7 +7,7 @@ usage:
   branchbooks assign <repo> --date D --category ACCOUNT --amount N
   branchbooks move <repo> --date D --from ACCOUNT --to ACCOUNT --amount N
   branchbooks txn <repo> --date D --narration TEXT [--payee TEXT] --posting "ACCOUNT [N [CUR]]"... [--meta key=value]...
-  branchbooks open <repo> --date D --account ACCOUNT [--currency CUR] [--budget on|off|excluded]
+  branchbooks open <repo> --date D --account ACCOUNT [--currency CUR] [--budget on|off|excluded|placeholder]
   branchbooks close <repo> --date D --account ACCOUNT
   branchbooks delete <repo> --at FILE:LINE
   branchbooks log <repo>

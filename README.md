@@ -215,6 +215,8 @@ These are metadata on `open`:
   budget: "on"            ; or "off" (assets and liabilities)
 2026-10-01 open Expenses:Tax:Federal USD
   budget: "excluded"      ; categories with no flag are budgeted
+2026-10-01 open Expenses:Food
+  budget: "placeholder"   ; only groups its sub-accounts: no envelope, no postings
 ```
 
 Envelope entries and targets are Beancount `custom` directives, so the files stay valid Beancount:

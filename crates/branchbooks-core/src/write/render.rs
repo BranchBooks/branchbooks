@@ -15,6 +15,8 @@ pub enum BudgetFlag {
     On,
     Off,
     Excluded,
+    /// Only groups its sub-accounts: it holds no transactions and is no envelope.
+    Placeholder,
 }
 
 impl BudgetFlag {
@@ -23,6 +25,7 @@ impl BudgetFlag {
             BudgetFlag::On => "on",
             BudgetFlag::Off => "off",
             BudgetFlag::Excluded => "excluded",
+            BudgetFlag::Placeholder => "placeholder",
         }
     }
 
@@ -31,6 +34,7 @@ impl BudgetFlag {
             "on" => Some(BudgetFlag::On),
             "off" => Some(BudgetFlag::Off),
             "excluded" => Some(BudgetFlag::Excluded),
+            "placeholder" => Some(BudgetFlag::Placeholder),
             _ => None,
         }
     }

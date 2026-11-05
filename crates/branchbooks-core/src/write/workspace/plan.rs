@@ -34,6 +34,7 @@ impl WorkspaceCore {
             })?),
             None => None,
         };
+        self.check_placeholders(entry, target_entry.as_ref())?;
         let target_is_account = target_entry
             .as_ref()
             .is_some_and(|t| matches!(t.entry_type(), EntryType::Open | EntryType::Close));
@@ -146,6 +147,48 @@ impl WorkspaceCore {
         };
         p.edits = edits;
         Ok(p)
+    }
+
+    /// Refuses a new posting to a placeholder, and making a placeholder of an account that holds
+    /// transactions. An edited transaction may keep a posting it already had, so that it can be
+    /// edited at all. Envelope entries naming a placeholder are refused with the envelope checks.
+    fn check_placeholders(
+        &mut self,
+        entry: Option<&EntryInput>,
+        target: Option<&Entry>,
+    ) -> Result<()> {
+        let invalid = |m: String| OperationError::new(OperationErrorCode::Invalid, m, Vec::new());
+        match entry {
+            Some(EntryInput::Txn(t)) => {
+                let had = |a: &str| {
+                    target
+                        .and_then(Entry::txn)
+                        .is_some_and(|t| t.postings.iter().any(|p| p.account == a))
+                };
+                for p in &t.postings {
+                    if self.current.is_placeholder(&p.account) && !had(&p.account) {
+                        return Err(invalid(format!(
+                            "{} is a placeholder, which only groups its sub-accounts: use one of them",
+                            p.account
+                        )));
+                    }
+                }
+            }
+            Some(EntryInput::Open(o)) if o.budget == Some(BudgetFlag::Placeholder) => {
+                let used = self.current.transactions().iter().any(|e| {
+                    e.txn()
+                        .is_some_and(|t| t.postings.iter().any(|p| p.account == o.account))
+                });
+                if used {
+                    return Err(invalid(format!(
+                        "{} has transactions, so it cannot be a placeholder: move them to a sub-account first",
+                        o.account
+                    )));
+                }
+            }
+            _ => {}
+        }
+        Ok(())
     }
 
     /// The ledger with `edits` made, and the files they change.

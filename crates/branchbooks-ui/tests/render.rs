@@ -188,6 +188,33 @@ async fn accounts_show_balances_by_type_with_credits_positive() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn a_parent_stands_out_and_offers_to_become_a_placeholder() {
+    let ledger = "2026-01-01 open Assets:Group\n  budget: \"off\"\n\
+        2026-01-01 open Assets:Group:Checking\n  budget: \"on\"\n\
+        2026-01-01 open Assets:Done\n  budget: \"placeholder\"\n\
+        2026-01-01 open Assets:Done:Savings\n  budget: \"off\"\n";
+    let (backend, dir) = book("placeholder-offer", ledger);
+    let mut dom = VirtualDom::new_with_props(AccountsOf, AccountsOfProps { backend });
+    dom.rebuild_in_place();
+    let html = dioxus_ssr::render(&dom);
+    assert!(html.contains("Make Assets:Group a placeholder"), "{html}");
+    // Not one that already is, and not an account with no sub-accounts.
+    assert!(!html.contains("Make Assets:Done a placeholder"));
+    assert!(!html.contains("Make Assets:Group:Checking a placeholder"));
+    assert!(html.contains(">placeholder<"), "{html}");
+    // A statement belongs to a real account, not to a group of them.
+    assert!(!html.contains("Reconcile Assets:Done\""), "{html}");
+    assert!(html.contains("Reconcile Assets:Done:Savings\""), "{html}");
+    assert!(html.contains("Reconcile Assets:Group\""), "{html}");
+    // Nor does closing a group close what is in it. Edit and Delete stay.
+    assert!(!html.contains("Close Assets:Done\""), "{html}");
+    assert!(html.contains("Close Assets:Done:Savings\""), "{html}");
+    assert!(html.contains("Edit Assets:Done\"") && html.contains("Delete Assets:Done\""));
+    assert_eq!(html.matches(r#"class="parent""#).count(), 2);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn an_accounts_transactions_are_its_journal_filtered_with_the_months_change() {
     let (backend, dir) = book("journal-filter", SAMPLE);
     let props = OctoberJournalProps {

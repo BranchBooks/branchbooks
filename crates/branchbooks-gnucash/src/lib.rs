@@ -46,6 +46,8 @@ struct Account {
     parent: Option<String>,
     /// (space, id): ("CURRENCY", "USD"), or ("NASDAQ", "AAPL") for shares.
     commodity: Option<(String, String)>,
+    /// `GnuCash`'s own placeholder setting: it only groups its sub-accounts.
+    placeholder: bool,
 }
 
 fn child<'a, 'i>(n: Node<'a, 'i>, name: &str) -> Option<Node<'a, 'i>> {
@@ -231,6 +233,7 @@ pub fn convert(bytes: &[u8]) -> Result<Converted, ConvertError> {
                         kind: text(n, "type"),
                         parent: Some(text(n, "parent")).filter(|p| !p.is_empty()),
                         commodity: child(n, "commodity").and_then(commodity),
+                        placeholder: slot(n, "placeholder").as_deref() == Some("true"),
                     },
                 );
             }
@@ -404,17 +407,27 @@ pub fn convert(bytes: &[u8]) -> Result<Converted, ConvertError> {
         let folder = accounts
             .values()
             .any(|b| b.parent.as_deref() == Some(id.as_str()));
-        if folder && !used.contains(id) {
+        let a = &accounts[id];
+        // Kept as a placeholder when GnuCash says it is one. One with splits holds money, so it comes
+        // over as an ordinary account, and the notes say so.
+        let holding = a.placeholder && !used.contains(id);
+        if folder && !used.contains(id) && !holding {
             continue;
         }
-        let a = &accounts[id];
         let budget = match a.kind.as_str() {
+            _ if holding => Some(BudgetFlag::Placeholder),
             "BANK" | "CASH" | "CREDIT" => Some(BudgetFlag::On),
             "ASSET" | "STOCK" | "MUTUAL" | "RECEIVABLE" | "LIABILITY" | "PAYABLE" => {
                 Some(BudgetFlag::Off)
             }
             _ => None,
         };
+        if a.placeholder && !holding {
+            let name = path(id, &accounts).join(":");
+            notes.push(format!(
+                "{name} is a placeholder in GnuCash but has transactions, so it came over as an ordinary account"
+            ));
+        }
         let currencies = match &a.commodity {
             Some((space, cur))
                 if is_currency(space) && *cur == book_currency && !mixed.contains(id) =>
@@ -551,6 +564,39 @@ mod tests {
             .map(|(p, t)| (p.as_str(), t.as_str()))
             .collect();
         Book::load("main.beancount", &MemorySource::new(files))
+    }
+
+    /// `BOOK` with the account of guid `id` marked as a placeholder, as `GnuCash` saves it.
+    fn with_placeholder(id: &str) -> String {
+        let at = format!(r#"<act:id type="guid">{id}</act:id>"#);
+        assert!(BOOK.contains(&at));
+        BOOK.replace(
+            &at,
+            &format!(
+                r#"{at}<act:slots><slot><slot:key>placeholder</slot:key><slot:value type="string">true</slot:value></slot></act:slots>"#
+            ),
+        )
+    }
+
+    #[test]
+    fn a_gnucash_placeholder_stays_one_unless_it_holds_money() {
+        // Expenses is a folder with no splits: skipped unless it is marked.
+        let c = convert(with_placeholder("e").as_bytes()).unwrap();
+        let main = &c.files["main.beancount"];
+        assert!(main.contains("budget: \"placeholder\""), "{main}");
+        assert_eq!(c.accounts, 6);
+        let mut book = loaded(&c);
+        assert_eq!(book.errors(), vec![]);
+        assert_eq!(book.budget_diagnostics(), vec![]);
+
+        // Checking has splits: an ordinary account, and the person is told.
+        let c = convert(with_placeholder("c").as_bytes()).unwrap();
+        assert!(!c.files["main.beancount"].contains("budget: \"placeholder\""));
+        assert!(
+            c.notes
+                .iter()
+                .any(|n| n.contains("came over as an ordinary account"))
+        );
     }
 
     #[test]

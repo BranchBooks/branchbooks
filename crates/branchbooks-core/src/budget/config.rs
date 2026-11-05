@@ -38,6 +38,9 @@ pub struct BudgetConfig {
     pub roles: IndexMap<String, AccountRole>,
     pub categories: Vec<String>,
     pub cards: Vec<String>,
+    /// Accounts that only group their sub-accounts. Each keeps a role, so anything posted to one by
+    /// hand still counts, and is flagged.
+    pub placeholders: std::collections::HashSet<String>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -46,8 +49,12 @@ impl BudgetConfig {
         self.roles.get(account).copied()
     }
 
+    pub fn is_placeholder(&self, account: &str) -> bool {
+        self.placeholders.contains(account)
+    }
+
     pub(super) fn is_category(&self, account: &str) -> bool {
-        self.role(account) == Some(AccountRole::Category)
+        self.role(account) == Some(AccountRole::Category) && !self.is_placeholder(account)
     }
 }
 
@@ -58,6 +65,7 @@ pub fn classify_accounts(accounts: &Accounts, options: &Options) -> BudgetConfig
         .cloned()
         .unwrap_or_else(|| "USD".to_owned());
     let mut roles = IndexMap::new();
+    let mut placeholders = std::collections::HashSet::new();
     let mut diagnostics = Vec::new();
 
     let mut sorted: Vec<_> = accounts.iter().collect();
@@ -76,6 +84,10 @@ pub fn classify_accounts(accounts: &Accounts, options: &Options) -> BudgetConfig
             Some(_) => Some("<invalid>"),
             None => None,
         };
+        let placeholder = flag == Some("placeholder");
+        if placeholder {
+            placeholders.insert(name.clone());
+        }
         let root = &name[..name.find(':').unwrap_or(name.len())];
         let currencies = info.currencies();
         let other_currency = !currencies.is_empty() && !currencies.contains(&currency);
@@ -90,7 +102,7 @@ pub fn classify_accounts(accounts: &Accounts, options: &Options) -> BudgetConfig
                 } else {
                     match flag {
                         None => diag(format!("{name} has no budget flag; treated as off-budget")),
-                        Some(f) if f != "on" && f != "off" => {
+                        Some(f) if f != "on" && f != "off" && !placeholder => {
                             diag(format!("{name}: budget flag must be \"on\" or \"off\""));
                         }
                         _ => {}
@@ -102,7 +114,7 @@ pub fn classify_accounts(accounts: &Accounts, options: &Options) -> BudgetConfig
                 if flag == Some("excluded") {
                     AccountRole::Excluded
                 } else {
-                    if flag.is_some() {
+                    if flag.is_some() && !placeholder {
                         diag(format!(
                             "{name}: the only budget flag for expense accounts is \"excluded\""
                         ));
@@ -111,7 +123,7 @@ pub fn classify_accounts(accounts: &Accounts, options: &Options) -> BudgetConfig
                 }
             }
             "Income" => {
-                if flag.is_some_and(|f| f != "excluded") {
+                if flag.is_some_and(|f| f != "excluded") && !placeholder {
                     diag(format!(
                         "{name}: the only budget flag for income accounts is \"excluded\""
                     ));
@@ -129,13 +141,15 @@ pub fn classify_accounts(accounts: &Accounts, options: &Options) -> BudgetConfig
             .map(|(k, _)| k.clone())
             .collect()
     };
-    let categories = pick(AccountRole::Category);
+    let mut categories: Vec<String> = pick(AccountRole::Category);
+    categories.retain(|c| !placeholders.contains(c));
     let cards = pick(AccountRole::Card);
     BudgetConfig {
         currency,
         roles,
         categories,
         cards,
+        placeholders,
         diagnostics,
     }
 }

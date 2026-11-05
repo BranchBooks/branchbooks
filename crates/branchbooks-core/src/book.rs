@@ -392,6 +392,12 @@ impl Book {
         &self.accounts
     }
 
+    /// Whether `account` only groups its sub-accounts.
+    pub fn is_placeholder(&mut self, account: &str) -> bool {
+        self.fresh();
+        self.config.is_placeholder(account)
+    }
+
     /// Booked transactions in date order.
     pub fn transactions(&mut self) -> Vec<&Entry> {
         self.fresh();

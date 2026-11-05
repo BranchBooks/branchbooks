@@ -58,6 +58,11 @@ fn cases(repo: &Path) -> Vec<Case> {
         |p: &str| std::fs::read_to_string(repo.join("fixtures").join(p)).expect("a fixture");
     let single = vec![
         Step::Add(open("2026-11-01", "Expenses:Fun", None)),
+        Step::Add(open(
+            "2026-11-01",
+            "Expenses:Group",
+            Some(BudgetFlag::Placeholder),
+        )),
         Step::Add(EntryInput::Assign(AssignInput {
             date: "2026-11-03".into(),
             category: "Expenses:Fun".into(),

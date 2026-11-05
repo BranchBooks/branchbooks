@@ -225,7 +225,8 @@ pub fn Accounts(
                                                 }
                                             }
                                         } else {
-                                            tr { key: "{r.account}", "data-testid": "account", class: if r.close.is_some() { "closed" } else { "" },
+                                            tr { key: "{r.account}", "data-testid": "account",
+                                                class: if r.close.is_some() { "closed" } else if node.parent { "parent" } else { "" },
                                                 td { title: "{r.account}",
                                                     span { style: "padding-left: {node.depth as f32 * 1.25}em" }
                                                     Toggle { node: node.clone(), collapsed }
@@ -244,16 +245,32 @@ pub fn Accounts(
                                                         Some("on") => "on budget",
                                                         Some("off") => "off budget",
                                                         Some("excluded") => "excluded",
+                                                        Some("placeholder") => "placeholder",
                                                         _ if root == "Expenses" => "category",
                                                         _ => "",
                                                     }
                                                 }
                                                 td { class: "date", "{r.open.date}" }
                                                 td { class: "actions",
+                                                    if let Some(input) = placeholder_of(&r.open).filter(|_| node.parent && r.close.is_none()) {
+                                                        button { r#type: "button", class: "link", "aria-label": "Make {r.account} a placeholder",
+                                                            onclick: {
+                                                                let (save, open) = (save.clone(), at(&r.open));
+                                                                move |_| {
+                                                                    let done = format!("{} is now a placeholder.", input.account);
+                                                                    save(Operation::Edit(open.clone(), EntryInput::Open(input.clone())), done);
+                                                                }
+                                                            },
+                                                            "Make placeholder"
+                                                        }
+                                                    }
                                                     Actions { account: r.account.clone(), today: today,
                                                         closed: r.close.is_some(),
-                                                        // Statements come for asset and liability accounts.
-                                                        reconcilable: root == "Assets" || root == "Liabilities",
+                                                        // Statements come for asset and liability accounts, not for groups of them.
+                                                        reconcilable: (root == "Assets" || root == "Liabilities")
+                                                            && r.open.meta.str("budget") != Some("placeholder"),
+                                                        // Closing a group would not close what is in it.
+                                                        closable: r.open.meta.str("budget") != Some("placeholder"),
                                                         mode: mode_of(&r.account),
                                                         onmode: {
                                                             let a = r.account.clone();
@@ -297,6 +314,26 @@ pub fn Accounts(
     }
 }
 
+/// The `open` entry as a placeholder, keeping everything else about it; `None` when it already is one.
+/// The write path refuses it for an account that holds transactions, and says why.
+fn placeholder_of(open: &Entry) -> Option<OpenInput> {
+    if open.meta.str("budget") == Some("placeholder") {
+        return None;
+    }
+    let o = open.open()?;
+    Some(OpenInput {
+        date: open.date.to_string(),
+        account: o.account.clone(),
+        currencies: o.currencies.clone(),
+        budget: Some(BudgetFlag::Placeholder),
+        booking: o.booking.clone(),
+        meta: meta(&open.meta)
+            .into_iter()
+            .filter(|(k, _)| k != "budget")
+            .collect(),
+    })
+}
+
 /// A parent's ▾ or ▸, which hides or shows its sub-accounts; a space the same width otherwise.
 #[component]
 fn Toggle(node: Node, collapsed: Signal<Vec<String>>) -> Element {
@@ -328,6 +365,7 @@ fn Actions(
     today: Date,
     closed: bool,
     reconcilable: bool,
+    closable: bool,
     mode: Option<&'static str>,
     onmode: EventHandler<Option<&'static str>>,
     onclose: EventHandler<String>,
@@ -368,8 +406,10 @@ fn Actions(
                         onclick: move |_| onmode.call(Some("reconcile")), "Reconcile"
                     }
                 }
-                button { r#type: "button", class: "link", "aria-label": "Close {account}",
-                    onclick: move |_| onmode.call(Some("close")), "Close"
+                if closable {
+                    button { r#type: "button", class: "link", "aria-label": "Close {account}",
+                        onclick: move |_| onmode.call(Some("close")), "Close"
+                    }
                 }
                 // A closed account is reopened first: deleting its open would leave the close behind.
                 button { r#type: "button", class: "link", "aria-label": "Delete {account}",
@@ -544,6 +584,7 @@ fn OpenEditor(
                         option { value: "on", "on budget (cash or card)" }
                         option { value: "off", "off budget (tracking)" }
                         option { value: "excluded", "excluded expense" }
+                        option { value: "placeholder", "placeholder (groups its sub-accounts)" }
                     }
                 }
                 if close.is_some() {
@@ -738,6 +779,7 @@ fn OpenAccount(today: Date, onopen: EventHandler<OpenInput>) -> Element {
                         option { value: "on", "on budget (cash or card)" }
                         option { value: "off", "off budget (tracking)" }
                         option { value: "excluded", "excluded expense" }
+                        option { value: "placeholder", "placeholder (groups its sub-accounts)" }
                     }
                 }
                 label { "Opened"
