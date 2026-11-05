@@ -62,7 +62,7 @@ fn a_placeholder_has_no_envelope_and_changes_no_number() {
     let v = book_of(OPENS).budget(m("2026-11"), None);
     assert!(v.category("Expenses:Group").is_none());
     assert!(v.category("Expenses:Group:Inside").is_some());
-    eq(v.unassigned, 1100);
+    eq(v.unassigned, 1080);
     assert_eq!(book_of(OPENS).budget_diagnostics(), vec![]);
     assert_eq!(book_of(OPENS).errors(), vec![]);
 }
@@ -79,7 +79,7 @@ fn a_posting_written_by_hand_still_counts_and_is_flagged() {
     let v = book.budget(m("2026-11"), None);
     // The row appears because money is there: it never goes missing.
     eq(v.category("Expenses:Group").unwrap().available, -10);
-    eq(v.unassigned, 1100);
+    eq(v.unassigned, 1080);
     let flagged: Vec<&str> = v
         .flags
         .iter()
@@ -95,7 +95,7 @@ fn a_posting_written_by_hand_still_counts_and_is_flagged() {
 fn an_assignment_written_by_hand_changes_nothing_and_is_flagged() {
     let extra = format!("{OPENS}2026-11-05 custom \"envelope-assign\" Expenses:Group 50.00 USD\n");
     let mut book = book_of(&extra);
-    eq(book.budget(m("2026-11"), None).unassigned, 1100);
+    eq(book.budget(m("2026-11"), None).unassigned, 1080);
     assert!(
         book.budget_diagnostics()
             .iter()

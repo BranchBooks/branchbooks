@@ -1,0 +1,4 @@
+; Example 15: Groceries rolls over its overspending, so Example 4's 20.00 carries into November.
+include "../examples-1-5.bean"
+
+2026-10-01 custom "overspending" Expenses:Food:Groceries "rollover"

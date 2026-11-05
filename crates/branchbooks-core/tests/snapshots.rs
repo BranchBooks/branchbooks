@@ -103,6 +103,12 @@ fn book_lines(book: &mut Book, lines: &mut Vec<String>) {
                 c.card,
                 nums(&[c.available, c.owed, c.underfunded])
             ));
+            if !c.overfunded.is_zero() {
+                lines.push(format!("    overfunded {}", n(c.overfunded)));
+            }
+            for (category, v) in &c.in_categories {
+                lines.push(format!("    waiting {category} {}", n(*v)));
+            }
         }
         for d in &v.warnings {
             lines.push(format!("  warning {}", diag(d)));

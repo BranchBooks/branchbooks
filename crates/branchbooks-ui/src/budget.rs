@@ -7,7 +7,9 @@ use std::rc::Rc;
 use branchbooks_core::budget::CategoryRow;
 use branchbooks_core::date::Date;
 use branchbooks_core::types::{Diagnostic, Entry};
-use branchbooks_core::write::render::{AssignInput, EntryInput, MoveInput, TargetInput};
+use branchbooks_core::write::render::{
+    AssignInput, EntryInput, MoveInput, OverspendingInput, TargetInput,
+};
 use branchbooks_core::write::store::CommitInfo;
 use branchbooks_core::write::workspace::{
     ApplyError, Operation, OperationError, OperationErrorCode, WorkspaceCore, retry_on_conflict,
@@ -17,8 +19,8 @@ use rust_decimal::Decimal;
 
 use crate::accounts::Accounts;
 use crate::envelopes::{
-    CardPayments, MonthClose, MonthEntries, MoveForm, Notes, Shortfalls, TargetForm, envelope_text,
-    target_rule,
+    CardPayments, MonthClose, MonthEntries, MoveForm, Notes, OverspendingSwitch, Shortfalls,
+    TargetForm, envelope_text, target_rule,
 };
 use crate::files::Files;
 use crate::journal::{Journal, Shared, run};
@@ -563,6 +565,20 @@ pub fn Screen(
                                                                     }
                                                                 },
                                                             }
+                                                            OverspendingSwitch { row: c.clone(),
+                                                                onsave: {
+                                                                    let (cat, date) = (c.category.clone(), env_date.clone());
+                                                                    move |rollover: bool| {
+                                                                        let done = if rollover {
+                                                                            format!("Overspending in {} now rolls over.", short(&cat))
+                                                                        } else {
+                                                                            format!("Overspending in {} now resets at month end.", short(&cat))
+                                                                        };
+                                                                        let input = OverspendingInput { date: date.clone(), category: cat.clone(), rollover };
+                                                                        save((Operation::Add(EntryInput::Overspending(input)), done));
+                                                                    }
+                                                                },
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -572,7 +588,8 @@ pub fn Screen(
                                 }
                             }
                             p { class: "muted small",
-                                "Red: cash overspent, carries into next month. Amber: overspent on a card, the card is underfunded. "
+                                "Red: overspent in cash. Amber: overspent on a card. Either comes out of next month's Unassigned, "
+                                "or carries into next month on a category that rolls over. "
                                 "Target: what the category's target put in this month, from Unassigned."
                             }
                         }
@@ -669,7 +686,11 @@ fn CategoryLine(
     let assigned = row.assigned;
     rsx! {
         tr { class: "category", "data-category": "{row.category}",
-            td { title: "{row.category}", "{label}" }
+            td { title: "{row.category}", "{label}"
+                if row.rollover_overspending {
+                    span { class: "badge", title: "Overspending carries into next month (rule 6a)", "rolls over" }
+                }
+            }
             td { class: "num",
                 if editing {
                     form {

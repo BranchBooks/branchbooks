@@ -304,7 +304,7 @@ fn ledgers_without_targets_are_unchanged() {
             .iter()
             .all(|c| c.target.is_none() && c.target_allocated.is_zero() && c.shortfall.is_zero())
     );
-    eq(v.unassigned, 1100);
+    eq(v.unassigned, 1080);
 }
 
 #[test]

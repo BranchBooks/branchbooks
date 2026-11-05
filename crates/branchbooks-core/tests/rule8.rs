@@ -31,8 +31,8 @@ fn paycheck(brokerage: &str, checking: &str, meta: &str) -> String {
 fn income_paid_into_an_off_budget_account_is_not_a_transfer() {
     let v = book_of(&paycheck("300.00", "700.00", "")).budget(m("2026-11"), None);
     assert_eq!(codes(&v.flags), Vec::<&str>::new());
-    // Unassigned rises by the on-budget part alone (rule 3): 1,100 + 700.
-    eq(v.unassigned, 1800);
+    // Unassigned rises by the on-budget part alone (rule 3): 1,080 + 700.
+    eq(v.unassigned, 1780);
     eq(
         added_activity(&paycheck("300.00", "700.00", ""), "Investing"),
         0,
@@ -66,9 +66,9 @@ fn only_the_part_on_budget_money_paid_for_is_charged_to_the_category() {
     assert_eq!(codes(&v.flags), Vec::<&str>::new());
     eq(added_activity(extra, "Investing"), -100);
     // The income went to Brokerage, not an on-budget account, so it does not raise Unassigned
-    // (rule 3); the 100 from Checking is Investing's cash overspend, which Unassigned does not
-    // absorb (rule 6).
-    eq(v.unassigned, 1100);
+    // (rule 3); the 100 from Checking is Investing's cash overspend, which Unassigned absorbs
+    // only at month end (rule 6).
+    eq(v.unassigned, 1080);
 }
 
 #[test]

@@ -19,6 +19,9 @@ use dioxus::prelude::*;
 
 const SAMPLE: &str = include_str!("../../../fixtures/examples-1-5.bean");
 
+/// Groceries rolls over its overspending (rule 6a), so Example 4's 20.00 carries into November.
+const ROLLOVER: &str = "2026-10-01 custom \"overspending\" Expenses:Food:Groceries \"rollover\"\n";
+
 /// A book in a fresh git repository, holding `ledger`.
 fn book(name: &str, ledger: &str) -> (Backend, PathBuf) {
     let dir = std::env::temp_dir().join(format!("branchbooks-ui-{name}-{}", std::process::id()));
@@ -106,6 +109,76 @@ async fn the_budget_shows_unassigned_and_marks_overspent_envelopes() {
     assert!(html.contains("Assign 600.00 to Food:Groceries"));
     assert!(html.contains(r#"data-card="Liabilities:CreditCard""#));
     assert!(html.contains("Move money") && html.contains("Set a target for Food:Dining"));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn the_budget_shows_rollover_and_card_overspending_waiting_in_its_category() {
+    // Example 6 on a book where Groceries rolls over (Example 15).
+    let dinner = "2026-11-05 * \"Dinner party\"\n  Expenses:Food:Dining  200.00 USD\n  Liabilities:CreditCard\n";
+    let (backend, dir) = book("rollover", &format!("{SAMPLE}{ROLLOVER}{dinner}"));
+    let html = render(ScreenProps {
+        backend,
+        today: "2026-11-06".parse().unwrap(),
+        children: VNode::empty(),
+        onsaved: None,
+        page: Some("budget"),
+        onscenario: None,
+        reloads: 0,
+        onsettings: None,
+    })
+    .await;
+    assert_eq!(text_after(&html, r#"data-testid="unassigned""#), "1,100.00");
+    let groceries = &html[html
+        .find(r#"data-category="Expenses:Food:Groceries""#)
+        .unwrap()..];
+    assert_eq!(text_after(groceries, r#"class="badge""#), "rolls over");
+    assert_eq!(text_after(groceries, r#"class="pill cash""#), "-20.00");
+    let dining = &html[html
+        .find(r#"data-category="Expenses:Food:Dining""#)
+        .unwrap()..];
+    assert!(!dining[..dining.find("</tr>").unwrap()].contains("rolls over"));
+    // Rule 7: the card's 45.00 is covered in Dining, so the card offers no Cover.
+    let card = &html[html.find(r#"data-card="Liabilities:CreditCard""#).unwrap()..];
+    assert_eq!(
+        text_after(card, r#"class="waiting""#),
+        "45.00 overspent in Food:Dining: cover it there"
+    );
+    assert!(!html.contains("Cover CreditCard"), "{card}");
+    assert!(html.contains("or carries into next month on a category that rolls over"));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_card_holding_more_than_it_owes_is_flagged_with_a_return_button() {
+    // Example 18: 45 set aside on the card and in Dining for the same purchase.
+    let extra = "2026-11-05 * \"Dinner party\"
+  Expenses:Food:Dining  200.00 USD
+  Liabilities:CreditCard
+2026-11-06 custom \"envelope-assign\" Liabilities:CreditCard 45.00 USD
+2026-11-06 custom \"envelope-assign\" Expenses:Food:Dining 45.00 USD
+";
+    let (backend, dir) = book("overfunded", &format!("{SAMPLE}{extra}"));
+    let html = render(ScreenProps {
+        backend,
+        today: "2026-11-06".parse().unwrap(),
+        children: VNode::empty(),
+        onsaved: None,
+        page: Some("budget"),
+        onscenario: None,
+        reloads: 0,
+        onsettings: None,
+    })
+    .await;
+    let card = &html[html.find(r#"data-card="Liabilities:CreditCard""#).unwrap()..];
+    assert_eq!(
+        text_after(card, r#"class="waiting warn""#),
+        "45.00 more than it owes "
+    );
+    assert_eq!(
+        text_after(card, r#"aria-label="Return the extra for CreditCard""#),
+        "Return 45.00"
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -320,12 +393,13 @@ fn OverviewOf(backend: Backend) -> Element {
 
 #[tokio::test(flavor = "current_thread")]
 async fn the_overview_shows_where_things_stand() {
-    let (backend, dir) = book("overview", SAMPLE);
+    let (backend, dir) = book("overview", &format!("{SAMPLE}{ROLLOVER}"));
     let mut dom = VirtualDom::new_with_props(OverviewOf, OverviewOfProps { backend });
     dom.rebuild_in_place();
     let html = dioxus_ssr::render(&dom);
-    // Example 14 as of Nov 2: net worth 3,235 (checking 2,735, brokerage 500); the state after
-    // Example 5: Unassigned 1,100 and Groceries cash-overspent by 20.
+    // Example 14 as of Nov 2: net worth 3,235 (checking 2,735, brokerage 500). With Groceries
+    // rolling over (Example 15), the state after Example 5 is Unassigned 1,100 and Groceries
+    // cash-overspent by 20.
     assert_eq!(text_after(&html, r#"data-testid="net-worth""#), "3,235.00");
     assert_eq!(text_after(&html, r#"data-testid="unassigned""#), "1,100.00");
     assert!(

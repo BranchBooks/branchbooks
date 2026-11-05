@@ -13,7 +13,7 @@ use branchbooks_core::money::fixed;
 use branchbooks_core::types::{Body, Entry, Meta};
 use branchbooks_core::write::render::{
     AssignInput, BudgetFlag, CloseInput, EntryInput, MetaInputValue, MoveInput, OpenInput,
-    PostingInput, TransactionInput, render_entry,
+    OverspendingInput, PostingInput, TransactionInput, render_entry,
 };
 use branchbooks_core::write::store::{MemoryStore, Store, StoreError};
 use branchbooks_core::write::workspace::{
@@ -902,4 +902,32 @@ fn editing_keeps_metadata_types() {
             .contains(&format!("2026-11-03 * \"Typed, edited\"\n{meta}\n"))
     );
     assert_eq!(ws.book().errors(), vec![]);
+}
+
+fn overspending_input(category: &str, rollover: bool) -> EntryInput {
+    EntryInput::Overspending(OverspendingInput {
+        date: "2026-11-01".into(),
+        category: category.into(),
+        rollover,
+    })
+}
+
+#[test]
+fn rollover_overspending_is_written_as_a_custom_entry_and_refused_on_a_non_category() {
+    let mut ws = base();
+    let r = add(&mut ws, overspending_input("Expenses:Food:Dining", true));
+    assert_eq!(r.op_type, "set-overspending");
+    assert!(
+        ws.text("main.beancount")
+            .unwrap()
+            .contains("2026-11-01 custom \"overspending\" Expenses:Food:Dining \"rollover\"")
+    );
+    add(&mut ws, overspending_input("Expenses:Food:Dining", false));
+    assert!(
+        ws.text("main.beancount")
+            .unwrap()
+            .contains("custom \"overspending\" Expenses:Food:Dining \"reset\"")
+    );
+    let op = Operation::Add(overspending_input("Assets:Checking", true));
+    assert!(ws.apply(&op, None, 0).is_err());
 }

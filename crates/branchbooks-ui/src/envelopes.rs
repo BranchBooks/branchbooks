@@ -102,6 +102,25 @@ pub fn TargetForm(
     }
 }
 
+/// What happens to a category's overspending at month end (rules 6 and 6a), and a button to
+/// switch it. `onsave` gets `true` to roll over, `false` to reset.
+#[component]
+pub fn OverspendingSwitch(row: CategoryRow, onsave: EventHandler<bool>) -> Element {
+    let on = row.rollover_overspending;
+    rsx! {
+        p { class: "overspending-switch small",
+            if on {
+                "Overspending rolls over: it carries into next month as a negative balance. "
+            } else {
+                "Overspending resets at month end: it comes out of next month's Unassigned. "
+            }
+            button { r#type: "button", class: "link", onclick: move |_| onsave.call(!on),
+                if on { "Reset it instead" } else { "Roll it over instead" }
+            }
+        }
+    }
+}
+
 /// Card payment envelopes. Set aside is editable like Assigned: a new total writes an
 /// envelope-assign to the card for the difference. "Cover" sets aside what is underfunded.
 #[component]
@@ -170,6 +189,27 @@ pub fn CardPayments(
                                                 move |_| onsetaside.call((card.clone(), format!("{under:.2}")))
                                             },
                                             "Cover"
+                                        }
+                                    }
+                                    if c.overfunded > Decimal::ZERO {
+                                        span { class: "waiting warn",
+                                            "{fmt(c.overfunded)} more than it owes "
+                                            // Only what the envelope holds can go back now; the rest
+                                            // is overspending still in categories.
+                                            if c.available > Decimal::ZERO {
+                                                button { r#type: "button", class: "link", "aria-label": "Return the extra for {short(&c.card)}",
+                                                    onclick: {
+                                                        let (card, back) = (c.card.clone(), c.overfunded.min(c.available));
+                                                        move |_| onsetaside.call((card.clone(), format!("{:.2}", -back)))
+                                                    },
+                                                    "Return {fmt(c.overfunded.min(c.available))}"
+                                                }
+                                            }
+                                        }
+                                    }
+                                    for (category, amount) in c.in_categories.iter() {
+                                        span { class: "waiting", key: "{category}",
+                                            "{fmt(*amount)} overspent in {short(category)}: cover it there"
                                         }
                                     }
                                 }
@@ -267,6 +307,12 @@ pub fn envelope_text(e: &Entry) -> Option<String> {
                 format!("Target for {}: {} by {due}", account(0), fmt(amount(1)))
             }
             _ => format!("Target for {}: {} a month", account(0), fmt(amount(1))),
+        },
+        "overspending" => match c.values.get(1) {
+            Some(CustomValue::String(how)) if how == "rollover" => {
+                format!("Overspending in {}: rolls over", account(0))
+            }
+            _ => format!("Overspending in {}: resets at month end", account(0)),
         },
         _ => return None,
     })

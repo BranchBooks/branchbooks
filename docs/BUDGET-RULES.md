@@ -14,18 +14,28 @@ Budget flags are metadata on `open` directives:
 - `budget: "placeholder"` on any account that only groups its sub-accounts. It has no envelope and
   takes no new postings, assignments, moves or targets. A parent you never open works the same way.
 
+A category's overspending setting is a dated `custom` entry, not a flag, so changing it never changes
+past months (rule 6a):
+
+```
+2026-10-01 custom "overspending" Expenses:Reimbursable "rollover"
+2026-12-01 custom "overspending" Expenses:Reimbursable "reset"
+```
+
 ## Rules
 
 Terms: Available is an envelope's balance. Unassigned is money not yet assigned. Activity is spending
 (negative) or refunds (positive).
 
-1. Available in month M = prior month's Available + assigned in M + moved in M + activity in M. The prior Available is negative only when it carries a cash overspend (rule 6).
+1. Available in month M = prior month's Available + assigned in M + moved in M + activity in M. The prior Available is negative only for a category that rolls over its overspending (rule 6a).
 2. Unassigned = on-budget cash account balances minus the sum of every envelope's Available (including card payment envelopes) minus money assigned to future months. Credit card balances are not subtracted. The credit-overspent part of a category counts as zero.
 3. Income: money arriving in an on-budget account from a non-budget source raises Unassigned by exactly the on-budget posting. Excluded postings in the same transaction have no effect. A deposit that is partly a reimbursement uses an income account (such as `Income:Other`) for the non-reimbursement part.
 4. Card spending: a purchase reduces the category's Available. Only the funded part (up to the Available the category had) moves into the card payment envelope. Paying the card reduces the payment envelope, whatever else the transaction holds (a fee, say). A balance transfer moves the same amount from the paid card's payment envelope to the charged card's, and Unassigned does not change.
-5. Overspending is split into a cash portion and a credit portion. Cash portion = min(overspend, carried-in cash overspend + cash spent this month − cash already corrected). The rest is the credit portion. This depends only on month totals, never on purchase order. An assignment or move into a category that is currently overspent is a correction: it covers the cash portion first, then the credit portion. Money assigned before the overspend simply counts as funds.
-6. Cash overspending not corrected by month end carries into the next month as a negative Available. Unassigned does not change. (A design choice. The alternative is to subtract it from next month's Unassigned.)
-7. Credit overspending: the credit portion never reaches the payment envelope, so the card owes more than is set aside and is flagged underfunded. Unassigned does not change. At month end the credit portion is dropped from the category.
+5. Overspending is split into a cash portion and a credit portion. Cash portion = min(overspend, carried-in cash overspend + cash spent this month − cash already corrected), where only a category that rolls over (rule 6a) carries any in. The rest is the credit portion. This depends only on month totals, never on purchase order. An assignment or move into a category that is currently overspent is a correction: it covers the cash portion first, then the credit portion. Money assigned before the overspend simply counts as funds.
+6. Month end. Overspending not corrected by month end, cash or credit, is not carried: the category starts the next month at 0, and the overspend comes out of the next month's Unassigned. The credit portion moves into the card's payment envelope then, so the card is fully set aside. Unassigned can go negative, which shows the over-commitment.
+6a. Rollover overspending. `custom "overspending" <category> "rollover"` keeps a category's overspending instead: what was not corrected by month end carries into the next month as a negative Available, and Unassigned does not change. Both portions carry. The credit portion stays out of the payment envelope until the category is corrected. A later assignment or move into the category covers the carried cash portion first, then the credit portion, which moves to the card (rule 5), with no rule 15 warning. `"reset"` turns it off. The setting in force at a month's end decides that month: an entry applies from the month of its date, and earlier months never change. Use it for money that will be paid back, such as a reimbursable expense.
+7. Credit overspending during the month: the credit portion stays in the category and does not reach the payment envelope. The card's Underfunded leaves it out and names the category, so it is covered once, in the category. Underfunded is what the card owes beyond that, such as debt from before the budget.
+7a. Overfunded: when the payment envelope plus the credit overspending waiting in categories is more than the card owes, the difference is flagged as overfunded. It is money set aside twice, typically an assignment straight to the card for purchases whose categories were then funded too. Lowering the envelope's Set aside returns it to Unassigned. A card in credit owes nothing. The flag never changes the numbers.
 8. Off-budget transfers: moving money from an on-budget to an off-budget account must carry a `category:` metadata line naming a budgeted category. Without one, the transaction is flagged as uncategorized. Only the off-budget amount that on-budget money paid for counts (what left cash and cards, less what the same transaction spent in categories), and only it is charged to the category. Money that reaches an off-budget account from income, such as a 401k contribution in a paycheck, is not a transfer.
 9. Refunds are an inflow to the original category. Its Available rises, the payment envelope falls by the same amount, and Unassigned does not change.
 10. Future months: an assignment dated in a future month leaves Unassigned immediately.
@@ -85,22 +95,26 @@ it is in.
 core to their assertions. Run them with `python3 -I`.
 
 State after Example 5 (the base state for Examples 6 to 12): Checking 2,735.00, Rent 1,500.00, Groceries
--20.00 (carried cash overspend), Dining 155.00, Unassigned 1,100.00.
+0.00 (Example 4's overspend reset), Dining 155.00, Unassigned 1,080.00.
 
 | Example | Event | Expected |
 |---|---|---|
 | 1 | Paycheck | Checking 3,900.00, Unassigned 3,900.00. Income statement: income 5,000.00, expenses 1,100.00, net 3,900.00 |
 | 2 | Assign Rent 1,500, Groceries 600, Dining 200 | Unassigned 1,600.00 |
 | 3 | Groceries 120 (cash), Dining 45 (card), pay card 45 | After groceries: Groceries 480. After card: Dining 155, card owed 45, payment envelope 45. After payment: Checking 3,735.00, payment envelope 0. Unassigned 1,600.00 throughout |
-| 4 | Groceries 500 cash on Oct 30 | Groceries -20.00, Checking 3,235.00, Unassigned 1,600.00. Uncorrected on Nov 1: Groceries -20.00, Unassigned 1,600.00. If 20.00 is assigned before Nov 1: Groceries 0.00, Unassigned 1,580.00 |
-| 5 | Assign Investing 500, transfer to brokerage with `category` | Unassigned 1,600 then 1,100 after the assignment, and 1,100 after the transfer. Investing 0.00, Checking 2,735.00, brokerage 500.00. Without the `category` line: flagged uncategorized |
-| 6 | Nov 5 card purchase, Dining 200 | Dining -45.00 (all credit), payment envelope 155.00, card owes 200.00, Unassigned 1,100.00. Covered with 45: Dining 0, payment envelope 200, Unassigned 1,055. Uncovered at Dec 1: Dining 0, payment envelope 155, card underfunded by 45, Unassigned 1,100 |
-| 7 | Nov 8 card purchase Dining 60, Nov 12 refund 25 | After purchase: Dining 95, payment envelope 60. After refund: Dining 120, payment envelope 35, card owes 35. Unassigned 1,100.00 throughout |
-| 8 | Assign 300 to Rent dated 2026-12-01, entered Nov 3 | Unassigned 800.00. November Rent 1,500.00. December Rent starts at 1,800.00 |
-| 9 | After Example 6, Nov 6 cash purchase Dining 30 | Dining -75.00 (30 cash, 45 credit), Checking 2,705.00, payment envelope 155.00, Unassigned 1,100.00. Assign 20: 10 cash, 45 credit, Unassigned 1,080. Assign 40: 0 cash, 35 credit, payment envelope 165, Unassigned 1,060. Assign 75: Dining 0, payment envelope 200, Unassigned 1,025. Nothing corrected at Dec 1: Dining -30 (cash carries), card underfunded by 45, Unassigned 1,100. The same 40 assigned on Nov 1 before the purchases: 30 cash, 5 credit |
-| 10 | Nov 4 deposit: Checking +200, Groceries -150, Income:Other -50 | Checking 2,935.00, Groceries 130.00, Unassigned 1,150.00 |
-| 11 | Nov 10 move 20 from Rent to Groceries | Rent 1,480.00, Groceries 0.00, Unassigned 1,100.00 |
-| 12 | Nov 6: assign Dining 40 and cash purchase Dining 30, after the Nov 5 credit overspend | Same result in either file order: Dining -35.00 (all credit), payment envelope 165.00, Unassigned 1,060.00 |
+| 4 | Groceries 500 cash on Oct 30 | Groceries -20.00, Checking 3,235.00, Unassigned 1,600.00. Uncorrected on Nov 1: Groceries 0.00, Unassigned 1,580.00. If 20.00 is assigned before Nov 1: Groceries 0.00, Unassigned 1,580.00 |
+| 5 | Assign Investing 500, transfer to brokerage with `category` | Unassigned 1,580 then 1,080 after the assignment, and 1,080 after the transfer. Investing 0.00, Checking 2,735.00, brokerage 500.00. Without the `category` line: flagged uncategorized |
+| 6 | Nov 5 card purchase, Dining 200 | Dining -45.00 (all credit), payment envelope 155.00, card owes 200.00, underfunded 0.00 with 45.00 named in Dining, Unassigned 1,080.00. Covered with 45: Dining 0, payment envelope 200, Unassigned 1,035. Uncovered at Dec 1: Dining 0, payment envelope 200, underfunded 0, Unassigned 1,035 |
+| 7 | Nov 8 card purchase Dining 60, Nov 12 refund 25 | After purchase: Dining 95, payment envelope 60. After refund: Dining 120, payment envelope 35, card owes 35. Unassigned 1,080.00 throughout |
+| 8 | Assign 300 to Rent dated 2026-12-01, entered Nov 3 | Unassigned 780.00. November Rent 1,500.00. December Rent starts at 1,800.00 |
+| 9 | After Example 6, Nov 6 cash purchase Dining 30 | Dining -75.00 (30 cash, 45 credit), Checking 2,705.00, payment envelope 155.00, underfunded 0.00, Unassigned 1,080.00. Assign 20: 10 cash, 45 credit, Unassigned 1,060. Assign 40: 0 cash, 35 credit, payment envelope 165, Unassigned 1,040, and at Dec 1 payment envelope 200, Unassigned 1,005. Assign 75: Dining 0, payment envelope 200, Unassigned 1,005. Nothing corrected at Dec 1: Dining 0, payment envelope 200, underfunded 0, Unassigned 1,005. The same 40 assigned on Nov 1 before the purchases: 30 cash, 5 credit, Unassigned 1,040 |
+| 10 | Nov 4 deposit: Checking +200, Groceries -150, Income:Other -50 | Checking 2,935.00, Groceries 150.00, Unassigned 1,130.00 |
+| 11 | Nov 10 move 20 from Rent to Groceries | Rent 1,480.00, Groceries 20.00, Unassigned 1,080.00 |
+| 12 | Nov 6: assign Dining 40 and cash purchase Dining 30, after the Nov 5 credit overspend | Same result in either file order: Dining -35.00 (all credit), payment envelope 165.00, Unassigned 1,040.00 |
+| 15 | Groceries set to `rollover` on Oct 1, then Examples 1 to 5 | Nov 1: Groceries -20.00 (cash carries), Unassigned 1,600.00, and 1,100.00 after Example 5. Assign 20 in November: Groceries 0.00, Unassigned 1,580.00, no warning |
+| 16 | Dining set to `rollover` on Nov 1, Example 9 uncorrected | Dec 1: Dining -75.00 (30 cash, 45 credit carried), payment envelope 155.00, card owes 200.00, underfunded 0.00 with 45.00 named in Dining, Unassigned 1,080.00. Assign 40 in December: Dining -35.00 (all credit), payment envelope 165.00, Unassigned 1,040.00 |
+| 18 | After Example 6, assign 45 to the card on Nov 6 | Payment envelope 200.00, owes 200.00, underfunded 0, overfunded 45.00 (Dining still waits for 45). Then assign 45 to Dining: payment envelope 245.00, overfunded 45.00, Unassigned 990.00. Return 45 from the card: payment envelope 200.00, overfunded 0, Unassigned 1,035.00 |
+| 17 | Example 15, set to `reset` on Nov 15, nothing assigned | November: Groceries -20.00, Unassigned 1,100.00. Dec 1: Groceries 0.00, Unassigned 1,080.00 |
 | 14 | Reports on the Examples 1 to 5 ledger as of Nov 2 | Income 5,000.00. Expenses 1,765.00 (tax 800, 401k 300, groceries 620, dining 45), net 3,235.00. Assets 3,235.00 (checking 2,735, brokerage 500), liabilities 0.00, net worth 3,235.00. October budget vs actual: Rent assigned 1,500 / activity 0 / Available 1,500. Groceries 600 / -620 / -20. Dining 200 / -45 / 155 |
 
 Purchase order does not matter: from 100.00 Available, a 60.00 cash purchase and a 70.00 card purchase

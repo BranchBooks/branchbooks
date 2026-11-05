@@ -284,9 +284,16 @@ pub fn Overview(
         .filter(|c| c.underfunded > Decimal::ZERO)
         .map(|c| (c.card.clone(), c.underfunded))
         .collect();
+    let overfunded: Vec<(String, Decimal)> = view
+        .cards
+        .iter()
+        .filter(|c| c.overfunded > Decimal::ZERO)
+        .map(|c| (c.card.clone(), c.overfunded))
+        .collect();
     let attention = errors > 0
         || !overspent.is_empty()
         || !underfunded.is_empty()
+        || !overfunded.is_empty()
         || !view.shortfalls.is_empty();
     let change = sheet.net_worth - last_month;
     let sign = if change > Decimal::ZERO { "+" } else { "" };
@@ -373,6 +380,12 @@ pub fn Overview(
                         li { key: "{card}",
                             button { r#type: "button", class: "link", onclick: move |_| onopen.call("budget"), {short(&card)} }
                             " payment is underfunded by {fmt(amount)}"
+                        }
+                    }
+                    for (card, amount) in overfunded {
+                        li { key: "{card}-over",
+                            button { r#type: "button", class: "link", onclick: move |_| onopen.call("budget"), {short(&card)} }
+                            " has {fmt(amount)} more set aside than it owes"
                         }
                     }
                     for s in view.shortfalls.iter() {

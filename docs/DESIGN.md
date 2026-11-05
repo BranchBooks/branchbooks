@@ -54,15 +54,34 @@ the viewed month. The engine has no clock: callers pass today. Transactions date
 month count; the app marks them "upcoming".
 
 **7. Money can be assigned straight to a card's payment envelope.**
-`custom "envelope-assign" Liabilities:Card 50.00 USD` sets 50 aside to pay what the card already owes:
-debt from before the budget, or a credit overspend. It carries forward like the rest of the envelope. A
-negative assignment takes money back, but not below zero. Moves to or from a card are not allowed.
+`custom "envelope-assign" Liabilities:Card 50.00 USD` sets 50 aside to pay what the card already owes,
+such as debt from before the budget. It carries forward like the rest of the envelope. A negative
+assignment takes money back, but not below zero. Moves to or from a card are not allowed. A credit
+overspend this month is covered in its category, not on the card: Underfunded leaves it out and names the
+category (rule 7). Covering it on the card as well would fund the same purchase twice, and the card
+is then flagged overfunded (rule 7a), with a Return button that lowers its Set aside.
 
 **8. Card payments count whatever else the transaction holds.** Money arriving on a card that no refund
 used is a payment. In a balance transfer the amount moves to the charged card's envelope and Unassigned
 does not change. The whole amount moves even when the paid card's envelope held less, so totals always
 agree and the result does not depend on what else happened that month. A cash advance (card to checking)
 is not a transfer.
+
+**9. Overspending resets at month end, unless a category rolls over.** By default, overspending not
+corrected by month end leaves the category at 0 and comes out of the next month's Unassigned, the credit
+portion going into the card's payment envelope (rule 6). The default and the rollover option work like
+Actual Budget's, so overspending behaves as someone used to Actual expects.
+
+- **Why reset.** Overspent money is already gone, so the next month's money to assign pays for it, and a
+  category starts each month clean. A card's envelope ends the month holding everything its purchases
+  cost, so overspending never turns into a card shortfall. Underfunded then only means debt from before
+  the budget.
+- **Why a rollover carries both portions.** A category that rolls over keeps the whole overspend in view,
+  the way it was spent. Carrying only the cash would hide the card part in the payment envelope. The
+  credit part waits in the category, so it is covered there, once, and only then reaches the card.
+- **Why a dated entry.** The setting is a `custom "overspending"` entry, like a target (T1), not a flag on
+  `open`: turning it on or off applies from that month, so past months, closed months and merged scenarios
+  keep their numbers.
 
 ### Smaller rulings
 

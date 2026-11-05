@@ -44,7 +44,12 @@ impl WorkspaceCore {
             summary: String::new(),
             envelope: matches!(
                 entry,
-                Some(EntryInput::Assign(_) | EntryInput::Move(_) | EntryInput::Target(_))
+                Some(
+                    EntryInput::Assign(_)
+                        | EntryInput::Move(_)
+                        | EntryInput::Target(_)
+                        | EntryInput::Overspending(_)
+                )
             ),
             target,
             edits: IndexMap::new(),

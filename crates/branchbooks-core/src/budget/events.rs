@@ -97,6 +97,11 @@ pub enum EventKind {
         category: String,
         target: Target,
     },
+    /// Rollover overspending on or off for a category, from this date's month on (rule 6a).
+    Overspending {
+        category: String,
+        rollover: bool,
+    },
 }
 
 /// Where an event came from: its entry's id, date, tie-break order and location.
@@ -122,7 +127,10 @@ impl BudgetEvent {
             EventKind::Tx(_) => 0,
             // Targets only take effect when the month is funded, so their order within a day
             // changes nothing; they sort with assignments.
-            EventKind::Assign { .. } | EventKind::Target { .. } => 1,
+            // Rollover overspending only matters at month end, so it sorts with them too.
+            EventKind::Assign { .. }
+            | EventKind::Target { .. }
+            | EventKind::Overspending { .. } => 1,
             EventKind::Move { .. } => 2,
         }
     }
@@ -428,6 +436,31 @@ pub fn custom_event(
             Ok((category, target)) => event(EventKind::Target { category, target }),
             Err(message) => bad(message),
         },
+        "overspending" => {
+            let (Some(CustomValue::Account(category)), Some(CustomValue::String(how)), 2) =
+                (c.values.first(), c.values.get(1), c.values.len())
+            else {
+                return bad(
+                    "overspending takes a category and \"rollover\" or \"reset\"".to_owned(),
+                );
+            };
+            if !cfg.is_category(category) {
+                return bad(not_budgeted(cfg, category, "category"));
+            }
+            let rollover = match how.as_str() {
+                "rollover" => true,
+                "reset" => false,
+                _ => {
+                    return bad(format!(
+                        "overspending must be \"rollover\" or \"reset\", not \"{how}\""
+                    ));
+                }
+            };
+            event(EventKind::Overspending {
+                category: category.clone(),
+                rollover,
+            })
+        }
         _ => (None, Vec::new()),
     }
 }

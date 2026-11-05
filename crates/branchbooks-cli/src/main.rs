@@ -148,6 +148,20 @@ pub fn render_budget(v: &MonthView) -> String {
                 num(c.owed),
                 num(c.underfunded)
             ));
+            // Rule 7a: more set aside than the card owes.
+            if c.overfunded > Decimal::ZERO {
+                out.push(format!(
+                    "  {} more than it owes: lower Set aside to return it",
+                    fmt(c.overfunded, 2)
+                ));
+            }
+            // Rule 7: credit overspending still in categories is covered there, not on the card.
+            for (category, amount) in &c.in_categories {
+                out.push(format!(
+                    "  {} overspent in {category}: cover it there",
+                    fmt(*amount, 2)
+                ));
+            }
         }
     }
     out.push(String::new());

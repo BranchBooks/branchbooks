@@ -5,13 +5,14 @@ Budget for 2026-11 (USD); Unassigned as of 2026-11-30
 
 Envelope                        Carried     Assigned        Moved     Activity    Available  Overspent
 Expenses:Food:Dining             155.00         0.00         0.00      -200.00       -45.00  cash 0.00 / credit 45.00
-Expenses:Food:Groceries          -20.00         0.00         0.00         0.00       -20.00  cash 20.00 / credit 0.00
+Expenses:Food:Groceries            0.00         0.00         0.00         0.00         0.00
 Expenses:Housing:Rent          1,500.00         0.00         0.00         0.00     1,500.00
 Expenses:Savings:Investing         0.00       500.00         0.00      -500.00         0.00
 
 Card payment envelope         Available         Owed  Underfunded
-Liabilities:CreditCard           155.00       200.00        45.00
+Liabilities:CreditCard           155.00       200.00         0.00
+  45.00 overspent in Expenses:Food:Dining: cover it there
 
 Assigned to future months          0.00
-Unassigned                     1,100.00
+Unassigned                     1,080.00
 --- stderr
