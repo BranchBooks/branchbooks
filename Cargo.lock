@@ -2111,9 +2111,9 @@ dependencies = [
 
 [[package]]
 name = "grit-lib"
-version = "0.5.28"
+version = "0.5.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d69cab0e49e33061e55950ffd438949c4e7ab75fe0383ded36e09f614b72780b"
+checksum = "9f57e249d65112ff0c076fa60060e5dd86be59eb6ed7c2d6ce683221e91ddbda"
 dependencies = [
  "base64 0.22.1",
  "crc32fast",

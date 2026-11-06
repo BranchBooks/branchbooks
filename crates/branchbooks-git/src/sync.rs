@@ -490,7 +490,8 @@ impl HttpClientFactory for Http {
             None => UreqHttpClient::new(),
         }))
     }
-    fn create_for_probe(&self, config: &ConfigSet) -> RemoteResult<Box<dyn HttpClient>> {
+    // The same client: `Token` never rejects, so a failed preflight cannot erase it.
+    fn create_for_preflight(&self, config: &ConfigSet) -> RemoteResult<Box<dyn HttpClient>> {
         self.create(config)
     }
 }
