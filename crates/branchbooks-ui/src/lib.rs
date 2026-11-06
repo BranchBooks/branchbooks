@@ -151,7 +151,7 @@ impl Syncer {
     }
 }
 
-/// The books on this device, one open at a time, with a switcher, New book, the book's Settings
+/// The books on this device, one open at a time, with a switcher, Add book, the book's Settings
 /// and, for a book with a remote, Sync: by button, when the book opens and after each save.
 #[component]
 pub fn App() -> Element {
@@ -190,7 +190,7 @@ pub fn App() -> Element {
         loads: use_signal(|| 0),
     };
 
-    // The open book: the one chosen, else the first (list() starts one when there is none).
+    // The open book: the one chosen, else the first; none on a new device.
     let book = match &*books.read() {
         Some(Ok(list)) => open()
             .and_then(|id| list.iter().find(|b| b.id == id).cloned())
@@ -224,7 +224,7 @@ pub fn App() -> Element {
             adding.set(false);
             listed += 1;
         };
-        return rsx! { Stylesheet {} NewBook { ondone: done } };
+        return rsx! { Stylesheet {} NewBook { first: list.is_empty(), ondone: done } };
     };
     if settings() {
         let done = move |(deleted, said): (bool, Option<String>)| {
@@ -282,7 +282,7 @@ pub fn App() -> Element {
                     }
                 }
             }
-            button { r#type: "button", class: "link", onclick: move |_| adding.set(true), "New book" }
+            button { r#type: "button", class: "link", onclick: move |_| adding.set(true), "Add book" }
             if remote {
                 button { r#type: "button", class: "link", disabled: (sync.running)(),
                     onclick: move |_| sync.start(id.clone()),
@@ -437,11 +437,14 @@ fn BookSettings(id: String, ondone: EventHandler<(bool, Option<String>)>) -> Ele
         }
     }
 }
-/// Makes a book: empty, the sample ledger, a clone of a git remote, or a `GnuCash` file. `ondone`:
-/// the new book's id and what was done, or None when cancelled.
+/// Adds a book: one already kept in git, opened on this device as well, or a new one, empty, the
+/// sample ledger or a `GnuCash` file. `first`: this device has no books yet, so there is no Cancel.
+/// `ondone`: the book's id and what was done, or None when cancelled.
 #[component]
-fn NewBook(ondone: EventHandler<Option<(String, String)>>) -> Element {
+fn NewBook(first: bool, ondone: EventHandler<Option<(String, String)>>) -> Element {
     use books::Start;
+    // "git" opens a book from a remote; "new" starts one.
+    let mut mode = use_signal(|| "git");
     let mut name = use_signal(String::new);
     let mut start = use_signal(|| "sample".to_owned());
     let mut url = use_signal(String::new);
@@ -451,17 +454,32 @@ fn NewBook(ondone: EventHandler<Option<(String, String)>>) -> Element {
     let mut gnucash = use_signal(|| None::<(String, Vec<u8>)>);
     let mut error = use_signal(|| None::<String>);
     let mut busy = use_signal(|| false);
+    let git = mode() == "git";
+    let token_label = if books::keeps_tokens() {
+        "Access token, for a private remote (kept in Windows Credential Manager)"
+    } else {
+        "Access token (this device cannot keep one yet: leave it empty for a public remote)"
+    };
     rsx! {
         main { class: "shell start",
-            h1 { "New book" }
+            if first {
+                h1 { "Welcome to BranchBooks" }
+                p { class: "muted", "Open a book you already keep in git, to use it on this device too, or start a new one." }
+            } else {
+                h1 { "Add a book" }
+            }
+            div { class: "segmented", role: "group", "aria-label": "Add",
+                button { r#type: "button", "aria-pressed": git, onclick: move |_| mode.set("git"), "Open a book from git" }
+                button { r#type: "button", "aria-pressed": !git, onclick: move |_| mode.set("new"), "Start a new book" }
+            }
             form { class: "user-form",
                 onsubmit: move |e: FormEvent| {
                     e.prevent_default();
                     let n = name.peek().clone();
-                    let s = match start.peek().as_str() {
-                        "empty" => Start::Empty { currency: currency.peek().trim().to_owned() },
-                        "clone" => Start::Clone { url: url.peek().clone(), token: token.peek().clone() },
-                        "gnucash" => match gnucash.peek().as_ref() {
+                    let s = match (*mode.peek(), start.peek().as_str()) {
+                        ("git", _) => Start::Clone { url: url.peek().clone(), token: token.peek().clone() },
+                        (_, "empty") => Start::Empty { currency: currency.peek().trim().to_owned() },
+                        (_, "gnucash") => match gnucash.peek().as_ref() {
                             Some((_, bytes)) => Start::GnuCash(bytes.clone()),
                             None => return error.set(Some("Pick the GnuCash file.".into())),
                         },
@@ -479,18 +497,37 @@ fn NewBook(ondone: EventHandler<Option<(String, String)>>) -> Element {
                         }
                     });
                 },
-                label { "Name"
-                    input { value: "{name}", required: true, oninput: move |e| name.set(e.value()) }
-                }
-                label { "Start with"
-                    select { value: "{start}", onchange: move |e| start.set(e.value()),
-                        option { value: "sample", "The sample ledger" }
-                        option { value: "empty", "Nothing" }
-                        option { value: "clone", "A copy of a git remote" }
-                        option { value: "gnucash", "A GnuCash file (full history)" }
+                if git {
+                    label { "Remote (HTTPS URL)"
+                        input { r#type: "url", value: "{url}", required: true,
+                            placeholder: "https://git.example/you/book.git",
+                            oninput: move |e| url.set(e.value()),
+                        }
+                    }
+                    label { "{token_label}"
+                        input { r#type: "password", autocomplete: "off", value: "{token}",
+                            oninput: move |e| token.set(e.value()),
+                        }
+                    }
+                    label { "Name on this device"
+                        input { value: "{name}", placeholder: "{books::name_from_url(&url())}",
+                            oninput: move |e| name.set(e.value()),
+                        }
+                    }
+                    p { class: "muted small", "The book's history comes down from the remote, and it syncs from then on, like the other devices." }
+                } else {
+                    label { "Name"
+                        input { value: "{name}", required: true, oninput: move |e| name.set(e.value()) }
+                    }
+                    label { "Start with"
+                        select { value: "{start}", onchange: move |e| start.set(e.value()),
+                            option { value: "sample", "The sample ledger" }
+                            option { value: "empty", "Nothing" }
+                            option { value: "gnucash", "A GnuCash file (full history)" }
+                        }
                     }
                 }
-                if start() == "gnucash" {
+                if !git && start() == "gnucash" {
                     label { "GnuCash file (.gnucash, saved as XML)"
                         input { r#type: "file", accept: ".gnucash,.xml,.gz",
                             onchange: move |e: FormEvent| async move {
@@ -506,30 +543,26 @@ fn NewBook(ondone: EventHandler<Option<(String, String)>>) -> Element {
                         p { class: "muted small", "{file}: {bytes.len() / 1024} KB. Accounts and every transaction come over; budget assignments start fresh." }
                     }
                 }
-                if start() == "empty" {
+                if !git && start() == "empty" {
                     label { "Currency"
                         input { value: "{currency}", required: true, oninput: move |e| currency.set(e.value()) }
-                    }
-                }
-                if start() == "clone" {
-                    label { "Remote (HTTPS URL)"
-                        input { r#type: "url", value: "{url}", required: true,
-                            placeholder: "https://git.example/you/book.git",
-                            oninput: move |e| url.set(e.value()),
-                        }
-                    }
-                    label { "Access token (kept in Windows Credential Manager)"
-                        input { r#type: "password", autocomplete: "off", value: "{token}",
-                            oninput: move |e| token.set(e.value()),
-                        }
                     }
                 }
                 if let Some(e) = error() {
                     p { class: "field-error", role: "alert", "{e}" }
                 }
                 div { class: "editor-actions",
-                    button { r#type: "submit", disabled: busy(), if busy() { "Creating…" } else { "Create" } }
-                    button { r#type: "button", class: "link", onclick: move |_| ondone.call(None), "Cancel" }
+                    button { r#type: "submit", disabled: busy(),
+                        match (busy(), git) {
+                            (true, true) => "Opening…",
+                            (true, false) => "Creating…",
+                            (false, true) => "Open",
+                            (false, false) => "Create",
+                        }
+                    }
+                    if !first {
+                        button { r#type: "button", class: "link", onclick: move |_| ondone.call(None), "Cancel" }
+                    }
                 }
             }
         }

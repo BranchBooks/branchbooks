@@ -108,7 +108,7 @@ pub fn Files(
         section { "aria-label": "Import",
             h2 { "Import Beancount files" }
             p { class: "muted small",
-                "Adds what this book does not have yet, in date order, as one change. To bring in a GnuCash book, use New book."
+                "Adds what this book does not have yet, in date order, as one change. To bring in a GnuCash book, use Add book."
             }
             input { r#type: "file", multiple: true, accept: ".beancount,.bean",
                 onchange: move |e: FormEvent| async move {

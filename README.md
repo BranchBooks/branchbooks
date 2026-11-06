@@ -31,9 +31,10 @@ that the updater keeps on your device. Offline, the app just runs as it is.
 **The Windows app** (`crates/branchbooks-ui`):
 
 - **Books:** each one a git repository in `%APPDATA%\BranchBooks\books`, local only or a clone of
-  a remote. A switcher, and New book: empty, the sample ledger, a clone over HTTPS with a token
-  (kept in Windows Credential Manager, never in a file), or a GnuCash file (compressed XML, full
-  history).
+  a remote. A switcher, and Add book: open a book from git, to use one book on several devices (a
+  clone over HTTPS with a token, kept in Windows Credential Manager, never in a file), or start a
+  new one, empty, the sample ledger or a GnuCash file (compressed XML, full history). A new device
+  starts with no books and offers the same choice.
 - **Sync:** fetch, then push, fast-forward, or merge in one commit. It stops with nothing pushed on
   a text conflict or new ledger errors. It runs when a book opens, after each save, and by button;
   scenarios, closed months and what was set aside travel too.

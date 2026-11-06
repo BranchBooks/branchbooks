@@ -105,14 +105,21 @@ fn refused(message: impl Into<String>) -> BookError {
     BookError::Refused(message.into())
 }
 
-/// Every book on this device, by name. The first run starts one, "Main", with the sample ledger.
+/// Every book on this device, by name; none on a new device, where the app asks for the first.
 pub fn list() -> Result<Vec<Book>, BookError> {
-    let mut books = read(&books_dir());
-    if books.is_empty() {
-        create_in(&books_dir(), "Main", Start::Sample)?;
-        books = read(&books_dir());
-    }
-    Ok(books)
+    Ok(read(&books_dir()))
+}
+
+/// Whether this device can keep a token for later syncs. Only Windows can so far.
+pub fn keeps_tokens() -> bool {
+    cfg!(windows)
+}
+
+/// A name for a book cloned from `url`: the repository's, `book` from `https://host/you/book.git`.
+pub fn name_from_url(url: &str) -> String {
+    let path = url.trim().trim_end_matches(['/', '\\']);
+    let last = path.rsplit(['/', '\\', ':']).next().unwrap_or_default();
+    last.strip_suffix(".git").unwrap_or(last).trim().to_owned()
 }
 
 fn read(dir: &Path) -> Vec<Book> {
@@ -141,13 +148,17 @@ fn read(dir: &Path) -> Vec<Book> {
 }
 
 /// Makes a book named `name`; returns its id and what was done, to tell the person. A clone that
-/// fails leaves nothing behind.
+/// fails leaves nothing behind, and one given no name takes the repository's.
 pub fn create(name: &str, start: Start) -> Result<(String, String), BookError> {
     create_in(&books_dir(), name, start)
 }
 
 fn create_in(dir: &Path, name: &str, start: Start) -> Result<(String, String), BookError> {
-    let name = name.trim();
+    let named = match &start {
+        Start::Clone { url, .. } if name.trim().is_empty() => name_from_url(url),
+        _ => name.trim().to_owned(),
+    };
+    let name = named.as_str();
     if name.is_empty() {
         return Err(refused("Give the book a name."));
     }
@@ -165,6 +176,12 @@ fn create_in(dir: &Path, name: &str, start: Start) -> Result<(String, String), B
     let (ledger, said) = match &start {
         Start::Clone { url, token } => {
             check_url(url, token)?;
+            // Before cloning, so a token this device cannot keep leaves no book that cannot sync.
+            if !token.is_empty() && !keeps_tokens() {
+                return Err(refused(
+                    "This device cannot keep a token yet: leave it empty to copy a public remote.",
+                ));
+            }
             let token = Some(token.as_str()).filter(|t| !t.is_empty());
             if let Err(e) = GitStore::clone_from(url.trim(), &at, token, None) {
                 // Only the folder this call just made: the id was free.
@@ -613,6 +630,44 @@ mod tests {
         );
         let ledger = std::fs::read_to_string(dir.join("copy").join(ROOT)).unwrap();
         assert_eq!(ledger, SAMPLE);
+
+        // Another device opening the same book needs no name: it takes the repository's.
+        let unnamed = Start::Clone {
+            url: format!("{}/", dir.join("rental").display()),
+            token: String::new(),
+        };
+        let (id, said) = create_in(&dir, " ", unnamed).unwrap();
+        assert_eq!((id.as_str(), said.as_str()), ("rental-3", "Cloned rental."));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_clone_is_named_after_its_repository() {
+        for (url, name) in [
+            ("https://git.example/you/Household.git", "Household"),
+            ("https://git.example/you/household/", "household"),
+            ("https://git.example/you/book", "book"),
+            (r"D:\books\rental", "rental"),
+            ("", ""),
+        ] {
+            assert_eq!(name_from_url(url), name, "{url}");
+        }
+    }
+
+    #[test]
+    fn a_token_this_device_cannot_keep_is_refused_before_cloning() {
+        if keeps_tokens() {
+            return;
+        }
+        let dir = std::env::temp_dir().join(format!("branchbooks-keep-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let with_token = Start::Clone {
+            url: "https://example.invalid/b.git".into(),
+            token: "t".into(),
+        };
+        let e = create_in(&dir, "B", with_token).unwrap_err().to_string();
+        assert!(e.contains("cannot keep a token"), "{e}");
+        assert!(!dir.join("b").exists());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
