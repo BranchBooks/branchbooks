@@ -307,7 +307,7 @@ Velopack: a per-user install with no admin prompt, delta updates, and a feed of 
 
 ## Known limits
 
-- **Android** is planned. It needs a two-line patch to grit-lib (`libc::regoff_t` does not exist for Android), and the book's folder and token storage need Android's own. There is no Android build setup yet, and CI does not build the `mobile` feature.
+- **Android** is planned. grit-lib builds for Android from 0.5.29; the book's folder and token storage need Android's own. There is no Android build setup yet, and CI does not build the `mobile` feature.
 - **The rest of Beancount's syntax**, custom reports, bank connections and foreign currency are not built.
 - **Merged lines.** Two devices adding entries at the same place conflict, and there is no conflict editor: change one side so they no longer overlap.
 - **The envelopes table** needs 423 px, more than some phones are wide.

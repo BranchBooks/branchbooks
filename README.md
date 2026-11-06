@@ -53,8 +53,9 @@ needed. Every fixture is checked in CI against real Beancount 3.2.3, run as a se
 
 **Not yet:**
 
-- **Android:** planned; it needs a two-line patch to grit-lib first
-  ([#9](https://github.com/BranchBooks/branchbooks/issues/9)).
+- **Android:** planned; it needs an Android build setup and Android storage for books and tokens
+  ([#19](https://github.com/BranchBooks/branchbooks/issues/19),
+  [#18](https://github.com/BranchBooks/branchbooks/issues/18)).
 - **The rest of Beancount's syntax.** `pad`, tag and metadata stacks (`pushtag`, `pushmeta`), and costs
   and prices on postings are reported as syntax errors, never miscounted. `price` and `query`
   directives are read and ignored, and plugins are not run.

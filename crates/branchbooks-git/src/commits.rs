@@ -227,9 +227,8 @@ impl GitStore {
     /// remote until one is added.
     pub fn init(dir: impl Into<PathBuf>, author: Option<Author>) -> Result<GitStore, StoreError> {
         let dir = dir.into();
-        let opts = InitOptions::new()
-            .with_initial_branch("main".to_owned())
-            .with_ref_storage(grit_lib::RefStorageFormat::Files);
+        // Refs as loose files and packed-refs, grit-lib's default, which real git reads too.
+        let opts = InitOptions::new().with_initial_branch("main".to_owned());
         Repository::init(&dir, &opts).map_err(g("init"))?;
         let store = GitStore::new(dir, author);
         // As a clone does: text stays as committed, whatever the global git config says.
