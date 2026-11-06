@@ -254,6 +254,9 @@ A close is an annotated tag, `close/<YYYY-MM>`, on the book's latest version. Re
 
 - **Books** are folders in `%APPDATA%\BranchBooks\books`, named by id, with the book's name in the repository's `description` file. Deleting
   moves a book to `.deleted`, to restore by hand.
+- **More than one device.** A device with no books opens on a welcome screen that opens a book from git or starts a new one; there is
+  no sample book until one is asked for. Opening from git clones the remote and keeps its token, so each device syncs the same book.
+  The name is this device's (the repository's when left empty), since `description` never syncs.
 - **Authors.** Commits use the book's own git identity, then the global one, then `USERNAME@COMPUTERNAME`.
 - **Crashes.** A release build has no console, so panics go to `%LOCALAPPDATA%\BranchBooks\crash.log`. Ledger text can appear in a panic's
   message; the file stays on the device.
