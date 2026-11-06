@@ -340,6 +340,8 @@ pub fn Screen(
     let view = core.borrow_mut().book().budget(shown, Some(today));
     let groups = group_categories(&view.categories);
     let errors = core.borrow_mut().book().errors();
+    // A book a newer app saved: shown, never changed here (the core refuses every change).
+    let read_only = core.borrow().read_only();
     let env_date = envelope_date(shown, today).to_string();
     // Under T1 a past month's rules never change, so targets are set from this month on.
     let can_target = shown >= this_month;
@@ -446,6 +448,11 @@ pub fn Screen(
                             onclick: move |_| if let Some(h) = onscenario { h.call(None) },
                             "Back to the book"
                         }
+                    }
+                }
+                if let Some(why) = read_only {
+                    div { class: "notice error", role: "alert", "data-testid": "read-only",
+                        p { "Read-only. {why} Sync still brings in what other devices change." }
                     }
                 }
                 if !errors.is_empty() {

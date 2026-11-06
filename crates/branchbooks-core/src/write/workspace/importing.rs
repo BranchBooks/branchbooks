@@ -30,6 +30,7 @@ impl WorkspaceCore {
             next: Option<Peer>,
             block: Vec<String>,
         }
+        self.check_format()?;
         let mut by_file: IndexMap<String, IndexMap<u32, Insert>> = IndexMap::new();
         let mut own: HashMap<String, Vec<Peer>> = HashMap::new();
         let mut file_lines: IndexMap<String, Lines> = IndexMap::new();
@@ -162,6 +163,12 @@ impl WorkspaceCore {
             }
         }
 
+        let need = preview
+            .add
+            .iter()
+            .map(|i| format::needed_by_import(i.kind))
+            .max();
+        let raised = self.raise_format(&mut file_lines, need.unwrap_or(1));
         let (files, changes) = self.written(&file_lines);
         let loaded = self.load_files(&files);
         let file_order = loaded.files.clone();
@@ -199,9 +206,13 @@ impl WorkspaceCore {
                 format!("{n} {}", if *n == 1 { one } else { many })
             })
             .collect();
+        let summary = format!("Import {} from {}", what.join(", "), preview.root);
         Ok(Planned {
             op_type: "import".to_owned(),
-            summary: format!("Import {} from {}", what.join(", "), preview.root),
+            summary: match raised {
+                Some(n) => format!("{summary}\n\n{}", format::commit_note(n)),
+                None => summary,
+            },
             changes,
             entry: None,
             warnings,

@@ -322,7 +322,7 @@ dependencies = [
 
 [[package]]
 name = "branchbooks-cli"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "branchbooks-core",
  "branchbooks-git",
@@ -334,7 +334,7 @@ dependencies = [
 
 [[package]]
 name = "branchbooks-core"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "indexmap",
  "proptest",
@@ -343,7 +343,7 @@ dependencies = [
 
 [[package]]
 name = "branchbooks-git"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "branchbooks-core",
  "chrono",
@@ -354,7 +354,7 @@ dependencies = [
 
 [[package]]
 name = "branchbooks-gnucash"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "branchbooks-core",
  "flate2",
@@ -366,7 +366,7 @@ dependencies = [
 
 [[package]]
 name = "branchbooks-oracle"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "branchbooks-core",
  "indexmap",
@@ -376,7 +376,7 @@ dependencies = [
 
 [[package]]
 name = "branchbooks-ui"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "branchbooks-core",
  "branchbooks-git",

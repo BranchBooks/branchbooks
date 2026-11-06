@@ -5,6 +5,7 @@ pub mod book;
 pub mod budget;
 pub mod date;
 pub mod diff;
+pub mod format;
 pub mod ledger;
 pub mod loader;
 pub mod money;

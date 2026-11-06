@@ -17,6 +17,7 @@ use indexmap::IndexMap;
 
 use crate::book::{Book, EntryId};
 use crate::date::Date;
+use crate::format;
 use crate::ledger::type_rank;
 use crate::loader::{LoadResult, MemorySource, ParseCache, dirname, join_path, load, seq_of};
 use crate::money::parse_decimal;
@@ -188,6 +189,63 @@ impl WorkspaceCore {
     /// Every entry in the current version, in the Book's order.
     pub fn entries(&self) -> impl Iterator<Item = (EntryId, &Entry)> {
         self.current.entries()
+    }
+
+    /// The format the book says it is (see [`mod@crate::format`]).
+    pub fn format(&self) -> u32 {
+        self.current.format().format
+    }
+
+    /// Why this book is read-only here: its format is newer than this build reads.
+    pub fn read_only(&self) -> Option<String> {
+        self.current.read_only()
+    }
+
+    fn check_format(&self) -> Result<()> {
+        self.read_only().map_or(Ok(()), |message| {
+            Err(OperationError::new(
+                OperationErrorCode::Newer,
+                message,
+                Vec::new(),
+            ))
+        })
+    }
+
+    /// Raises the book's format entry to what the book will hold, at least `need`: rewrites the
+    /// entry and its comment, or adds both at the end of the root file. Returns the new format,
+    /// or None when the book already says enough.
+    fn raise_format(&self, edits: &mut IndexMap<String, Lines>, need: u32) -> Option<u32> {
+        let entries = || self.current.entries().map(|(_, e)| e);
+        let need = need.max(format::needed(entries()));
+        if need <= format::recorded(entries()).format {
+            return None;
+        }
+        let existing =
+            entries().find(|e| matches!(&e.body, Body::Custom(c) if c.name == format::NAME));
+        if let Some(e) = existing {
+            // Found by its text: other edits may have moved lines in the same file.
+            let marker = format!("custom \"{}\"", format::NAME);
+            let l = self.lines(edits, &e.file.clone());
+            let at = l.lines.iter().position(|r| r.contains(&marker))?;
+            let date = l.lines[at]
+                .split_whitespace()
+                .next()
+                .unwrap_or(format::DATE);
+            let [comment, entry] = format::lines(date, need);
+            l.lines[at] = entry;
+            match at.checked_sub(1) {
+                Some(above) if format::is_comment(&l.lines[above]) => l.lines[above] = comment,
+                _ => l.lines.insert(at, comment),
+            }
+        } else {
+            let root = self.root.clone();
+            let l = self.lines(edits, &root);
+            if l.lines.last().is_some_and(|r| !r.trim().is_empty()) {
+                l.lines.push(String::new());
+            }
+            l.lines.extend(format::lines(format::DATE, need));
+        }
+        Some(need)
     }
 
     /// Every transaction dated `from` to `to` (inclusive), booked or not, latest first, as
