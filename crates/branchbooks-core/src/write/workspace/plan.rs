@@ -5,13 +5,23 @@ use super::*;
 impl WorkspaceCore {
     /// Turns an operation into validated text edits (not yet committed).
     pub fn plan(&mut self, op: &Operation) -> Result<Planned> {
-        let plan = match op {
+        self.check_format()?;
+        let mut plan = match op {
             Operation::Reconcile(r) => self.plan_reconcile(r)?,
             Operation::RenameAccount { from, to } => self.plan_rename(from, to)?,
             Operation::Add(e) => self.plan_edits(Some(e), None)?,
             Operation::Edit(r, e) => self.plan_edits(Some(e), Some(r))?,
             Operation::Delete(r) => self.plan_edits(None, Some(r))?,
         };
+        let need = match op {
+            Operation::Add(e) | Operation::Edit(_, e) => format::needed_by_input(e),
+            _ => 1,
+        };
+        // Rare (once a format), so the reload costs little; it puts the format entry in the Book.
+        if let Some(raised) = self.raise_format(&mut plan.edits, need) {
+            plan.structural = true;
+            plan.summary = format!("{}\n\n{}", plan.summary, format::commit_note(raised));
+        }
         let (files, changes) = self.written(&plan.edits);
         if plan.structural {
             self.plan_full(plan, files, changes)

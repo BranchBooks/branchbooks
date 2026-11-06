@@ -181,6 +181,31 @@ text edit, so everything outside the edited lines stays byte for byte.
   transaction are separate commits, in that order, so a refused balance leaves the account opened and says so. An opening balance
   on cash arrives as money to assign (rule 3); on a card, it is owed and underfunded (decision 7 covers paying it down).
 
+### Book format
+
+Devices on one book can run different versions, so a book records the lowest format that reads all of it, at the end of
+`main.beancount`:
+
+```beancount
+; Book format 2: BranchBooks 0.2.0 or later can change this book; older versions open it read-only.
+1970-01-01 custom "branchbooks-format" 2 "0.2.0"
+```
+
+The number decides. The version, the first release that reads the format, is for people reading the file and for the message an
+older app shows. It is a `custom` entry, so Beancount still opens the book. With no such entry a book is format 1. Each format's
+number, version and what it adds are in one table in `branchbooks-core/src/format.rs`; format 2 adds `custom "overspending"`. A
+number, not the app's version, so that updating an app changes nothing for the other devices unless the format really changed.
+
+- **Raised with the change that needs it.** A save that writes newer entries, or any save of a book that already holds them (from
+  a hand edit), raises the number in the same commit, and the commit message says why in a paragraph under its usual summary:
+  "Book format 2: this book now holds custom "overspending" entries, so it needs BranchBooks 0.2.0 or later to change it. Older
+  versions open it read-only." That save takes the full reload path, once per raise. The number is never lowered.
+- **A newer book is read-only.** An app that finds a number above the format it reads still shows the book, with a notice naming
+  the version it needs, and refuses every change, import and scenario merge with `newer-format`. Sync still pulls, so the book
+  catches up once the app updates.
+- **A new format is a minor release** (0.2.0, 0.3.0), and its release notes say that older versions open such books read-only.
+- An app older than the format number ignores the entry and cannot tell. It protects books from the first version that has it.
+
 ### Imports
 
 An import previews what it would add. Only entries the ledger lacks are added: a transaction matches on its date and

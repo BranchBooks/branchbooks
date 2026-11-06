@@ -291,6 +291,16 @@ impl Book {
         self.slot(id).map(|s| &s.entry)
     }
 
+    /// The format the book says it is (see [`mod@crate::format`]).
+    pub fn format(&self) -> crate::format::Stamp {
+        crate::format::recorded(self.entries().map(|(_, e)| e))
+    }
+
+    /// Why this book is read-only here: a newer app saved it in a format this build doesn't read.
+    pub fn read_only(&self) -> Option<String> {
+        crate::format::too_new(&self.format())
+    }
+
     pub fn len(&self) -> usize {
         self.list.len()
     }

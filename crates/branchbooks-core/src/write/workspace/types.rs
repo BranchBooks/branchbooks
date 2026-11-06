@@ -41,6 +41,8 @@ pub enum OperationErrorCode {
     Blocked,
     Stale,
     NotFound,
+    /// The book's format is newer than this build reads, so it is read-only here.
+    Newer,
 }
 
 impl OperationErrorCode {
@@ -51,6 +53,7 @@ impl OperationErrorCode {
             OperationErrorCode::Blocked => "blocked",
             OperationErrorCode::Stale => "stale",
             OperationErrorCode::NotFound => "not-found",
+            OperationErrorCode::Newer => "newer-format",
         }
     }
 }

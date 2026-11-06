@@ -109,6 +109,35 @@ async fn the_budget_shows_unassigned_and_marks_overspent_envelopes() {
     assert!(html.contains("Assign 600.00 to Food:Groceries"));
     assert!(html.contains(r#"data-card="Liabilities:CreditCard""#));
     assert!(html.contains("Move money") && html.contains("Set a target for Food:Dining"));
+    assert!(!html.contains(r#"data-testid="read-only""#));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn a_book_a_newer_app_saved_shows_as_read_only() {
+    let ledger = format!("{SAMPLE}\n1970-01-01 custom \"branchbooks-format\" 99\n");
+    let (backend, dir) = book("newer", &ledger);
+    let html = render(ScreenProps {
+        backend,
+        today: "2026-10-27".parse().unwrap(),
+        children: VNode::empty(),
+        onsaved: None,
+        page: Some("budget"),
+        onscenario: None,
+        reloads: 0,
+        onsettings: None,
+    })
+    .await;
+    let at = html
+        .find(r#"data-testid="read-only""#)
+        .expect("the read-only notice");
+    let notice = text_after(&html[at..], "<p");
+    assert!(
+        notice.contains("Read-only") && notice.contains("format 99"),
+        "{notice}"
+    );
+    // Still shown: the budget reads as before.
+    assert_eq!(text_after(&html, r#"data-testid="unassigned""#), "1,100.00");
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

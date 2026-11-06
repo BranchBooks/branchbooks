@@ -320,6 +320,14 @@ fn merge_at(dir: &Path, name: &str) -> Result<String, BookError> {
     let snap = store.snapshot()?;
     let changes = changes_between(&snap.files, &files);
     if !changes.is_empty() {
+        // Read-only here, like any change: one side was saved by a newer app.
+        let merged: Vec<(&str, &str)> = files
+            .iter()
+            .map(|(p, t)| (p.as_str(), t.as_str()))
+            .collect();
+        if let Some(why) = Ledger::load(ROOT, &MemorySource::new(merged)).read_only() {
+            return Err(refused(why));
+        }
         let errors = new_errors(ROOT, &snap.files, &changes);
         if let Some(first) = errors.first() {
             return Err(refused(format!(

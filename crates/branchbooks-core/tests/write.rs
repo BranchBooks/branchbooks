@@ -931,3 +931,102 @@ fn rollover_overspending_is_written_as_a_custom_entry_and_refused_on_a_non_categ
     let op = Operation::Add(overspending_input("Assets:Checking", true));
     assert!(ws.apply(&op, None, 0).is_err());
 }
+
+/// What a book raised to format 2 holds: a comment saying what it means, then the entry.
+const FORMAT_2: &str = "; Book format 2: BranchBooks 0.2.0 or later can change this book; older \
+                        versions open it read-only.\n1970-01-01 custom \"branchbooks-format\" 2 \"0.2.0\"";
+
+#[test]
+fn the_first_overspending_entry_raises_the_book_format_in_the_same_change() {
+    let mut ws = base();
+    assert_eq!(ws.core.format(), 1);
+    add(
+        &mut ws,
+        spend(
+            "2026-11-02",
+            "Expenses:Food:Dining",
+            "5.00",
+            "Assets:Checking",
+        ),
+    );
+    assert!(
+        !ws.text("main.beancount")
+            .unwrap()
+            .contains("branchbooks-format")
+    );
+
+    add(&mut ws, overspending_input("Expenses:Food:Dining", true));
+    let text = ws.text("main.beancount").unwrap().to_owned();
+    assert_eq!(text.matches(FORMAT_2).count(), 1, "{text}");
+    assert_eq!(ws.core.format(), 2);
+    assert_eq!(ws.book().errors(), vec![]);
+    // The commit says why, under its usual one-line summary.
+    let message = &ws.store.log.last().unwrap().info.summary;
+    let (subject, note) = message.split_once("\n\n").unwrap();
+    assert!(
+        !subject.contains('\n') && !subject.contains("format"),
+        "{subject}"
+    );
+    assert_eq!(
+        note,
+        "Book format 2: this book now holds custom \"overspending\" entries, so it needs \
+         BranchBooks 0.2.0 or later to change it. Older versions open it read-only."
+    );
+
+    // Once is enough: the next change leaves it as it is.
+    add(&mut ws, overspending_input("Expenses:Food:Dining", false));
+    assert_eq!(
+        ws.text("main.beancount").unwrap().matches(FORMAT_2).count(),
+        1
+    );
+}
+
+#[test]
+fn a_hand_written_overspending_entry_raises_the_format_at_the_next_save() {
+    // Written by hand, with a bare format entry and no comment.
+    let text = format!(
+        "{}\n2026-11-01 custom \"overspending\" Expenses:Food:Dining \"rollover\"\n\n\
+         1970-01-01 custom \"branchbooks-format\" 1\n",
+        *BASE
+    );
+    let mut ws = open_files(&[("main.beancount", &text)]);
+    assert_eq!(ws.core.format(), 1);
+    add(
+        &mut ws,
+        spend(
+            "2026-11-02",
+            "Expenses:Food:Dining",
+            "5.00",
+            "Assets:Checking",
+        ),
+    );
+    let after = ws.text("main.beancount").unwrap();
+    assert!(after.contains(FORMAT_2), "{after}");
+    assert_eq!(after.matches("branchbooks-format").count(), 1);
+    assert_eq!(ws.core.format(), 2);
+}
+
+#[test]
+fn a_book_in_a_newer_format_is_read_only() {
+    let text = format!(
+        "{}\n1970-01-01 custom \"branchbooks-format\" 99 \"9.0.0\"\n",
+        *BASE
+    );
+    let mut ws = open_files(&[("main.beancount", &text)]);
+    let why = ws.core.read_only().unwrap();
+    assert!(
+        why.starts_with("This book needs BranchBooks 9.0.0 or later; this is ")
+            && why.ends_with("Update BranchBooks to change it."),
+        "{why}"
+    );
+    let op = Operation::Add(spend(
+        "2026-11-02",
+        "Expenses:Food:Dining",
+        "5.00",
+        "Assets:Checking",
+    ));
+    assert_eq!(code(ws.apply(&op, None, 0)), OperationErrorCode::Newer);
+    assert_eq!(ws.text("main.beancount").unwrap(), text);
+    // The book still reads, for showing it.
+    assert_eq!(ws.book().errors(), vec![]);
+}
