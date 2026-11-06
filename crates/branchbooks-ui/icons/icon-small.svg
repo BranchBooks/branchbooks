@@ -2,5 +2,7 @@
 <rect width="32" height="32" rx="7" fill="#1d6b43"/>
 <path fill="#ffffff" d="M3 6H15V27H3ZM17 6H29V27H17Z"/>
 <path fill="none" stroke="#1d6b43" stroke-width="2" d="M5.5 12H12.5M5.5 17H12.5M5.5 22H12.5"/>
-<path fill="none" stroke="#1d6b43" stroke-width="2.6" stroke-linecap="round" d="M20.5 27V10M20.5 19L26 13"/>
+<circle cx="23" cy="16.5" r="5.6" fill="#1d6b43"/>
+<path fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" d="M21.3 19.9V13.1M21.3 18.2C21.3 15.9 25.2 15.9 25.2 14"/>
+<circle cx="21.3" cy="13.1" r="1.2" fill="#ffffff"/><circle cx="25.2" cy="14" r="1.2" fill="#ffffff"/><circle cx="21.3" cy="19.9" r="1.2" fill="#ffffff"/>
 </svg>

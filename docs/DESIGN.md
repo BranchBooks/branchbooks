@@ -268,7 +268,9 @@ A close is an annotated tag, `close/<YYYY-MM>`, on the book's latest version. Re
   passes WCAG AA in both themes.
 - **Brand files** are in `crates/branchbooks-ui/icons`. The logo is hand-written SVG: `icon.svg` for 48 px and up, and `icon-small.svg`,
   with fewer and thicker lines, for 16 to 32 px. The wordmark's letters are IBM Plex Mono SemiBold (OFL) turned into outlines, so no
-  font ships. The PNGs and `icon.ico` are rendered from the SVGs with `resvg`, and `build.rs` puts `icon.ico` in the exe.
+  font ships. The PNGs and `icon.ico` are rendered from the SVGs with `resvg`, and `build.rs` puts `icon.ico` in the exe. The
+  splash and the social preview come in two versions: the logo outlined in white on ledger green (`splash.png`,
+  `social-preview.png`), and the logo on the light background (`splash-light.png`, `social-preview-light.png`).
 
 ### Install and updates
 
