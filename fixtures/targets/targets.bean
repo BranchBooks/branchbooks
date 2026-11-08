@@ -1,0 +1,45 @@
+; Target budgeting (rules T1 to T7 in docs/BUDGET-RULES.md): targets are rules, envelopes are results.
+; Groceries is envelope-budgeted; Rent and CarFund are targets. CarFund is a virtual savings
+; envelope: the money stays in Checking until the car is bought.
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Checking USD
+  budget: "on"
+2026-01-01 open Liabilities:CreditCard USD
+  budget: "on"
+2026-01-01 open Income:Salary USD
+2026-01-01 open Expenses:Housing:Rent USD
+2026-01-01 open Expenses:Food:Groceries USD
+2026-01-01 open Expenses:Savings:CarFund USD
+
+; January: paid, Groceries assigned by hand, two targets set.
+2026-01-01 * "Employer" "Paycheck"
+  Income:Salary  -5000.00 USD
+  Assets:Checking
+
+2026-01-01 custom "envelope-assign" Expenses:Food:Groceries 400.00 USD
+2026-01-01 custom "target" Expenses:Housing:Rent 1400.00 USD
+  recurrence: "monthly"
+  rollover: "reset"
+2026-01-01 custom "target" Expenses:Savings:CarFund 6000.00 USD
+  due: 2026-06-01
+
+2026-01-03 * "Landlord" "Rent"
+  Expenses:Housing:Rent  1400.00 USD
+  Assets:Checking
+
+2026-01-12 * "Market" "Groceries"
+  Expenses:Food:Groceries  85.20 USD
+  Liabilities:CreditCard
+
+; February: rent but no paycheck, so CarFund runs 200.00 short.
+2026-02-03 * "Landlord" "Rent"
+  Expenses:Housing:Rent  1400.00 USD
+  Assets:Checking
+
+; March: paid again, and the Rent target ends from April.
+2026-03-01 * "Employer" "Paycheck"
+  Income:Salary  -5000.00 USD
+  Assets:Checking
+
+2026-04-01 custom "target" Expenses:Housing:Rent 0.00 USD

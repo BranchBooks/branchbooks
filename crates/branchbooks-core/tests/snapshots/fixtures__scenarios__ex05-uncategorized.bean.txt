@@ -1,0 +1,33 @@
+# fixtures/scenarios/ex05-uncategorized.bean
+files "fixtures/scenarios/ex05-uncategorized.bean"
+option "title" "Uncategorized off-budget transfer"
+option "operating_currency" "USD"
+entry open "fixtures/scenarios/ex05-uncategorized.bean" 5 6 5 2026-10-01
+entry open "fixtures/scenarios/ex05-uncategorized.bean" 7 8 7 2026-10-01
+entry open "fixtures/scenarios/ex05-uncategorized.bean" 9 9 9 2026-10-01
+entry open "fixtures/scenarios/ex05-uncategorized.bean" 10 10 10 2026-10-01
+entry txn "fixtures/scenarios/ex05-uncategorized.bean" 12 14 12 2026-10-15
+  posting Income:Salary 13 -1000 USD 2
+  posting Assets:Checking 14 1000 USD 0
+entry txn "fixtures/scenarios/ex05-uncategorized.bean" 16 18 16 2026-11-02
+  posting Assets:Brokerage 17 500 USD 2
+  posting Assets:Checking 18 -500 USD 2
+balance Income:Salary USD -1000
+balance Assets:Checking USD 500
+balance Assets:Brokerage USD 500
+book-balance Income:Salary USD -1000
+book-balance Assets:Checking USD 500
+book-balance Assets:Brokerage USD 500
+income 1000 expenses 0 net 1000
+  line Income:Salary 1000
+assets 1000 liabilities 0 equity 0 net-worth 1000
+  line Assets:Brokerage 500
+  line Assets:Checking 500
+month 2026-10 USD today 2026-10-01 unassigned 1000 future 0 cash 1000
+  category Expenses:Savings:Investing 0 0 0 0 0 0 0
+month 2026-11 USD today 2026-11-01 unassigned 500 future 0 cash 500
+  category Expenses:Savings:Investing 0 0 0 0 0 0 0
+  flag "fixtures/scenarios/ex05-uncategorized.bean" 16 uncategorized "transfer to an off-budget account has no category: metadata"
+month 2026-12 USD today 2026-12-01 unassigned 500 future 0 cash 500
+  category Expenses:Savings:Investing 0 0 0 0 0 0 0
+unassigned-at 2026-12-15 500

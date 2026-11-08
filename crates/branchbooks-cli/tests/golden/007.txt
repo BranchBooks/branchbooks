@@ -1,0 +1,14 @@
+["budget","fixtures/errors/booking.bean","--month","2026-11","--today","2026-11-30"]
+--- exit 1
+--- stdout
+Budget for 2026-11 (USD); Unassigned as of 2026-11-30
+
+Envelope           Carried     Assigned        Moved     Activity    Available  Overspent
+Expenses:Food         0.00         0.00         0.00         0.00         0.00
+Expenses:Rent         0.00         0.00         0.00         0.00         0.00
+
+Assigned to future months         0.00
+Unassigned            0.00
+--- stderr
+error: <repo>/fixtures/errors/booking.bean:12: You may not have more than one auto-posting per currency
+budget: <repo>/fixtures/errors/booking.bean:1: Assets:Checking has no budget flag; treated as off-budget

@@ -1,0 +1,165 @@
+; Budget edge cases: several cards, mixed funding, blocked entries, card
+; assignments, late corrections and every budget flag. The snapshot test records what the
+; core does with them.
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Checking USD
+  budget: "on"
+2026-01-01 open Assets:Savings
+  budget: "on"
+2026-01-01 open Assets:Euro EUR
+  budget: "on"
+2026-01-01 open Assets:Brokerage USD
+  budget: "off"
+2026-01-01 open Assets:House USD
+2026-01-01 open Assets:Weird USD
+  budget: "maybe"
+2026-01-01 open Assets:Number USD
+  budget: 1
+2026-01-01 open Liabilities:CardB USD
+  budget: "on"
+2026-01-01 open Liabilities:CardA USD
+  budget: "on"
+2026-01-01 open Liabilities:Loan USD
+  budget: "off"
+2026-01-01 open Income:Salary USD
+2026-01-01 open Income:Gifts USD
+  budget: "excluded"
+2026-01-01 open Income:Odd USD
+  budget: "on"
+2026-01-01 open Expenses:Food USD
+2026-01-01 open Expenses:Fun USD
+2026-01-01 open Expenses:Rent USD
+2026-01-01 open Expenses:Tax USD
+  budget: "excluded"
+2026-01-01 open Expenses:Strange USD
+  budget: "off"
+2026-01-01 open Equity:Opening USD
+
+2026-01-02 * "Opening balance"
+  Assets:Checking   2000.00 USD
+  Equity:Opening
+
+2026-01-02 * "Card debt from before the budget"
+  Liabilities:CardA  -300.00 USD
+  Equity:Opening
+
+2026-01-03 * "Paycheck with excluded tax"
+  Income:Salary     -1000.00 USD
+  Expenses:Tax        200.00 USD
+  Assets:Checking
+
+2026-01-03 custom "envelope-assign" Expenses:Food 300.00 USD
+2026-01-03 custom "envelope-assign" Expenses:Fun 100.00 USD
+2026-01-03 custom "envelope-assign" Expenses:Rent 500.00 USD
+2026-01-03 custom "envelope-assign" Liabilities:CardA 100.00 USD
+
+2026-01-05 * "Mixed funding: checking and two cards"
+  Expenses:Food      250.00 USD
+  Assets:Checking    -50.00 USD
+  Liabilities:CardB -100.00 USD
+  Liabilities:CardA -100.00 USD
+
+2026-01-06 * "Two categories on one card"
+  Expenses:Food      80.00 USD
+  Expenses:Fun      150.00 USD
+  Liabilities:CardB
+
+2026-01-07 * "Refund to a card and to checking"
+  Expenses:Fun      -40.00 USD
+  Liabilities:CardA  30.00 USD
+  Assets:Checking    10.00 USD
+
+2026-01-08 * "Category balanced by income"
+  Expenses:Food      20.00 USD
+  Income:Salary     -20.00 USD
+  Assets:Checking     0.00 USD
+
+2026-01-09 custom "envelope-assign" Expenses:Food 10.00 USD
+2026-01-09 custom "envelope-move" Expenses:Rent Expenses:Fun 30.00 USD
+2026-01-10 custom "envelope-move" Expenses:Fun Expenses:Rent -5.00 USD
+2026-01-10 custom "envelope-move" Expenses:Food Expenses:Rent 1000.00 USD
+2026-01-10 custom "envelope-assign" Expenses:Rent -2000.00 USD
+2026-01-10 custom "envelope-assign" Liabilities:CardA -500.00 USD
+2026-01-10 custom "envelope-assign" Liabilities:CardA -50.00 USD
+2026-01-10 custom "envelope-move" Expenses:Rent Expenses:Rent 0.00 USD
+
+2026-01-11 * "Pay part of card B"
+  Liabilities:CardB  120.00 USD
+  Assets:Checking
+
+2026-01-12 * "Pay card A from savings"
+  Liabilities:CardA   50.00 USD
+  Assets:Savings     -50.00 USD
+
+2026-01-13 * "Transfer to brokerage, category on a posting"
+  Assets:Brokerage   100.00 USD
+    category: Expenses:Rent
+  Assets:Checking
+
+2026-01-13 * "Transfer to brokerage, not a category"
+  category: "Expenses:Tax"
+  Assets:Brokerage    10.00 USD
+  Assets:Checking
+
+2026-01-13 * "Transfer to brokerage, number category"
+  category: 12
+  Assets:Brokerage    10.00 USD
+  Assets:Checking
+
+2026-01-14 * "Money in from off-budget"
+  Assets:Checking     75.00 USD
+  Assets:Brokerage
+
+2026-01-14 * "Expense from the brokerage"
+  Expenses:Food       15.00 USD
+  Assets:Brokerage
+
+2026-01-14 * "Euro spending ignored"
+  Expenses:Food       5.00 EUR
+  Assets:Euro
+
+2026-01-15 * "Loan payment"
+  Liabilities:Loan   100.00 USD
+  Assets:Checking
+
+2026-01-15 * "Gift to savings"
+  Income:Gifts      -40.00 USD
+  Assets:Savings
+
+2026-01-20 custom "envelope-assign" Expenses:Unknown 1.00 USD
+2026-01-20 custom "envelope-assign" Assets:Checking 1.00 USD
+2026-01-20 custom "envelope-assign" Expenses:Food 1.00 EUR
+2026-01-20 custom "envelope-assign" Expenses:Food 1.00
+2026-01-20 custom "envelope-assign" Expenses:Food
+2026-01-20 custom "envelope-assign" "Expenses:Food" 1.00 USD
+2026-01-20 custom "envelope-move" Expenses:Food Expenses:Tax 1.00 USD
+2026-01-20 custom "envelope-move" Liabilities:CardA Expenses:Food 1.00 USD
+2026-01-20 custom "envelope-move" Expenses:Food Expenses:Fun 1.00 EUR
+2026-01-20 custom "envelope-move" Expenses:Food Expenses:Fun
+2026-01-20 custom "something-else" Expenses:Food 1.00 USD
+
+2026-01-25 * "Overspend Fun in cash, late in the month"
+  Expenses:Fun       400.00 USD
+  Assets:Checking
+
+2026-01-26 custom "envelope-assign" Expenses:Fun 50.00 USD
+2026-01-26 custom "envelope-move" Expenses:Rent Expenses:Fun 25.00 USD
+
+2026-02-01 custom "envelope-assign" Expenses:Fun 200.00 USD
+2026-02-03 * "Card spending beyond Food"
+  Expenses:Food      500.00 USD
+  Liabilities:CardA
+
+2026-02-03 * "Cash spending beyond Food"
+  Expenses:Food       30.00 USD
+  Assets:Checking
+
+2026-02-04 custom "envelope-assign" Expenses:Food 40.00 USD
+2026-02-04 custom "envelope-assign" Liabilities:CardB 25.00 USD
+2026-02-05 custom "envelope-assign" Expenses:Rent 300.00 USD
+2026-04-01 custom "envelope-assign" Expenses:Food 150.00 USD
+2026-04-01 custom "envelope-assign" Expenses:Fun -10000.00 USD
+2026-03-15 * "Refund in a later month"
+  Expenses:Food     -60.00 USD
+  Liabilities:CardA

@@ -1,0 +1,16 @@
+["budget","fixtures/multifile/main.beancount","--month","2026-11","--today","2026-11-30"]
+--- exit 0
+--- stdout
+Budget for 2026-11 (USD); Unassigned as of 2026-11-30
+
+Envelope                     Carried     Assigned        Moved     Activity    Available  Overspent
+Expenses:Food:Groceries       169.75         0.00         0.00         0.00       169.75
+Expenses:Housing:Rent           0.00         0.00         0.00         0.00         0.00
+Expenses:Old:Category           0.00         0.00         0.00         0.00         0.00
+
+Card payment envelope      Available         Owed  Underfunded
+Liabilities:Visa                0.00         0.00         0.00
+
+Assigned to future months         0.00
+Unassigned                  2,000.00
+--- stderr

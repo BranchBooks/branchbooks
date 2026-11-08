@@ -1,0 +1,235 @@
+# crates/branchbooks-core/tests/snapshots/syntax-edges.bean
+files "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" "crates/branchbooks-core/tests/snapshots/edges/inner.bean" "crates/branchbooks-core/tests/snapshots/edges/deeper.bean"
+option "operating_currency" "USD" "CAD"
+option "title" "Edges \"quoted\" \\ é"
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 135 137 135 2024-02-29
+  posting Expenses:Food 136 1 USD 0
+  posting Assets:Checking 137 -1 USD 0
+entry open "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 14 26 14 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 27 27 27 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 28 28 28 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 29 29 29 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 30 30 30 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 31 31 31 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 32 32 32 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 37 37 37 2026-01-01
+entry open "crates/branchbooks-core/tests/snapshots/edges/inner.bean" 2 3 10000002 2026-01-02
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 39 45 39 2026-01-02
+  posting Expenses:Food 41 1234.5 USD 2
+  posting Assets:Checking 44 -1234.5 USD 1
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 47 49 47 2026-01-02
+  posting Expenses:Food 48 0.5 USD 1
+  posting Assets:Checking 49 -0.5 USD 2
+entry txn "crates/branchbooks-core/tests/snapshots/edges/inner.bean" 4 6 10000004 2026-01-02
+  posting Assets:Inner 5 3 USD 0
+  posting Assets:Checking 6 -3 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/edges/deeper.bean" 1 3 20000001 2026-01-02
+  posting Assets:Inner 2 4 USD 0
+  posting Assets:Checking 3 -4 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 59 62 59 2026-01-03
+  posting Expenses:Food 60 10 USD 2
+  posting Expenses:Food 61 7.125 CAD 3
+  posting Assets:Checking 62 -10 USD 0
+  posting Assets:Checking 62 -7.125 CAD 3
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 64 67 64 2026-01-03
+  posting Expenses:Food 65 10 USD 2
+  posting Assets:Checking 66 -10 USD 2
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 69 72 69 2026-01-03
+  posting Expenses:Food 70 10.1 USD 2
+  posting Expenses:Food 71 0.4 USD 2
+  posting Assets:Checking 72 -10.5 USD 1
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 74 77 74 2026-01-03
+  posting Expenses:Rent 75 5 CAD 0
+  posting Expenses:Rent 76 5 CAD 0
+  posting Assets:Checking 77 -10 CAD 0
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 79 82 79 2026-01-03
+  posting Expenses:Nowhere 80 5 USD 0
+  posting Expenses:Nowhere 81 5 USD 0
+  posting Assets:Checking 82 -10 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 84 86 84 2026-01-03
+  posting Expenses:Food 85 0.00000001 USD 8
+  posting Assets:Checking 86 0 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 88 90 88 2026-01-03
+  posting Expenses:Food 89 10.004 USD 3
+  posting Assets:Checking 90 -10 USD 1
+entry custom "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 107 107 107 2026-01-04
+entry custom "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 108 108 108 2026-01-04
+entry custom "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 111 111 111 2026-01-04
+entry custom "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 113 114 113 2026-01-04
+entry balance "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 122 122 122 2026-01-05
+entry other "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 116 116 116 2026-01-05
+entry other "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 117 117 117 2026-01-05
+entry other "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 118 118 118 2026-01-05
+entry other "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 119 119 119 2026-01-05
+entry other "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 120 120 120 2026-01-05
+entry other "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 121 121 121 2026-01-05
+entry close "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 150 150 150 2026-01-07
+entry close "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 151 151 151 2026-01-07
+entry close "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 152 152 152 2026-01-07
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 153 155 153 2026-01-08
+  posting Assets:Cash 154 1 USD 0
+  posting Assets:Checking 155 -1 USD 0
+entry txn "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 168 170 168 2026-01-09
+  posting Expenses:Food 169 2 USD 0
+  posting Assets:Checking 170 -2 USD 0
+error "crates/branchbooks-core/tests/snapshots/edges/deeper.bean" 4 syntax "unknown directive \"oops\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 6 syntax "expected option value at end of line"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 9 syntax "expected plugin name at end of line"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 12 syntax "indented line outside a directive"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 34 syntax "unexpected input at column 32: \"É\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 35 syntax "invalid account name Bogus:Root: root must be one of Assets, Liabilities, Equity, Income, Expenses"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 36 syntax "expected account, found \"A\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 37 duplicate-open "Duplicate open directive for Assets:Checking"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 51 syntax "too many strings on transaction line"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 55 syntax "unexpected \"\\\"late\\\"\" after transaction header"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 74 currency-constraint "Invalid currency CAD for account 'Expenses:Rent'"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 74 currency-constraint "Invalid currency CAD for account 'Expenses:Rent'"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 79 unknown-account "Invalid reference to unknown account 'Expenses:Nowhere'"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 84 unbalanced "Transaction does not balance: (0.00000001 USD)"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 93 syntax "costs and prices are not supported by BranchBooks yet"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 97 syntax "costs and prices are not supported by BranchBooks yet"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 101 syntax "expected currency after number at end of line"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 105 syntax "postings are only allowed in transactions"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 109 syntax "invalid custom value \"NULL\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 110 syntax "invalid account name Bogus:Thing: root must be one of Assets, Liabilities, Equity, Income, Expenses"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 112 syntax "expected custom type at end of line"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 122 balance "Balance failed for 'Assets:Checking': expected 0 USD != accumulated -1293.50 USD (1293.50 too little)"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 123 syntax "pad is not supported by BranchBooks yet"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 124 syntax "pushtag is not supported by BranchBooks yet"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 125 syntax "poptag is not supported by BranchBooks yet"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 126 syntax "pushmeta is not supported by BranchBooks yet"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 127 syntax "popmeta is not supported by BranchBooks yet"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 128 syntax "unknown directive nonsense"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 129 syntax "unknown directive \"nonsense\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 130 syntax "unknown directive \"@\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 131 syntax "expected directive after date"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 133 syntax "invalid date 2026-02-30"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 134 syntax "invalid date 2026-13-01"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 135 inactive-account "Invalid reference to inactive account 'Assets:Checking'"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 135 inactive-account "Invalid reference to inactive account 'Expenses:Food'"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 138 syntax "expected date or directive, found \"2026\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 139 syntax "unexpected input at column 14: \"\\\"unterminated\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 140 syntax "unexpected input at column 26: \"%%%%\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 141 syntax "unexpected input at column 26: \"%xxxxxxxxxxxxxxxxxx😀\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 143 syntax "unexpected input at column 6: \":value\""
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 145 syntax "unexpected \"USD\" after posting"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 151 duplicate-close "Duplicate close directive for Assets:Cash"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 152 close-unopened "Unopened account Assets:Never is being closed"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 153 inactive-account "Invalid reference to inactive account 'Assets:Cash'"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 160 booking "You may not have more than one auto-posting per currency"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 163 include "File not found: crates/branchbooks-core/tests/snapshots/missing.bean"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 164 include "Duplicate filename parsed: crates/branchbooks-core/tests/snapshots/syntax-edges.bean"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 166 include "Duplicate filename parsed: crates/branchbooks-core/tests/snapshots/edges/inner.bean"
+error "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 167 syntax "expected include path at end of line"
+balance Expenses:Food USD 1278.50400001
+balance Expenses:Food CAD 7.125
+balance Assets:Checking USD -1296.5
+balance Assets:Checking CAD -17.125
+balance Assets:Inner USD 7
+balance Expenses:Rent CAD 10
+balance Expenses:Nowhere USD 10
+balance Assets:Cash USD 1
+book-balance Expenses:Food USD 1278.50400001
+book-balance Expenses:Food CAD 7.125
+book-balance Assets:Checking USD -1296.5
+book-balance Assets:Checking CAD -17.125
+book-balance Assets:Inner USD 7
+book-balance Expenses:Rent CAD 10
+book-balance Expenses:Nowhere USD 10
+book-balance Assets:Cash USD 1
+income 0 expenses 1288.50400001 net -1288.50400001
+  line Expenses:Food 1278.50400001
+  line Expenses:Nowhere 10
+assets -1288.5 liabilities 0 equity 0 net-worth -1288.5
+  line Assets:Cash 1
+  line Assets:Checking -1296.5
+  line Assets:Inner 7
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/edges/inner.bean" 2 budget-flag "Assets:Inner has no budget flag; treated as off-budget"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 31 budget-flag "Liabilities:Card-1 has no budget flag; treated as off-budget"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 32 budget-flag "Assets:Cash has no budget flag; treated as off-budget"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 111 envelope "Expenses:Unopened is not a budgeted category or card"
+month 2024-02 USD today 2024-02-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+  flag "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 135 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+month 2024-03 USD today 2024-03-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2024-04 USD today 2024-04-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2024-05 USD today 2024-05-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2024-06 USD today 2024-06-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2024-07 USD today 2024-07-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2024-08 USD today 2024-08-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2024-09 USD today 2024-09-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2024-10 USD today 2024-10-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2024-11 USD today 2024-11-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2024-12 USD today 2024-12-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-01 USD today 2025-01-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-02 USD today 2025-02-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-03 USD today 2025-03-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-04 USD today 2025-04-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-05 USD today 2025-05-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-06 USD today 2025-06-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-07 USD today 2025-07-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-08 USD today 2025-08-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-09 USD today 2025-09-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-10 USD today 2025-10-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-11 USD today 2025-11-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2025-12 USD today 2025-12-01 unassigned -600 future 600 cash 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+month 2026-01 USD today 2026-01-01 unassigned -600 future 0 cash 0
+  category Expenses:Food 0 600 0 0 600 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+  flag "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 39 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 47 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 59 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 64 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 69 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 84 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 88 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 168 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+month 2026-02 USD today 2026-02-01 unassigned -600 future 0 cash 0
+  category Expenses:Food 600 0 0 0 600 0 0
+  category Expenses:Rent 0 0 0 0 0 0 0
+unassigned-at 2026-02-15 -600

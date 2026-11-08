@@ -1,0 +1,64 @@
+# fixtures/errors/accounts.bean
+files "fixtures/errors/accounts.bean"
+option "operating_currency" "USD"
+entry open "fixtures/errors/accounts.bean" 2 2 2 2026-01-01
+entry open "fixtures/errors/accounts.bean" 4 4 4 2026-01-01
+entry txn "fixtures/errors/accounts.bean" 7 9 7 2026-01-05
+  posting Expenses:Food 8 10 USD 2
+  posting Assets:Checking 9 -10 USD 0
+entry open "fixtures/errors/accounts.bean" 3 3 3 2026-02-01
+entry txn "fixtures/errors/accounts.bean" 11 13 11 2026-02-05
+  posting Expenses:Nowhere 12 10 USD 2
+  posting Assets:Checking 13 -10 USD 0
+entry custom "fixtures/errors/accounts.bean" 23 23 23 2026-02-10
+entry txn "fixtures/errors/accounts.bean" 25 27 25 2026-02-11
+  posting Expenses:Food 26 5 EUR 2
+  posting Assets:Checking 27 -5 EUR 2
+entry txn "fixtures/errors/accounts.bean" 15 17 15 2026-03-01
+  posting Expenses:Closed 16 1 USD 2
+  posting Assets:Checking 17 -1 USD 0
+entry close "fixtures/errors/accounts.bean" 5 5 5 2026-03-01
+entry txn "fixtures/errors/accounts.bean" 19 21 19 2026-03-02
+  posting Expenses:Closed 20 2 USD 2
+  posting Assets:Checking 21 -2 USD 0
+error "fixtures/errors/accounts.bean" 7 inactive-account "Invalid reference to inactive account 'Expenses:Food'"
+error "fixtures/errors/accounts.bean" 11 unknown-account "Invalid reference to unknown account 'Expenses:Nowhere'"
+error "fixtures/errors/accounts.bean" 19 inactive-account "Invalid reference to inactive account 'Expenses:Closed'"
+error "fixtures/errors/accounts.bean" 25 currency-constraint "Invalid currency EUR for account 'Assets:Checking'"
+error "fixtures/errors/accounts.bean" 25 currency-constraint "Invalid currency EUR for account 'Expenses:Food'"
+balance Expenses:Food USD 10
+balance Expenses:Food EUR 5
+balance Assets:Checking USD -23
+balance Assets:Checking EUR -5
+balance Expenses:Nowhere USD 10
+balance Expenses:Closed USD 3
+book-balance Expenses:Food USD 10
+book-balance Expenses:Food EUR 5
+book-balance Assets:Checking USD -23
+book-balance Assets:Checking EUR -5
+book-balance Expenses:Nowhere USD 10
+book-balance Expenses:Closed USD 3
+income 0 expenses 23 net -23
+  line Expenses:Closed 3
+  line Expenses:Food 10
+  line Expenses:Nowhere 10
+assets -23 liabilities 0 equity 0 net-worth -23
+  line Assets:Checking -23
+budget-diagnostic "fixtures/errors/accounts.bean" 2 budget-flag "Assets:Checking has no budget flag; treated as off-budget"
+budget-diagnostic "fixtures/errors/accounts.bean" 23 envelope "Expenses:Unopened is not a budgeted category or card"
+month 2026-01 USD today 2026-01-01 unassigned 0 future 0 cash 0
+  category Expenses:Closed 0 0 0 0 0 0 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  flag "fixtures/errors/accounts.bean" 7 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+month 2026-02 USD today 2026-02-01 unassigned 0 future 0 cash 0
+  category Expenses:Closed 0 0 0 0 0 0 0
+  category Expenses:Food 0 0 0 0 0 0 0
+month 2026-03 USD today 2026-03-01 unassigned 0 future 0 cash 0
+  category Expenses:Closed 0 0 0 0 0 0 0
+  category Expenses:Food 0 0 0 0 0 0 0
+  flag "fixtures/errors/accounts.bean" 15 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+  flag "fixtures/errors/accounts.bean" 19 unfunded "budgeted category posting with no on-budget account; ignored by the budget"
+month 2026-04 USD today 2026-04-01 unassigned 0 future 0 cash 0
+  category Expenses:Closed 0 0 0 0 0 0 0
+  category Expenses:Food 0 0 0 0 0 0 0
+unassigned-at 2026-04-15 0

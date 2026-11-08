@@ -1,0 +1,16 @@
+2026-01-01 open Assets:Checking USD
+2026-01-01 open Expenses:Food USD
+
+2026-01-02 * "Good"
+  Expenses:Food      1.00 USD
+  Assets:Checking   -1.00 USD
+
+2026-01-03 * "Bad posting"
+  Expenses:Food      1.00 USD USD
+  Assets:Checking   -1.00 USD
+
+2026-01-04 bogus "directive"
+
+2026-01-05 * "Good again"
+  Expenses:Food      2.00 USD
+  Assets:Checking   -2.00 USD

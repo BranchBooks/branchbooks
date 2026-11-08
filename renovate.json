@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "assignees": ["JoshuaCrump"],
+  "labels": ["dependencies"],
+  "dependencyDashboardLabels": ["dependencies"],
+  "schedule": ["before 8am on monday"],
+  "packageRules": [
+    {
+      "description": "Dioxus crates are pinned to one version, so they move together.",
+      "matchPackageNames": ["dioxus*"],
+      "groupName": "dioxus"
+    },
+    {
+      "description": "Small updates in one merge request. grit-lib is the git engine, reviewed on every bump; velopack stays red until VPK_VERSION in .gitlab-ci.yml matches. Each gets its own.",
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackageNames": ["!dioxus*", "!grit-lib", "!velopack"],
+      "groupName": "minor and patch"
+    },
+    {
+      "description": "Images in .gitlab-ci.yml stay pinned by digest.",
+      "matchManagers": ["gitlab-ci"],
+      "pinDigests": true
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+["check","fixtures/errors/accounts.bean","--json"]
+--- exit 1
+--- stdout
+{
+  "balances": {
+    "Assets:Checking": {
+      "USD": "-23",
+      "EUR": "-5"
+    },
+    "Expenses:Closed": {
+      "USD": "3"
+    },
+    "Expenses:Food": {
+      "USD": "10",
+      "EUR": "5"
+    },
+    "Expenses:Nowhere": {
+      "USD": "10"
+    }
+  },
+  "errors": [
+    {
+      "file": "<repo>/fixtures/errors/accounts.bean",
+      "line": 7,
+      "code": "inactive-account",
+      "message": "Invalid reference to inactive account 'Expenses:Food'"
+    },
+    {
+      "file": "<repo>/fixtures/errors/accounts.bean",
+      "line": 11,
+      "code": "unknown-account",
+      "message": "Invalid reference to unknown account 'Expenses:Nowhere'"
+    },
+    {
+      "file": "<repo>/fixtures/errors/accounts.bean",
+      "line": 19,
+      "code": "inactive-account",
+      "message": "Invalid reference to inactive account 'Expenses:Closed'"
+    },
+    {
+      "file": "<repo>/fixtures/errors/accounts.bean",
+      "line": 25,
+      "code": "currency-constraint",
+      "message": "Invalid currency EUR for account 'Assets:Checking'"
+    },
+    {
+      "file": "<repo>/fixtures/errors/accounts.bean",
+      "line": 25,
+      "code": "currency-constraint",
+      "message": "Invalid currency EUR for account 'Expenses:Food'"
+    }
+  ]
+}
+--- stderr

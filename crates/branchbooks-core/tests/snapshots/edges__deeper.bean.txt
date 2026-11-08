@@ -1,0 +1,19 @@
+# crates/branchbooks-core/tests/snapshots/edges/deeper.bean
+files "crates/branchbooks-core/tests/snapshots/edges/deeper.bean"
+entry txn "crates/branchbooks-core/tests/snapshots/edges/deeper.bean" 1 3 1 2026-01-02
+  posting Assets:Inner 2 4 USD 0
+  posting Assets:Checking 3 -4 USD 0
+error "crates/branchbooks-core/tests/snapshots/edges/deeper.bean" 1 unknown-account "Invalid reference to unknown account 'Assets:Checking'"
+error "crates/branchbooks-core/tests/snapshots/edges/deeper.bean" 1 unknown-account "Invalid reference to unknown account 'Assets:Inner'"
+error "crates/branchbooks-core/tests/snapshots/edges/deeper.bean" 4 syntax "unknown directive \"oops\""
+balance Assets:Inner USD 4
+balance Assets:Checking USD -4
+book-balance Assets:Inner USD 4
+book-balance Assets:Checking USD -4
+income 0 expenses 0 net 0
+assets 0 liabilities 0 equity 0 net-worth 0
+  line Assets:Checking -4
+  line Assets:Inner 4
+month 2026-01 USD today 2026-01-01 unassigned 0 future 0 cash 0
+month 2026-02 USD today 2026-02-01 unassigned 0 future 0 cash 0
+unassigned-at 2026-02-15 0

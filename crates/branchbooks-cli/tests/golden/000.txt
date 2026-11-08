@@ -1,0 +1,15 @@
+["check","fixtures/errors/accounts.bean"]
+--- exit 1
+--- stdout
+<repo>/fixtures/errors/accounts.bean:7: inactive-account: Invalid reference to inactive account 'Expenses:Food'
+<repo>/fixtures/errors/accounts.bean:11: unknown-account: Invalid reference to unknown account 'Expenses:Nowhere'
+<repo>/fixtures/errors/accounts.bean:19: inactive-account: Invalid reference to inactive account 'Expenses:Closed'
+<repo>/fixtures/errors/accounts.bean:25: currency-constraint: Invalid currency EUR for account 'Assets:Checking'
+<repo>/fixtures/errors/accounts.bean:25: currency-constraint: Invalid currency EUR for account 'Expenses:Food'
+Assets:Checking                                     -23 USD
+Assets:Checking                                      -5 EUR
+Expenses:Closed                                       3 USD
+Expenses:Food                                        10 USD
+Expenses:Food                                         5 EUR
+Expenses:Nowhere                                     10 USD
+--- stderr

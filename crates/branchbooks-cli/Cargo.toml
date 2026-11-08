@@ -1,0 +1,24 @@
+[package]
+name = "branchbooks-cli"
+description = "The branchbooks command: budget, check, and write commands that commit to a ledger repository"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "branchbooks"
+path = "src/main.rs"
+
+[dependencies]
+branchbooks-core.workspace = true
+branchbooks-git.workspace = true
+chrono.workspace = true
+indexmap.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

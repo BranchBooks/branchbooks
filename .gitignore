@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+out/
+target/
+.*.cache
+
+# Real ledgers to test against locally (see README "Testing with your own ledger"). Never committed.
+private/
+# The Windows app, from tools/windows/build.ps1, and the Android bundle, from dx (Dioxus.toml).
+dist/

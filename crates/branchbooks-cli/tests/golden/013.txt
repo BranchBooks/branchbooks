@@ -1,0 +1,28 @@
+["check","fixtures/errors/syntax.bean","--json"]
+--- exit 1
+--- stdout
+{
+  "balances": {
+    "Assets:Checking": {
+      "USD": "-3"
+    },
+    "Expenses:Food": {
+      "USD": "3"
+    }
+  },
+  "errors": [
+    {
+      "file": "<repo>/fixtures/errors/syntax.bean",
+      "line": 9,
+      "code": "syntax",
+      "message": "unexpected \"USD\" after posting"
+    },
+    {
+      "file": "<repo>/fixtures/errors/syntax.bean",
+      "line": 12,
+      "code": "syntax",
+      "message": "unknown directive \"bogus\""
+    }
+  ]
+}
+--- stderr

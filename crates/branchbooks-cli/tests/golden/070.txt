@@ -1,0 +1,16 @@
+["budget","fixtures/examples-1-5.bean","--month","11"]
+--- exit 2
+--- stdout
+--- stderr
+usage:
+  branchbooks budget <file> --month YYYY-MM [--today YYYY-MM-DD]
+  branchbooks check <file> [--json]
+  branchbooks assign <repo> --date D --category ACCOUNT --amount N
+  branchbooks move <repo> --date D --from ACCOUNT --to ACCOUNT --amount N
+  branchbooks txn <repo> --date D --narration TEXT [--payee TEXT] --posting "ACCOUNT [N [CUR]]"... [--meta key=value]...
+  branchbooks open <repo> --date D --account ACCOUNT [--currency CUR] [--budget on|off|excluded|placeholder]
+  branchbooks close <repo> --date D --account ACCOUNT
+  branchbooks delete <repo> --at FILE:LINE
+  branchbooks log <repo>
+  branchbooks sync <repo> [--root main.beancount]   (token for HTTPS remotes: BRANCHBOOKS_TOKEN)
+  (write commands take [--root main.beancount] and [--op-id ID] to make a retry safe)

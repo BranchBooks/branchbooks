@@ -1,0 +1,11 @@
+# dx's settings, for the Android bundle: `dx bundle --platform android`.
+[application]
+out_dir = "dist"
+asset_dir = "public"
+
+[bundle]
+identifier = "dev.branchbooks.app"
+publisher = "BranchBooks"
+short_description = "BranchBooks: envelope budgeting on a plain-text ledger in git"
+# shortcut: unproven until there is an Android build; check the launcher icon then.
+icon = ["icons/icon.png"]

@@ -1,0 +1,7 @@
+option "operating_currency" "EUR"
+2026-01-02 open Assets:Inner USD
+  inner: "meta"
+2026-01-02 * "from an included file"
+  Assets:Inner  3 USD
+  Assets:Checking
+include "../edges/deeper.bean"

@@ -1,0 +1,14 @@
+["budget","fixtures/errors/unbalanced.bean","--month","2026-10","--today","2026-10-31"]
+--- exit 1
+--- stdout
+Budget for 2026-10 (USD); Unassigned as of 2026-10-31
+
+Envelope           Carried     Assigned        Moved     Activity    Available  Overspent
+Expenses:Food         0.00         0.00         0.00         0.00         0.00
+
+Assigned to future months         0.00
+Unassigned            0.00
+--- stderr
+error: <repo>/fixtures/errors/unbalanced.bean:5: Transaction does not balance: (0.01 USD)
+error: <repo>/fixtures/errors/unbalanced.bean:13: Transaction does not balance: (1 USD)
+budget: <repo>/fixtures/errors/unbalanced.bean:2: Assets:Checking has no budget flag; treated as off-budget

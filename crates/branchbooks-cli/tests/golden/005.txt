@@ -1,0 +1,22 @@
+["check","fixtures/errors/booking.bean","--json"]
+--- exit 1
+--- stdout
+{
+  "balances": {
+    "Assets:Checking": {
+      "USD": "-12.34"
+    },
+    "Expenses:Food": {
+      "USD": "12.34"
+    }
+  },
+  "errors": [
+    {
+      "file": "<repo>/fixtures/errors/booking.bean",
+      "line": 12,
+      "code": "booking",
+      "message": "You may not have more than one auto-posting per currency"
+    }
+  ]
+}
+--- stderr

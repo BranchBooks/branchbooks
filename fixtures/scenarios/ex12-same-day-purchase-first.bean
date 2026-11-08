@@ -1,0 +1,8 @@
+; Example 12: the same two entries in the other file order.
+include "ex06-credit-overspend.bean"
+
+2026-11-06 * "Takeout"
+  Expenses:Food:Dining       30.00 USD
+  Assets:Checking           -30.00 USD
+
+2026-11-06 custom "envelope-assign" Expenses:Food:Dining 40.00 USD

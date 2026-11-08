@@ -1,0 +1,4 @@
+; Example 11: move 20.00 from Rent to Groceries.
+include "../examples-1-5.bean"
+
+2026-11-10 custom "envelope-move" Expenses:Housing:Rent Expenses:Food:Groceries 20.00 USD

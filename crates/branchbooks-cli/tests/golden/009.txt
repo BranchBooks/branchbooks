@@ -1,0 +1,21 @@
+["check","fixtures/errors/opens.bean","--json"]
+--- exit 1
+--- stdout
+{
+  "balances": {},
+  "errors": [
+    {
+      "file": "<repo>/fixtures/errors/opens.bean",
+      "line": 2,
+      "code": "duplicate-open",
+      "message": "Duplicate open directive for Assets:Checking"
+    },
+    {
+      "file": "<repo>/fixtures/errors/opens.bean",
+      "line": 3,
+      "code": "close-unopened",
+      "message": "Unopened account Assets:Savings is being closed"
+    }
+  ]
+}
+--- stderr

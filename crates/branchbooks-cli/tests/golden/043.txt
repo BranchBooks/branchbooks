@@ -1,0 +1,17 @@
+["budget","fixtures/scenarios/ex08-future-month.bean","--month","2026-11","--today","2026-11-30"]
+--- exit 0
+--- stdout
+Budget for 2026-11 (USD); Unassigned as of 2026-11-30
+
+Envelope                        Carried     Assigned        Moved     Activity    Available  Overspent
+Expenses:Food:Dining             155.00         0.00         0.00         0.00       155.00
+Expenses:Food:Groceries            0.00         0.00         0.00         0.00         0.00
+Expenses:Housing:Rent          1,500.00         0.00         0.00         0.00     1,500.00
+Expenses:Savings:Investing         0.00       500.00         0.00      -500.00         0.00
+
+Card payment envelope         Available         Owed  Underfunded
+Liabilities:CreditCard             0.00         0.00         0.00
+
+Assigned to future months        300.00
+Unassigned                       780.00
+--- stderr

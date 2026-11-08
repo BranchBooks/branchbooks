@@ -1,0 +1,14 @@
+["budget","fixtures/errors/syntax.bean","--month","2026-10","--today","2026-10-31"]
+--- exit 1
+--- stdout
+Budget for 2026-10 (USD); Unassigned as of 2026-10-31
+
+Envelope           Carried     Assigned        Moved     Activity    Available  Overspent
+Expenses:Food         0.00         0.00         0.00         0.00         0.00
+
+Assigned to future months         0.00
+Unassigned            0.00
+--- stderr
+error: <repo>/fixtures/errors/syntax.bean:9: unexpected "USD" after posting
+error: <repo>/fixtures/errors/syntax.bean:12: unknown directive "bogus"
+budget: <repo>/fixtures/errors/syntax.bean:1: Assets:Checking has no budget flag; treated as off-budget

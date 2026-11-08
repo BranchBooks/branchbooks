@@ -1,0 +1,275 @@
+# CI and releases on GitLab.com.
+#
+# Checks run on merge requests, on main, on version tags, by hand ("Run pipeline") and weekly (a pipeline
+# schedule on main, so an advisory published while nothing is pushed still turns main red). A change to
+# documents only skips them, since nothing compiled reads them (the scanners below still run).
+#
+# A version tag on main (`git tag v0.1.0 && git push origin v0.1.0`, matching Cargo.toml) releases:
+# Windows builds and packs the app, then a Linux job that compiles nothing signs every file (Sigstore,
+# with this pipeline's identity), puts them in the package registry and makes the GitLab release the app's
+# update feed reads (crates/branchbooks-ui/src/update.rs). Run by hand on any branch, the build is a
+# rehearsal: Setup and the packages are kept as job artifacts and nothing is published.
+#
+# Linux jobs run in the Rust image (Debian 13, which has Python 3.13 for Beancount), pinned by digest.
+# Windows jobs run on GitLab's hosted Windows runners, which start clean, so rustup comes in per job.
+# Caches are written only on main; branches and tags read them.
+
+workflow:
+  rules:
+    # A branch with an open merge request runs as the merge request, not twice.
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"
+  auto_cancel:
+    on_new_commit: interruptible
+
+# GitLab's scanners, in the test stage. Secret detection; SAST, where Rust is read only by GitLab Advanced
+# SAST (beta) and Semgrep reads the Python in reference/ and tools/; dependency scanning of Cargo.lock and
+# tools/oracle/requirements.txt, whose SBOM continuous vulnerability scanning checks against new advisories
+# between pipelines; and IaC scanning (KICS), for infrastructure files such as a Dockerfile. Findings show on the merge request and
+# in the vulnerability report. These images are GitLab's, versioned by the templates rather than pinned here.
+include:
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Dependency-Scanning.v2.gitlab-ci.yml
+  - template: Jobs/SAST-IaC.gitlab-ci.yml
+
+variables:
+  GITLAB_ADVANCED_SAST_ENABLED: "true"
+  # Run the scanners in merge request pipelines too, not only on branches.
+  AST_ENABLE_MR_PIPELINES: "true"
+  # The Velopack CLI, the same version as the crate in crates/branchbooks-ui/Cargo.toml (checked below).
+  VPK_VERSION: 1.3.39-g8d2844f
+  # Where installed apps read updates: forwarded to this project's latest release.
+  UPDATE_FEED: https://branchbooks.dev/updates
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CACHE_POLICY: pull
+
+default:
+  interruptible: true
+
+.linux:
+  image: rust:1.99.1-trixie@sha256:8a4e90c7946b74626488b1446f712c0fe0ed1a596cbd3d871684bc9c5433ae07
+  before_script:
+    - export PATH="$CARGO_HOME/bin:$PATH"
+    - rustup show active-toolchain || rustup toolchain install
+  cache:
+    - key: cargo-linux
+      paths: [.cargo/registry/index/, .cargo/registry/cache/, .cargo/git/db/, target/]
+      policy: $CACHE_POLICY
+
+.windows:
+  tags: [saas-windows-medium-amd64]
+  before_script:
+    - $ErrorActionPreference = 'Stop'
+    - $env:PATH = "$env:CARGO_HOME\bin;$env:USERPROFILE\.cargo\bin;$env:PATH"
+    # rustup-init over HTTPS from the Rust project; the toolchain itself is pinned in rust-toolchain.toml.
+    - Invoke-WebRequest https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -OutFile rustup-init.exe
+    - .\rustup-init.exe -y --no-modify-path --profile minimal --default-toolchain none
+    - rustup toolchain install
+    - rustup target add x86_64-pc-windows-msvc
+  cache:
+    - key: cargo-windows
+      paths: [.cargo/registry/index/, .cargo/registry/cache/, .cargo/git/db/, target/]
+      policy: $CACHE_POLICY
+
+# Compiled code changed (or there is no diff to go by: tags, schedules, runs by hand). On main the
+# caches are saved.
+.code:
+  rules:
+    - if: $CI_COMMIT_TAG || $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes: &code
+        - .gitlab-ci.yml
+        - Cargo.toml
+        - Cargo.lock
+        - rust-toolchain.toml
+        - deny.toml
+        - crates/**/*
+        - fixtures/**/*
+        - reference/**/*
+        - tools/**/*
+      variables:
+        CACHE_POLICY: pull-push
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: *code
+
+# Always runs, so a change to documents only still has a pipeline for "Pipelines must succeed" to pass.
+pipeline:
+  image: alpine:3.22@sha256:bfe7ceb9f09ec0566c48fb93356e45a47a00be5a1dd14fa5b909e7709c66b034
+  stage: .pre
+  timeout: 5m
+  script:
+    - echo "Checks for $CI_COMMIT_SHORT_SHA run below when compiled code changed."
+
+# Format, lints, docs, tests, cargo deny, and the oracle (real Beancount 3.2.3, a separate program never
+# linked to BranchBooks).
+rust:
+  extends: [.linux, .code]
+  timeout: 60m
+  script:
+    - |
+      # No npm (CLAUDE.md).
+      if git ls-files | grep -E '(^|/)(package\.json|package-lock\.json|node_modules/)'; then exit 1; fi
+    - |
+      # Velopack's crate and CLI versions match: kept in two files, and nothing else fails when they drift until a release.
+      cli=$(sed -n 's/^  VPK_VERSION: //p' .gitlab-ci.yml)
+      crate=$(sed -n 's/^velopack = "=\(.*\)"/\1/p' crates/branchbooks-ui/Cargo.toml)
+      if test -z "$cli" || test "$cli" != "$crate"; then
+        echo "VPK_VERSION in .gitlab-ci.yml is '$cli', velopack in branchbooks-ui is '$crate'. Change them to match."
+        exit 1
+      fi
+    - sh tools/ci/install-cargo-deny.sh
+    - cargo fmt --check
+    - cargo clippy --all-targets --locked -- -D warnings
+    - RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --locked --workspace
+    - cargo test --locked
+    - cargo deny --all-features --locked check
+    # Beancount and its dependencies at the versions in tools/oracle/requirements.txt.
+    - apt-get update -qq && apt-get install -y -qq python3-venv > /dev/null
+    - |
+      tools/oracle/.venv/bin/python -c 'import beancount' 2>/dev/null || {
+        python3 -m venv --clear tools/oracle/.venv
+        tools/oracle/.venv/bin/pip install -q -r tools/oracle/requirements.txt
+      }
+    - cargo run -q --locked -p branchbooks-oracle
+  cache:
+    - key: cargo-linux
+      paths: [.cargo/registry/index/, .cargo/registry/cache/, .cargo/git/db/, target/]
+      policy: $CACHE_POLICY
+    - key:
+        prefix: beancount
+        files: [tools/oracle/requirements.txt]
+      paths: [tools/oracle/.venv/]
+      policy: $CACHE_POLICY
+
+# The Windows-only code's lints, and the tests on real Windows with the target the app ships on, for what
+# Linux cannot show: paths, line endings and Windows-only code. Not on the weekly schedule, which only
+# looks for advisories.
+windows-tests:
+  extends: [.windows]
+  timeout: 90m
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - !reference [.code, rules]
+  script:
+    - cargo clippy -p branchbooks-ui --features desktop --target x86_64-pc-windows-msvc --locked -- -D warnings
+    - if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - cargo test --locked --no-fail-fast --target x86_64-pc-windows-msvc
+    - if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# What CLAUDE.md says must keep passing but is too slow for every push: the benchmark, beside Beancount's
+# reference times, and the budget rules' reference simulations.
+slow-checks:
+  extends: [.linux]
+  timeout: 30m
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"
+  script:
+    - apt-get update -qq && apt-get install -y -qq python3 > /dev/null
+    - python3 -I reference/sim4.py
+    - python3 -I reference/sim5.py
+    - cargo bench --locked -p branchbooks-core
+
+# The Windows app, packed for release (tools/windows/build.ps1, then Velopack). No cache: what ships is
+# compiled here, from source. The previous release goes in the folder so the pack can build a delta from it.
+package:
+  extends: [.windows]
+  stage: deploy
+  timeout: 90m
+  needs:
+    - job: rust
+      optional: true
+    - job: windows-tests
+      optional: true
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_PIPELINE_SOURCE == "web"
+  cache: []
+  variables:
+    # All of history, to check the tag is on main.
+    GIT_DEPTH: "0"
+  script:
+    - $version = (Select-String -Path Cargo.toml -Pattern '^version = "(.*)"' | Select-Object -First 1).Matches.Groups[1].Value
+    - |
+      if ($env:CI_COMMIT_TAG) {
+        if ($env:CI_COMMIT_TAG -ne "v$version") { throw "Tag $env:CI_COMMIT_TAG does not match version $version in Cargo.toml" }
+        git fetch -q origin main
+        git merge-base --is-ancestor HEAD origin/main
+        if ($LASTEXITCODE -ne 0) { throw "Tag $env:CI_COMMIT_TAG is not on main" }
+      }
+    - tools/windows/build.ps1
+    - |
+      if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+        Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
+        ./dotnet-install.ps1 -Channel 8.0 -InstallDir "$env:USERPROFILE\.dotnet"
+        $env:PATH = "$env:USERPROFILE\.dotnet;$env:PATH"
+      }
+    - dotnet tool install -g vpk --version $env:VPK_VERSION
+    - $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+    # The newest release from the feed, for the delta package. 0.1.0 is the first, with nothing to read.
+    - |
+      vpk download http --url $env:UPDATE_FEED -c win -o releases
+      if ($LASTEXITCODE -ne 0) {
+        if ($version -ne "0.1.0") { throw "Could not read the update feed $env:UPDATE_FEED" }
+        Write-Host "0.1.0 is the first release: no earlier one to make a delta from."
+        $global:LASTEXITCODE = 0
+      }
+    - |
+      vpk pack -u BranchBooks -v $version -p dist/windows -e BranchBooks.exe -r win-x64 `
+        --packTitle BranchBooks --packAuthors BranchBooks -f webview2 -c win -o releases `
+        --icon crates/branchbooks-ui/icons/icon.ico --splashImage crates/branchbooks-ui/icons/splash.png
+      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - Set-Content -NoNewline -Path releases/VERSION -Value $version
+  artifacts:
+    name: BranchBooks-$CI_COMMIT_REF_SLUG
+    paths: [releases/]
+    expire_in: 30 days
+
+# Publishes a tagged release. It compiles nothing, so no dependency's build script runs where the release
+# can be written. Every file is signed first, so a release never goes out without its signature: anyone
+# can check a file with cosign verify-blob and the .sigstore.json beside it.
+publish:
+  image: rust:1.99.1-trixie@sha256:8a4e90c7946b74626488b1446f712c0fe0ed1a596cbd3d871684bc9c5433ae07
+  stage: deploy
+  needs: [package]
+  timeout: 15m
+  interruptible: false
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+  id_tokens:
+    SIGSTORE_ID_TOKEN:
+      aud: sigstore
+  variables:
+    COSIGN_VERSION: v3.1.4
+    COSIGN_SHA256: 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa
+  script:
+    - curl --proto '=https' --tlsv1.2 -fsSL -o /usr/local/bin/cosign "https://github.com/sigstore/cosign/releases/download/$COSIGN_VERSION/cosign-linux-amd64"
+    - echo "$COSIGN_SHA256  /usr/local/bin/cosign" | sha256sum -c --quiet -
+    - chmod +x /usr/local/bin/cosign
+    - version=$(cat releases/VERSION) && rm releases/VERSION
+    - test "$CI_COMMIT_TAG" = "v$version"
+    - |
+      for f in releases/*; do
+        cosign sign-blob --yes --bundle "$f.sigstore.json" "$f" > /dev/null
+      done
+    - |
+      # Each file in the generic package registry, linked from the release under its own name, so
+      # /-/releases/permalink/latest/downloads/<name> always serves the newest release's copy.
+      packages="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/branchbooks/$version"
+      links=""
+      for f in releases/*; do
+        name=$(basename "$f")
+        curl -fsS --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$f" "$packages/$name" > /dev/null
+        links="$links{\"name\":\"$name\",\"url\":\"$packages/$name\",\"direct_asset_path\":\"/$name\",\"link_type\":\"package\"},"
+      done
+      printf '{"tag_name":"%s","name":"BranchBooks %s","description":"BranchBooks %s for Windows. Signed with Sigstore: see the .sigstore.json beside each file.","assets":{"links":[%s]}}' \
+        "$CI_COMMIT_TAG" "$version" "$version" "${links%,}" > release.json
+      curl -fsS --header "JOB-TOKEN: $CI_JOB_TOKEN" --header "Content-Type: application/json" \
+        --data @release.json "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases" > /dev/null
+      echo "Released BranchBooks $version: $CI_PROJECT_URL/-/releases/$CI_COMMIT_TAG"

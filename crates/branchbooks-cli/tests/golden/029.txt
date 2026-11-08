@@ -1,0 +1,18 @@
+["check","fixtures/scenarios/ex05-uncategorized.bean","--json"]
+--- exit 0
+--- stdout
+{
+  "balances": {
+    "Assets:Brokerage": {
+      "USD": "500"
+    },
+    "Assets:Checking": {
+      "USD": "500"
+    },
+    "Income:Salary": {
+      "USD": "-1000"
+    }
+  },
+  "errors": []
+}
+--- stderr

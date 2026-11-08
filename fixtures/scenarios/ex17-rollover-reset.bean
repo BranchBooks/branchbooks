@@ -1,0 +1,4 @@
+; Example 17: Example 15, turned off on Nov 15: the carried 20.00 resets at the end of November.
+include "ex15-rollover-overspending.bean"
+
+2026-11-15 custom "overspending" Expenses:Food:Groceries "reset"

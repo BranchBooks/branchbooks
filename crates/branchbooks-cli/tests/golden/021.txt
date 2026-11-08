@@ -1,0 +1,33 @@
+["check","fixtures/examples-1-5.bean","--json"]
+--- exit 0
+--- stdout
+{
+  "balances": {
+    "Assets:Brokerage": {
+      "USD": "500"
+    },
+    "Assets:Checking": {
+      "USD": "2735"
+    },
+    "Expenses:Benefits:401k": {
+      "USD": "300"
+    },
+    "Expenses:Food:Dining": {
+      "USD": "45"
+    },
+    "Expenses:Food:Groceries": {
+      "USD": "620"
+    },
+    "Expenses:Tax:Federal": {
+      "USD": "800"
+    },
+    "Income:Salary": {
+      "USD": "-5000"
+    },
+    "Liabilities:CreditCard": {
+      "USD": "0"
+    }
+  },
+  "errors": []
+}
+--- stderr

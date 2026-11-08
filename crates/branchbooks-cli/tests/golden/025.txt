@@ -1,0 +1,27 @@
+["check","fixtures/multifile/main.beancount","--json"]
+--- exit 0
+--- stdout
+{
+  "balances": {
+    "Assets:Checking": {
+      "USD": "2169.75"
+    },
+    "Equity:Opening-Balances": {
+      "USD": "-1250"
+    },
+    "Expenses:Food:Groceries": {
+      "USD": "80.25"
+    },
+    "Expenses:Housing:Rent": {
+      "USD": "1000"
+    },
+    "Income:Salary": {
+      "USD": "-2000"
+    },
+    "Liabilities:Visa": {
+      "USD": "0"
+    }
+  },
+  "errors": []
+}
+--- stderr

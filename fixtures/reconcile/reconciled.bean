@@ -1,0 +1,32 @@
+; Reconcile (R1 to R3): a January statement for Checking. Cleared (*) up to Jan 31: 800.00. Two
+; purchases are still pending (!), and one after the statement date. tests/reconcile.rs
+; reconciles it; reconciled.bean is the result.
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Checking USD
+  budget: "on"
+2026-01-01 open Income:Salary USD
+2026-01-01 open Expenses:Food USD
+2026-01-01 open Expenses:Rent USD
+
+2026-01-02 * "Paycheck"
+  Assets:Checking  2000.00 USD
+  Income:Salary
+
+2026-01-10 * "Corner Shop"
+  Expenses:Food  45.20 USD
+  Assets:Checking
+
+2026-01-15 * "Landlord"
+  Expenses:Rent  1200.00 USD
+  Assets:Checking
+
+2026-01-29 * "Market"
+  Expenses:Food  30.00 USD
+  Assets:Checking
+
+2026-02-01 balance Assets:Checking  724.80 USD
+
+2026-02-03 ! "Cafe"
+  Expenses:Food  8.50 USD
+  Assets:Checking

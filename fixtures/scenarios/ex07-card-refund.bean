@@ -1,0 +1,10 @@
+; Example 7: card purchase and a partial refund.
+include "../examples-1-5.bean"
+
+2026-11-08 * "Restaurant"
+  Expenses:Food:Dining       60.00 USD
+  Liabilities:CreditCard    -60.00 USD
+
+2026-11-12 * "Restaurant" "Refund"
+  Expenses:Food:Dining      -25.00 USD
+  Liabilities:CreditCard     25.00 USD

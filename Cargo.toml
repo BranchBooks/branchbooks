@@ -1,0 +1,68 @@
+# BranchBooks, in Rust.
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "GPL-3.0-only"
+repository = "https://gitlab.com/branchbooks/branchbooks"
+# Nothing goes to crates.io until the API settles.
+publish = false
+
+[workspace.dependencies]
+branchbooks-core = { path = "crates/branchbooks-core" }
+branchbooks-git = { path = "crates/branchbooks-git" }
+branchbooks-gnucash = { path = "crates/branchbooks-gnucash" }
+# The git engine under branchbooks-git: pure Rust, so no git program on Android or Windows.
+# Exact: a young library (0.5), so every update is a reviewed bump.
+grit-lib = "=0.5.29"
+# Money: exact 96-bit decimals with 28 significant digits.
+rust_decimal = { version = "1", default-features = false, features = ["std"] }
+# Maps that iterate in insertion order (options, accounts, balances).
+indexmap = "2"
+# Randomized tests: the write-incremental check (dev only).
+proptest = { version = "1", default-features = false, features = ["std"] }
+# The CLI: the local date for --today, JSON for check --json (keys in insertion order) and Op-Ids
+# for write commands.
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+uuid = { version = "1", features = ["v4"] }
+# Book ids from names (NFKD), in the git store.
+unicode-normalization = "0.1"
+# The app runs clone and sync off the UI thread on the runtime Dioxus already has.
+tokio = "1"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+# Left in by accident.
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+# From pedantic, the ones that find real mistakes or read better. The rest of it is mostly noise
+# here, such as must_use_candidate (113 sites).
+comparison_chain = "warn"
+doc_markdown = "warn"
+explicit_iter_loop = "warn"
+if_not_else = "warn"
+ignored_unit_patterns = "warn"
+implicit_clone = "warn"
+items_after_statements = "warn"
+match_same_arms = "warn"
+range_plus_one = "warn"
+redundant_closure_for_method_calls = "warn"
+semicolon_if_nothing_returned = "warn"
+single_match_else = "warn"
+stable_sort_primitive = "warn"
+uninlined_format_args = "warn"
+unnested_or_patterns = "warn"
+unused_self = "warn"
+
+[profile.release]
+# Three times faster to build than full LTO with one codegen unit, for 13% more exe.
+lto = "thin"

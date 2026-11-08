@@ -1,0 +1,86 @@
+# fixtures/scenarios/ex06-credit-overspend.bean
+files "fixtures/scenarios/ex06-credit-overspend.bean" "fixtures/examples-1-5.bean"
+entry open "fixtures/examples-1-5.bean" 4 5 10000004 2026-10-01
+entry open "fixtures/examples-1-5.bean" 6 7 10000006 2026-10-01
+entry open "fixtures/examples-1-5.bean" 8 9 10000008 2026-10-01
+entry open "fixtures/examples-1-5.bean" 10 10 10000010 2026-10-01
+entry open "fixtures/examples-1-5.bean" 11 11 10000011 2026-10-01
+entry open "fixtures/examples-1-5.bean" 12 13 10000012 2026-10-01
+entry open "fixtures/examples-1-5.bean" 14 15 10000014 2026-10-01
+entry open "fixtures/examples-1-5.bean" 16 16 10000016 2026-10-01
+entry open "fixtures/examples-1-5.bean" 17 17 10000017 2026-10-01
+entry open "fixtures/examples-1-5.bean" 18 18 10000018 2026-10-01
+entry open "fixtures/examples-1-5.bean" 19 19 10000019 2026-10-01
+entry txn "fixtures/examples-1-5.bean" 22 26 10000022 2026-10-15
+  posting Income:Salary 23 -5000 USD 2
+  posting Expenses:Tax:Federal 24 800 USD 2
+  posting Expenses:Benefits:401k 25 300 USD 2
+  posting Assets:Checking 26 3900 USD 2
+entry custom "fixtures/examples-1-5.bean" 29 29 10000029 2026-10-15
+entry custom "fixtures/examples-1-5.bean" 30 30 10000030 2026-10-15
+entry custom "fixtures/examples-1-5.bean" 31 31 10000031 2026-10-15
+entry txn "fixtures/examples-1-5.bean" 34 36 10000034 2026-10-16
+  posting Expenses:Food:Groceries 35 120 USD 2
+  posting Assets:Checking 36 -120 USD 2
+entry txn "fixtures/examples-1-5.bean" 38 40 10000038 2026-10-17
+  posting Expenses:Food:Dining 39 45 USD 2
+  posting Liabilities:CreditCard 40 -45 USD 2
+entry txn "fixtures/examples-1-5.bean" 42 44 10000042 2026-10-28
+  posting Liabilities:CreditCard 43 45 USD 2
+  posting Assets:Checking 44 -45 USD 2
+entry txn "fixtures/examples-1-5.bean" 47 49 10000047 2026-10-30
+  posting Expenses:Food:Groceries 48 500 USD 2
+  posting Assets:Checking 49 -500 USD 2
+entry custom "fixtures/examples-1-5.bean" 52 52 10000052 2026-11-02
+entry txn "fixtures/examples-1-5.bean" 54 57 10000054 2026-11-02
+  posting Assets:Brokerage 56 500 USD 2
+  posting Assets:Checking 57 -500 USD 2
+entry txn "fixtures/scenarios/ex06-credit-overspend.bean" 4 6 4 2026-11-05
+  posting Expenses:Food:Dining 5 200 USD 2
+  posting Liabilities:CreditCard 6 -200 USD 2
+balance Income:Salary USD -5000
+balance Expenses:Tax:Federal USD 800
+balance Expenses:Benefits:401k USD 300
+balance Assets:Checking USD 2735
+balance Expenses:Food:Groceries USD 620
+balance Expenses:Food:Dining USD 245
+balance Liabilities:CreditCard USD -200
+balance Assets:Brokerage USD 500
+book-balance Income:Salary USD -5000
+book-balance Expenses:Tax:Federal USD 800
+book-balance Expenses:Benefits:401k USD 300
+book-balance Assets:Checking USD 2735
+book-balance Expenses:Food:Groceries USD 620
+book-balance Expenses:Food:Dining USD 245
+book-balance Liabilities:CreditCard USD -200
+book-balance Assets:Brokerage USD 500
+income 5000 expenses 1965 net 3035
+  line Income:Salary 5000
+  line Expenses:Benefits:401k 300
+  line Expenses:Food:Dining 245
+  line Expenses:Food:Groceries 620
+  line Expenses:Tax:Federal 800
+assets 3235 liabilities 200 equity 0 net-worth 3035
+  line Assets:Brokerage 500
+  line Assets:Checking 2735
+  line Liabilities:CreditCard 200
+month 2026-10 USD today 2026-10-01 unassigned 1100 future 500 cash 3235
+  category Expenses:Food:Dining 0 200 0 -45 155 0 0
+  category Expenses:Food:Groceries 0 600 0 -620 -20 20 0
+  category Expenses:Housing:Rent 0 1500 0 0 1500 0 0
+  category Expenses:Savings:Investing 0 0 0 0 0 0 0
+  card Liabilities:CreditCard 0 0 0
+month 2026-11 USD today 2026-11-01 unassigned 1080 future 0 cash 2735
+  category Expenses:Food:Dining 155 0 0 -200 -45 0 45
+  category Expenses:Food:Groceries 0 0 0 0 0 0 0
+  category Expenses:Housing:Rent 1500 0 0 0 1500 0 0
+  category Expenses:Savings:Investing 0 500 0 -500 0 0 0
+  card Liabilities:CreditCard 155 200 0
+    waiting Expenses:Food:Dining 45
+month 2026-12 USD today 2026-12-01 unassigned 1035 future 0 cash 2735
+  category Expenses:Food:Dining 0 0 0 0 0 0 0
+  category Expenses:Food:Groceries 0 0 0 0 0 0 0
+  category Expenses:Housing:Rent 1500 0 0 0 1500 0 0
+  category Expenses:Savings:Investing 0 0 0 0 0 0 0
+  card Liabilities:CreditCard 200 200 0
+unassigned-at 2026-12-15 1035

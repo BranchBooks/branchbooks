@@ -1,0 +1,10 @@
+2025-12-01 * "Opening balance"
+  Assets:Checking            1,250.00 USD
+  Equity:Opening-Balances
+
+2025-12-01 custom "envelope-assign" Expenses:Housing:Rent 1000.00 USD
+2025-12-02 custom "envelope-assign" Expenses:Food:Groceries 250.00 USD
+
+2025-12-20 * "Market" #food
+  Expenses:Food:Groceries      80.25 USD
+  Liabilities:Visa

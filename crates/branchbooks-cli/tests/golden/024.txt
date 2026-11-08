@@ -1,0 +1,10 @@
+["check","fixtures/multifile/main.beancount"]
+--- exit 0
+--- stdout
+Assets:Checking                                 2169.75 USD
+Equity:Opening-Balances                           -1250 USD
+Expenses:Food:Groceries                           80.25 USD
+Expenses:Housing:Rent                              1000 USD
+Income:Salary                                     -2000 USD
+Liabilities:Visa                                      0 USD
+--- stderr

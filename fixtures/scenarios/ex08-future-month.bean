@@ -1,0 +1,5 @@
+; Example 8: an assignment dated in a future month, entered on Nov 3.
+include "../examples-1-5.bean"
+
+2026-12-01 custom "envelope-assign" Expenses:Housing:Rent 300.00 USD
+  entered: 2026-11-03

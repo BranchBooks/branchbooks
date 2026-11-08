@@ -1,0 +1,3 @@
+# The C runtime inside the exe, so the app needs no Visual C++ Redistributable on the person's PC.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

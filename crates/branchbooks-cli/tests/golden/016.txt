@@ -1,0 +1,8 @@
+["check","fixtures/errors/unbalanced.bean"]
+--- exit 1
+--- stdout
+<repo>/fixtures/errors/unbalanced.bean:5: unbalanced: Transaction does not balance: (0.01 USD)
+<repo>/fixtures/errors/unbalanced.bean:13: unbalanced: Transaction does not balance: (1 USD)
+Assets:Checking                                     -30 USD
+Expenses:Food                                    31.014 USD
+--- stderr

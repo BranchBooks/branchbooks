@@ -1,0 +1,13 @@
+2026-01-01 * "Landlord" "January rent" ^rent-2026-01
+  Expenses:Housing:Rent      1000.00 USD
+  Assets:Checking
+
+2026-01-05 * "Visa" "Card payment"
+  Liabilities:Visa             80.25 USD
+  Assets:Checking             -80.25 USD
+
+2026-01-15 * "Employer" "Paycheck"
+  receipt: "synthetic"
+  Income:Salary             -2000.00 USD
+  Assets:Checking            2000.00 USD
+    memo: "posting metadata"

@@ -1,0 +1,27 @@
+option "operating_currency" "USD"
+2026-01-01 open Assets:Checking USD
+2026-02-01 open Expenses:Food USD
+2026-01-01 open Expenses:Closed USD
+2026-03-01 close Expenses:Closed
+
+2026-01-05 * "Before open"
+  Expenses:Food      10.00 USD
+  Assets:Checking
+
+2026-02-05 * "Never opened"
+  Expenses:Nowhere   10.00 USD
+  Assets:Checking
+
+2026-03-01 * "On the close date"
+  Expenses:Closed    1.00 USD
+  Assets:Checking
+
+2026-03-02 * "After close"
+  Expenses:Closed    2.00 USD
+  Assets:Checking
+
+2026-02-10 custom "envelope-assign" Expenses:Unopened 5.00 USD
+
+2026-02-11 * "Wrong currency"
+  Expenses:Food      5.00 EUR
+  Assets:Checking   -5.00 EUR

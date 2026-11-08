@@ -1,0 +1,6 @@
+; Example 9: after Example 6, a Nov 6 cash purchase leaves Dining 30 cash and 45 credit overspent.
+include "ex06-credit-overspend.bean"
+
+2026-11-06 * "Takeout"
+  Expenses:Food:Dining       30.00 USD
+  Assets:Checking           -30.00 USD

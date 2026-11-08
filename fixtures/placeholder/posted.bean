@@ -1,0 +1,22 @@
+; A placeholder groups its sub-accounts. Beancount has no such idea, so this stays a valid ledger,
+; and a posting to a placeholder by hand counts in both: BranchBooks flags it in the budget instead.
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Checking USD
+  budget: "on"
+2026-01-01 open Expenses:Food
+  budget: "placeholder"
+2026-01-01 open Expenses:Food:Groceries
+2026-01-01 open Income:Salary
+
+2026-01-02 * "Pay"
+  Assets:Checking  1000.00 USD
+  Income:Salary
+
+2026-01-03 * "In its sub-account"
+  Expenses:Food:Groceries  40.00 USD
+  Assets:Checking
+
+2026-01-04 * "On the placeholder, by hand"
+  Expenses:Food  5.00 USD
+  Assets:Checking

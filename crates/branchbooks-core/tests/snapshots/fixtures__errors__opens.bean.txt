@@ -1,0 +1,14 @@
+# fixtures/errors/opens.bean
+files "fixtures/errors/opens.bean"
+entry open "fixtures/errors/opens.bean" 1 1 1 2026-01-01
+entry open "fixtures/errors/opens.bean" 2 2 2 2026-01-01
+entry close "fixtures/errors/opens.bean" 3 3 3 2026-02-01
+error "fixtures/errors/opens.bean" 2 duplicate-open "Duplicate open directive for Assets:Checking"
+error "fixtures/errors/opens.bean" 3 close-unopened "Unopened account Assets:Savings is being closed"
+income 0 expenses 0 net 0
+assets 0 liabilities 0 equity 0 net-worth 0
+budget-diagnostic "fixtures/errors/opens.bean" 1 budget-flag "Assets:Checking has no budget flag; treated as off-budget"
+month 2026-01 USD today 2026-01-01 unassigned 0 future 0 cash 0
+month 2026-02 USD today 2026-02-01 unassigned 0 future 0 cash 0
+month 2026-03 USD today 2026-03-01 unassigned 0 future 0 cash 0
+unassigned-at 2026-03-15 0
