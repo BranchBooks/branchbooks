@@ -1,6 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
+  "semanticCommits": "enabled",
+  "platformCommit": "enabled",
   "assignees": ["JoshuaCrump"],
   "labels": ["dependencies"],
   "dependencyDashboardLabels": ["dependencies"],
