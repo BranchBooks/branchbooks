@@ -28,7 +28,7 @@ impl Sim {
         }
     }
     fn tx(&mut self, cash: i64, card: i64, spend: Option<(&str, i64, bool)>, payment: i64) {
-        let card_delta = if card != 0 {
+        let liability_delta = if card != 0 {
             vec![(CARD.to_owned(), d(card))]
         } else {
             vec![]
@@ -37,7 +37,7 @@ impl Sim {
             .map(|(n, x, on_card)| Spend {
                 category: n.to_owned(),
                 amount: d(x),
-                card: on_card.then(|| CARD.to_owned()),
+                liability: on_card.then(|| CARD.to_owned()),
             })
             .into_iter()
             .collect();
@@ -49,7 +49,7 @@ impl Sim {
         self.s.apply_tx(
             &TxEffect {
                 cash: d(cash),
-                card_delta,
+                liability_delta,
                 spends,
                 payments,
                 flags: vec![],
@@ -117,8 +117,8 @@ impl Sim {
         let in_categories: Decimal = names.iter().map(|n| self.s.split(n).credit).sum();
         (self.pay() + in_categories - self.owed().max(ZERO)).max(ZERO)
     }
-    fn assign_card(&mut self, x: i64) {
-        self.s.assign_card(CARD, d(x), None);
+    fn assign_liability(&mut self, x: i64) {
+        self.s.assign_liability(CARD, d(x), None);
     }
     /// sim4 `underfunded`: what the card owes beyond its envelope and the overspending still in
     /// categories (rule 7).
@@ -386,7 +386,7 @@ fn ex18_set_aside_twice_is_overfunded() {
     let mut a = base();
     a.spend_card("Dining", 200);
     eq(a.overfunded(), 0);
-    a.assign_card(45);
+    a.assign_liability(45);
     eq(a.pay(), 200);
     eq(a.underfunded(), 0);
     eq(a.overfunded(), 45);
@@ -395,7 +395,7 @@ fn ex18_set_aside_twice_is_overfunded() {
     eq(a.pay(), 245);
     eq(a.overfunded(), 45);
     eq(a.unassigned(), 990);
-    a.assign_card(-45);
+    a.assign_liability(-45);
     eq(a.pay(), 200);
     eq(a.overfunded(), 0);
     eq(a.unassigned(), 1035);

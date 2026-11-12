@@ -76,7 +76,7 @@ pub fn render_budget(v: &MonthView) -> String {
         .categories
         .iter()
         .map(|c| c.category.chars().count())
-        .chain(v.cards.iter().map(|c| c.card.chars().count()))
+        .chain(v.liabilities.iter().map(|c| c.account.chars().count()))
         .fold(8, usize::max);
     let num = |d: Decimal| pad(&fmt(d, 2), 12, true);
     // The Target column appears only for ledgers with target budgeting.
@@ -131,19 +131,19 @@ pub fn render_budget(v: &MonthView) -> String {
             over
         ));
     }
-    if !v.cards.is_empty() {
+    if !v.liabilities.is_empty() {
         out.push(String::new());
         out.push(format!(
             "{} {} {} {}",
-            pad("Card payment envelope", name_w, false),
+            pad("Liability payment envelope", name_w, false),
             pad("Available", 12, true),
             pad("Owed", 12, true),
             pad("Underfunded", 12, true)
         ));
-        for c in &v.cards {
+        for c in &v.liabilities {
             out.push(format!(
                 "{} {} {} {}",
-                pad(&c.card, name_w, false),
+                pad(&c.account, name_w, false),
                 num(c.available),
                 num(c.owed),
                 num(c.underfunded)

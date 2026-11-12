@@ -45,7 +45,7 @@ income 0 expenses 23 net -23
 assets -23 liabilities 0 equity 0 net-worth -23
   line Assets:Checking -23
 budget-diagnostic "fixtures/errors/accounts.bean" 2 budget-flag "Assets:Checking has no budget flag; treated as off-budget"
-budget-diagnostic "fixtures/errors/accounts.bean" 23 envelope "Expenses:Unopened is not a budgeted category or card"
+budget-diagnostic "fixtures/errors/accounts.bean" 23 envelope "Expenses:Unopened is not a budgeted category or liability"
 month 2026-01 USD today 2026-01-01 unassigned 0 future 0 cash 0
   category Expenses:Closed 0 0 0 0 0 0 0
   category Expenses:Food 0 0 0 0 0 0 0

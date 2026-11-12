@@ -9,7 +9,7 @@ Expenses:Food:Groceries            0.00         0.00         0.00         0.00  
 Expenses:Housing:Rent          1,500.00         0.00         0.00         0.00     1,500.00
 Expenses:Savings:Investing         0.00       500.00         0.00      -500.00         0.00
 
-Card payment envelope         Available         Owed  Underfunded
+Liability payment envelope    Available         Owed  Underfunded
 Liabilities:CreditCard           165.00       200.00         0.00
   35.00 overspent in Expenses:Food:Dining: cover it there
 

@@ -147,7 +147,7 @@ assets -1288.5 liabilities 0 equity 0 net-worth -1288.5
 budget-diagnostic "crates/branchbooks-core/tests/snapshots/edges/inner.bean" 2 budget-flag "Assets:Inner has no budget flag; treated as off-budget"
 budget-diagnostic "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 31 budget-flag "Liabilities:Card-1 has no budget flag; treated as off-budget"
 budget-diagnostic "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 32 budget-flag "Assets:Cash has no budget flag; treated as off-budget"
-budget-diagnostic "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 111 envelope "Expenses:Unopened is not a budgeted category or card"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/syntax-edges.bean" 111 envelope "Expenses:Unopened is not a budgeted category or liability"
 month 2024-02 USD today 2024-02-01 unassigned -600 future 600 cash 0
   category Expenses:Food 0 0 0 0 0 0 0
   category Expenses:Rent 0 0 0 0 0 0 0

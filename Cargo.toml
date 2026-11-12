@@ -63,6 +63,10 @@ uninlined_format_args = "warn"
 unnested_or_patterns = "warn"
 unused_self = "warn"
 
+# No debug info for dependencies in dev builds: most of target/'s size, and rarely stepped into.
+[profile.dev.package."*"]
+debug = false
+
 [profile.release]
 # Three times faster to build than full LTO with one codegen unit, for 13% more exe.
 lto = "thin"

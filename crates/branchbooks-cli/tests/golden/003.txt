@@ -16,4 +16,4 @@ error: <repo>/fixtures/errors/accounts.bean:19: Invalid reference to inactive ac
 error: <repo>/fixtures/errors/accounts.bean:25: Invalid currency EUR for account 'Assets:Checking'
 error: <repo>/fixtures/errors/accounts.bean:25: Invalid currency EUR for account 'Expenses:Food'
 budget: <repo>/fixtures/errors/accounts.bean:2: Assets:Checking has no budget flag; treated as off-budget
-budget: <repo>/fixtures/errors/accounts.bean:23: Expenses:Unopened is not a budgeted category or card
+budget: <repo>/fixtures/errors/accounts.bean:23: Expenses:Unopened is not a budgeted category or liability

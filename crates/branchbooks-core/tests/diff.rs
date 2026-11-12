@@ -267,7 +267,10 @@ fn an_invalid_target_is_refused_and_nothing_is_written() {
     match ws.apply(&op, None, 0) {
         Err(ApplyError::Operation(e)) => {
             assert_eq!(e.code, OperationErrorCode::Invalid);
-            assert_eq!(e.message, "Income:Salary is not a budgeted category");
+            assert_eq!(
+                e.message,
+                "Income:Salary is not a budgeted category or liability"
+            );
         }
         other => panic!("expected invalid, got {other:?}"),
     }

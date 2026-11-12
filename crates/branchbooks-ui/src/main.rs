@@ -5,10 +5,8 @@
 #[cfg(feature = "desktop")]
 fn main() {
     use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
-    // First: Setup and updates run the exe with hook arguments, and this answers them and exits.
-    #[cfg(windows)]
-    velopack::VelopackApp::build().run();
     branchbooks_ui::keep_crash_log();
+    branchbooks_ui::store::move_out_of_roaming();
     let window = WindowBuilder::new()
         .with_title("BranchBooks")
         .with_inner_size(LogicalSize::new(1200.0, 800.0));

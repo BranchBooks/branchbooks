@@ -29,8 +29,8 @@ fn d8_a_card_payment_and_a_fee_in_one_transaction_match_two_transactions() {
     for extra in [one, two] {
         let v = book_of(&extra).budget(m("2026-11"), None);
         eq(v.unassigned, 1080);
-        eq(v.cards[0].available, 0);
-        eq(v.cards[0].owed, 0);
+        eq(v.liabilities[0].available, 0);
+        eq(v.liabilities[0].owed, 0);
     }
 }
 
@@ -41,7 +41,7 @@ fn d8_a_balance_transfer_moves_the_set_aside_money_to_the_other_card() {
     );
     let v = book_of(&extra).budget(m("2026-11"), None);
     eq(v.unassigned, 1080);
-    let card = |name: &str| v.cards.iter().find(|c| c.card == name).unwrap();
+    let card = |name: &str| v.liabilities.iter().find(|c| c.account == name).unwrap();
     eq(card("Liabilities:CreditCard").available, 0);
     eq(card("Liabilities:CreditCard").owed, 0);
     eq(card("Liabilities:Other").available, 60);
@@ -55,8 +55,8 @@ fn d8_a_cash_advance_is_not_a_transfer() {
         "2026-11-06 * \"Advance\"\n  Assets:Checking  100.00 USD\n  Liabilities:CreditCard\n";
     let v = book_of(extra).budget(m("2026-11"), None);
     eq(v.unassigned, 1180);
-    eq(v.cards[0].available, 0);
-    eq(v.cards[0].underfunded, 100);
+    eq(v.liabilities[0].available, 0);
+    eq(v.liabilities[0].underfunded, 100);
 }
 
 // 1. Rule 15 warns only when the correction is dated after the last spending.
@@ -173,7 +173,7 @@ fn split(amount: &str, cash: &str, card_amt: &str) -> String {
 fn d4_funded_purchase_card_share_moves_to_the_payment_envelope() {
     let v = book_of(&split("100.00", "60.00", "40.00")).budget(m("2026-11"), None);
     eq(cat(&v, "Dining").available, 55);
-    eq(card(&v).available, 40);
+    eq(liability(&v).available, 40);
     eq(v.unassigned, 1080);
     assert_eq!(v.flags, vec![]);
 }
@@ -184,8 +184,8 @@ fn d4_overspend_cash_share_is_charged_first_so_the_overspend_is_cash() {
     eq(cat(&v, "Dining").available, -45);
     eq(cat(&v, "Dining").cash_overspent, 45);
     eq(cat(&v, "Dining").credit_overspent, 0);
-    eq(card(&v).available, 150);
-    eq(card(&v).underfunded, 0);
+    eq(liability(&v).available, 150);
+    eq(liability(&v).underfunded, 0);
 }
 
 // 6. Unassigned is computed for today, the same on every month view.

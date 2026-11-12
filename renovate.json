@@ -14,10 +14,15 @@
       "groupName": "dioxus"
     },
     {
-      "description": "Small updates in one merge request. grit-lib is the git engine, reviewed on every bump; velopack stays red until VPK_VERSION in .gitlab-ci.yml matches. Each gets its own.",
+      "description": "Small updates in one merge request. grit-lib is the git engine, reviewed on every bump, so it gets its own.",
       "matchUpdateTypes": ["minor", "patch"],
-      "matchPackageNames": ["!dioxus*", "!grit-lib", "!velopack"],
+      "matchPackageNames": ["!dioxus*", "!grit-lib"],
       "groupName": "minor and patch"
+    },
+    {
+      "description": "grit-lib releases almost daily and breaks its API on the way to 0.6, so an update waits for approval on the Dependency Dashboard and comes with a port of branchbooks-git.",
+      "matchPackageNames": ["grit-lib"],
+      "dependencyDashboardApproval": true
     },
     {
       "description": "Images in .gitlab-ci.yml stay pinned by digest.",

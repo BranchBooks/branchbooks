@@ -107,7 +107,7 @@ async fn the_budget_shows_unassigned_and_marks_overspent_envelopes() {
     // (October is the current month here).
     assert_eq!(html.matches(r#"data-testid="envelope-entry""#).count(), 3);
     assert!(html.contains("Assign 600.00 to Food:Groceries"));
-    assert!(html.contains(r#"data-card="Liabilities:CreditCard""#));
+    assert!(html.contains(r#"data-liability="Liabilities:CreditCard""#));
     assert!(html.contains("Move money") && html.contains("Set a target for Food:Dining"));
     assert!(!html.contains(r#"data-testid="read-only""#));
     std::fs::remove_dir_all(&dir).unwrap();
@@ -167,19 +167,24 @@ async fn the_budget_shows_rollover_and_card_overspending_waiting_in_its_category
         .find(r#"data-category="Expenses:Food:Dining""#)
         .unwrap()..];
     assert!(!dining[..dining.find("</tr>").unwrap()].contains("rolls over"));
-    // Rule 7: the card's 45.00 is covered in Dining, so the card offers no Cover.
-    let card = &html[html.find(r#"data-card="Liabilities:CreditCard""#).unwrap()..];
+    // Rule 7: the card's 45.00 is covered in Dining, so the card offers no "Set aside the rest".
+    let card = &html[html
+        .find(r#"data-liability="Liabilities:CreditCard""#)
+        .unwrap()..];
     assert_eq!(
         text_after(card, r#"class="waiting""#),
         "45.00 overspent in Food:Dining: cover it there"
     );
-    assert!(!html.contains("Cover CreditCard"), "{card}");
+    assert!(
+        !html.contains("Set aside the rest for CreditCard"),
+        "{card}"
+    );
     assert!(html.contains("or carries into next month on a category that rolls over"));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn a_card_holding_more_than_it_owes_is_flagged_with_a_return_button() {
+async fn a_card_holding_more_than_it_owes_is_flagged_with_a_give_back_button() {
     // Example 18: 45 set aside on the card and in Dining for the same purchase.
     let extra = "2026-11-05 * \"Dinner party\"
   Expenses:Food:Dining  200.00 USD
@@ -199,15 +204,62 @@ async fn a_card_holding_more_than_it_owes_is_flagged_with_a_return_button() {
         onsettings: None,
     })
     .await;
-    let card = &html[html.find(r#"data-card="Liabilities:CreditCard""#).unwrap()..];
+    let card = &html[html
+        .find(r#"data-liability="Liabilities:CreditCard""#)
+        .unwrap()..];
     assert_eq!(
         text_after(card, r#"class="waiting warn""#),
         "45.00 more than it owes "
     );
     assert_eq!(
-        text_after(card, r#"aria-label="Return the extra for CreditCard""#),
-        "Return 45.00"
+        text_after(card, r#"aria-label="Give back the extra for CreditCard""#),
+        "Give back 45.00"
     );
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn liabilities_show_as_loans_cards_and_cards_paid_down() {
+    // A loan (kind: "loan") and a store card, each with a monthly payment; the credit card has none.
+    let extra = "2026-10-01 open Liabilities:Car-Loan USD
+  budget: \"on\"
+  kind: \"loan\"
+2026-10-01 open Liabilities:Store-Card USD
+  budget: \"on\"
+2026-11-01 custom \"target\" Liabilities:Car-Loan 300.00 USD
+2026-11-01 custom \"target\" Liabilities:Store-Card 50.00 USD
+";
+    let (backend, dir) = book("liabilities", &format!("{SAMPLE}{extra}"));
+    let html = render(ScreenProps {
+        backend,
+        today: "2026-11-06".parse().unwrap(),
+        children: VNode::empty(),
+        onsaved: None,
+        page: Some("budget"),
+        onscenario: None,
+        reloads: 0,
+        onsettings: None,
+    })
+    .await;
+    let at = |marker: &str| html.find(marker).unwrap_or_else(|| panic!("no {marker}"));
+    let order = [
+        at("<h3>Loans</h3>"),
+        at(r#"data-liability="Liabilities:Car-Loan""#),
+        at("<h3>Credit cards</h3>"),
+        at(r#"data-liability="Liabilities:CreditCard""#),
+        at("paying down</h3>"),
+        at(r#"data-liability="Liabilities:Store-Card""#),
+    ];
+    assert!(order.windows(2).all(|w| w[0] < w[1]), "{order:?}");
+    let loan = &html[at(r#"data-liability="Liabilities:Car-Loan""#)..];
+    assert_eq!(
+        text_after(loan, r#"class="payment-plan small""#).trim(),
+        "300.00 a month"
+    );
+    let card = &html[at(r#"data-liability="Liabilities:CreditCard""#)..];
+    assert!(card[..card.find("</tr>").unwrap()].contains("Pay it down monthly instead"));
+    let store = &html[at(r#"data-liability="Liabilities:Store-Card""#)..];
+    assert!(store[..store.find("</tr>").unwrap()].contains("Pay in full instead"));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

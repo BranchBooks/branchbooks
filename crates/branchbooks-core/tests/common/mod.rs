@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use branchbooks_core::book::Book;
-use branchbooks_core::budget::{CardRow, CategoryRow, MonthView};
+use branchbooks_core::budget::{CategoryRow, LiabilityRow, MonthView};
 use branchbooks_core::date::{Date, Month};
 use branchbooks_core::ledger::balance_of;
 use branchbooks_core::loader::{FileSource, MemorySource};
@@ -79,13 +79,14 @@ pub fn cat<'a>(v: &'a MonthView, suffix: &str) -> &'a CategoryRow {
 }
 
 #[track_caller]
-pub fn card(v: &MonthView) -> &CardRow {
-    card_named(v, "Liabilities:CreditCard")
+pub fn liability(v: &MonthView) -> &LiabilityRow {
+    liability_named(v, "Liabilities:CreditCard")
 }
 
 #[track_caller]
-pub fn card_named<'a>(v: &'a MonthView, name: &str) -> &'a CardRow {
-    v.card(name).unwrap_or_else(|| panic!("no card {name}"))
+pub fn liability_named<'a>(v: &'a MonthView, name: &str) -> &'a LiabilityRow {
+    v.liability(name)
+        .unwrap_or_else(|| panic!("no liability {name}"))
 }
 
 pub fn dec(s: &str) -> Decimal {

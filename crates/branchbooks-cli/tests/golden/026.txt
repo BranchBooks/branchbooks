@@ -8,7 +8,7 @@ Expenses:Food:Groceries       169.75         0.00         0.00         0.00     
 Expenses:Housing:Rent           0.00         0.00         0.00         0.00         0.00
 Expenses:Old:Category           0.00         0.00         0.00         0.00         0.00
 
-Card payment envelope      Available         Owed  Underfunded
+Liability payment envelope    Available         Owed  Underfunded
 Liabilities:Visa                0.00         0.00         0.00
 
 Assigned to future months         0.00

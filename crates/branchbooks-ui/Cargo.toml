@@ -24,8 +24,10 @@ tokio = { workspace = true, features = ["rt", "time"] }
 [target.'cfg(windows)'.dependencies]
 keyring-core = "1.0.1"
 windows-native-keyring-store = "1.1.0"
-# Install and update on Windows. VPK_VERSION in .gitlab-ci.yml must be the same version.
-velopack = "=1.3.39-g8d2844f"
+# Updates on Windows (src/update.rs): fetch the feed and the new installer, check its SHA-256. Both
+# already come with grit-lib, with these features.
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+sha2 = "0.11"
 
 [build-dependencies]
 # The exe's icon (build.rs), used only when building the Windows app.

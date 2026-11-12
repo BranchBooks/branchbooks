@@ -8,7 +8,11 @@ them: `crates/branchbooks-core/tests/`. The reasoning behind the less obvious on
 
 Budget flags are metadata on `open` directives:
 
-- `budget: "on"` or `budget: "off"` on asset and liability accounts.
+- `budget: "on"` or `budget: "off"` on asset and liability accounts. A liability on budget, a credit
+  card or a loan, has a payment envelope. The rules say "card" for any of them.
+- `budget-from: 2026-11-11` (a date) with `budget: "on"` on a liability: it is off-budget before that
+  date, and what it owes then is debt from before the budget. Switching an existing loan on writes it,
+  so earlier months keep their numbers.
 - `budget: "excluded"` on income and expense accounts that never touch an envelope. A category with
   no flag is budgeted.
 - `budget: "placeholder"` on any account that only groups its sub-accounts. It has no envelope and
@@ -23,6 +27,12 @@ past months (rule 6a):
 ```
 
 ## Rules
+
+A liability on budget is paid in one of two ways. **In full**, with no target, is how a credit card is
+paid: its Underfunded is what it owes beyond its payment envelope and the credit overspending waiting in
+categories (rule 7). **Monthly**, with a monthly target on the liability (T7), is how a loan, or a card
+being paid down, is paid: the target sets the payment aside, and Underfunded is what the target could
+not fund this month. `kind: "loan"` or `kind: "card"` on the `open` only says how the app groups it.
 
 Terms: Available is an envelope's balance. Unassigned is money not yet assigned. Activity is spending
 (negative) or refunds (positive).
@@ -75,10 +85,11 @@ it is in.
   - Monthly with `reset`: refill up to the amount, `max(0, amount − put in)`.
   - Monthly with `carry-shortfall`: the amount plus what earlier months failed to fund, less what was assigned or moved in M.
   - One-time: `(amount − carried in) ÷ months left including M`, rounded down to the amount's decimals, less what was assigned or moved in M. The due month takes the remainder. Nothing is allocated after the due month or once the target is met.
+  - A liability's payment envelope (monthly only): `amount + (with carry-shortfall) what earlier months failed to fund − assigned in M`. A payment is due every month, so what is carried in is last month's money and does not count toward this month's.
 - **T4** Mixed budgets: a category without a target is budgeted by `envelope-assign` alone. A category with a target still takes assignments and moves, and they count toward it through "put in".
 - **T5** Targets are funded at the end of each month, after the month's own entries. They are funded in order of due month (monthly targets are due this month), then category name. Funding draws only on the money on hand that month. Money assigned to later months is not counted, because a month must depend only on itself and earlier months. What cannot be funded is the target's shortfall for the month, reported as a shortfall alert. Funding covers a cash overspend first, as an assignment does (rule 5).
 - **T6** Unassigned "now" includes target allocations up to today's month. Later months are projections. Since funding ignores later assignments (T5), targets plus a future-dated assignment can leave Unassigned negative, which shows the over-commitment.
-- **T7** A target on something that is not a budgeted category, or with bad fields, is flagged (`envelope`) and changes nothing. The write path refuses it.
+- **T7** A target names a budgeted category, or a liability on budget for its monthly payment, which takes no `due:`. Anything else, or bad fields, is flagged (`envelope`) and changes nothing. The write path refuses it.
 
 ## Reconcile
 
@@ -115,6 +126,7 @@ State after Example 5 (the base state for Examples 6 to 12): Checking 2,735.00, 
 | 16 | Dining set to `rollover` on Nov 1, Example 9 uncorrected | Dec 1: Dining -75.00 (30 cash, 45 credit carried), payment envelope 155.00, card owes 200.00, underfunded 0.00 with 45.00 named in Dining, Unassigned 1,080.00. Assign 40 in December: Dining -35.00 (all credit), payment envelope 165.00, Unassigned 1,040.00 |
 | 18 | After Example 6, assign 45 to the card on Nov 6 | Payment envelope 200.00, owes 200.00, underfunded 0, overfunded 45.00 (Dining still waits for 45). Then assign 45 to Dining: payment envelope 245.00, overfunded 45.00, Unassigned 990.00. Return 45 from the card: payment envelope 200.00, overfunded 0, Unassigned 1,035.00 |
 | 17 | Example 15, set to `reset` on Nov 15, nothing assigned | November: Groceries -20.00, Unassigned 1,100.00. Dec 1: Groceries 0.00, Unassigned 1,080.00 |
+| 19 | A car loan on budget owing 10,000.00 from Nov 1, a 1,000.00 paycheck, a 300.00 monthly target on the loan and a 25.00 one on `Expenses:Loan-Interest`; Nov 25 payment of 325.00 from Checking, 300.00 to the loan and 25.00 to Loan-Interest | November: payment envelope 0.00 (300.00 from the target, 300.00 paid), owes 9,700.00, underfunded 0.00, Loan-Interest 0.00, Unassigned 675.00. December sets 300.00 aside again. With a 100.00 paycheck instead: Loan-Interest takes 25.00 first (name order), the loan 75.00, underfunded 225.00, Unassigned 0.00. Ending the target on Dec 1: underfunded 9,700.00, as for a card paid in full |
 | 14 | Reports on the Examples 1 to 5 ledger as of Nov 2 | Income 5,000.00. Expenses 1,765.00 (tax 800, 401k 300, groceries 620, dining 45), net 3,235.00. Assets 3,235.00 (checking 2,735, brokerage 500), liabilities 0.00, net worth 3,235.00. October budget vs actual: Rent assigned 1,500 / activity 0 / Available 1,500. Groceries 600 / -620 / -20. Dining 200 / -45 / 155 |
 
 Purchase order does not matter: from 100.00 Available, a 60.00 cash purchase and a 70.00 card purchase

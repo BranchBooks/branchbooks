@@ -25,7 +25,7 @@ https://gitlab.com/branchbooks/branchbooks (GitHub has a read-only mirror).
   conflict or when a merge would add ledger errors.
 - **Canonical format: Beancount text.** Budget entries and targets are `custom` directives, so files stay valid
   Beancount. Storage: one file per year, with `main.beancount` holding options and account open/close.
-- **Windows:** `x86_64-pc-windows-msvc`, one exe, installed and updated with Velopack from GitLab releases, read through
+- **Windows:** `x86_64-pc-windows-msvc`, one exe, installed per user with Inno Setup and updated from GitLab releases, read through
   `branchbooks.dev/updates` so a host move needs no new app.
 - **One oracle per question.** Real Beancount 3.2.3 for ledger behaviour; the Python models in `reference/` for
   budget rules. Add a new external check only when it answers a question no current check answers.

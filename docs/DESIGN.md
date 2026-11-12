@@ -59,7 +59,26 @@ such as debt from before the budget. It carries forward like the rest of the env
 assignment takes money back, but not below zero. Moves to or from a card are not allowed. A credit
 overspend this month is covered in its category, not on the card: Underfunded leaves it out and names the
 category (rule 7). Covering it on the card as well would fund the same purchase twice, and the card
-is then flagged overfunded (rule 7a), with a Return button that lowers its Set aside.
+is then flagged overfunded (rule 7a), with a "Give back" button that lowers its Set aside.
+
+**7b. A liability is paid in full or monthly.** A card and a loan are the same thing to the budget: a
+liability on budget, with a payment envelope (in the code, `AccountRole::Liability`). With no target it
+is paid in full, as a credit card is, and Underfunded is what it owes beyond what is set aside. A
+monthly target on it (T7) is its monthly payment: the target sets the payment aside from Unassigned, and
+Underfunded is only what this month's payment is short. That is what a loan needs, since its whole
+balance is never due at once, and a card being paid down works the same way.
+
+- **Why the same role.** Purchases, payments, refunds and balance transfers already work for any
+  liability on budget, so a second role would duplicate them. Only Underfunded's meaning depends on how it
+  is paid, and the target says that.
+- **Why every month.** The payment target sets its amount aside each month, less what was assigned by
+  hand, rather than refilling to the amount: a payment is due every month, and money still in the
+  envelope is last month's, not yet paid.
+- **Interest is its own category.** A payment's interest posts to an expense category with its own
+  target. The app's add row splits it off and remembers the interest category from the last payment.
+- **Switching an off-budget loan on** applies from a date: the app writes `budget-from:` with today's
+  date on its open. Before that date it is off-budget, so its old payments keep their rule 8 `category:`
+  lines and past months keep their numbers. What it owes at the switch is debt from before the budget.
 
 **8. Card payments count whatever else the transaction holds.** Money arriving on a card that no refund
 used is a payment. In a balance transfer the amount moves to the charged card's envelope and Unassigned
@@ -90,7 +109,7 @@ Actual Budget's, so overspending behaves as someone used to Actual expects.
 - **A category posting with no on-budget account** (an expense paid from the brokerage) is ignored by the
   budget and flagged `unfunded`.
 - **Rule 8 and paychecks.** A paycheck paying into Checking and a 401k from income moves no on-budget money,
-  so it is not flagged. A mortgage payment from Checking is, for its principal and escrow.
+  so it is not flagged. A payment from Checking to an off-budget mortgage is, for its principal and escrow; a loan on budget is paid from its payment envelope instead (decision 7b).
 - **Rule 13.** An account flagged `on` whose open currencies exclude the budget currency is off-budget.
   Postings in other currencies on an on-budget account are ignored by the budget.
 - **What the CLI shows.** Available = Carried + Assigned + Moved + Activity.
@@ -175,11 +194,11 @@ text edit, so everything outside the edited lines stays byte for byte.
   (Assets stays Assets), and a name already taken is refused. Text in a narration that is exactly the account name is
   renamed too.
 
-- **New accounts** are added by kind, which sets the root and the budget flag (a credit card is `Liabilities`, on budget), and
+- **New accounts** are added by kind, which sets the root and the budget flag (a credit card or a loan is `Liabilities`, on budget, with `kind: "card"` or `kind: "loan"` so the budget groups it), and
   named in words: "Chase Visa" is written `Liabilities:Chase-Visa`, as the account list shows hyphens as spaces. A balance today
   is a transaction against `Equity:Opening-Balances`, opened the first time it is needed. The open, that open and the
   transaction are separate commits, in that order, so a refused balance leaves the account opened and says so. An opening balance
-  on cash arrives as money to assign (rule 3); on a card, it is owed and underfunded (decision 7 covers paying it down).
+  on cash arrives as money to assign (rule 3); on a card, it is owed and underfunded (decision 7 covers paying it down); on a loan, a monthly payment target sets each payment aside (decision 7b).
 
 ### Book format
 
@@ -279,13 +298,13 @@ A close is an annotated tag, `close/<YYYY-MM>`, on the book's latest version. Re
 
 ## The Windows app
 
-- **Books** are folders in `%APPDATA%\BranchBooks\books`, named by id, with the book's name in the repository's `description` file. Deleting
+- **Books** are folders in `%LOCALAPPDATA%\BranchBooks Data\books` (a dev build: `%LOCALAPPDATA%\BranchBooks-dev\books`; either: `BRANCHBOOKS_BOOKS` when set). A release moves `%APPDATA%\BranchBooks` there once at startup, a rename, and keeps using it where it is when that fails. They are named by id, with the book's name in the repository's `description` file. Deleting
   moves a book to `.deleted`, to restore by hand.
 - **More than one device.** A device with no books opens on a welcome screen that opens a book from git or starts a new one; there is
   no sample book until one is asked for. Opening from git clones the remote and keeps its token, so each device syncs the same book.
   The name is this device's (the repository's when left empty), since `description` never syncs.
 - **Authors.** Commits use the book's own git identity, then the global one, then `USERNAME@COMPUTERNAME`.
-- **Crashes.** A release build has no console, so panics go to `%LOCALAPPDATA%\BranchBooks\crash.log`. Ledger text can appear in a panic's
+- **Crashes.** A release build has no console, so panics go to `%LOCALAPPDATA%\<exe name>\crash.log`, beside WebView2's data. Ledger text can appear in a panic's
   message; the file stays on the device.
 - **One exe.** `x86_64-pc-windows-msvc`, with the C runtime and WebView2's loader linked in. Release builds use thin LTO: three times faster to
   build than full LTO with one codegen unit, for 13% more exe.
@@ -304,23 +323,33 @@ A close is an annotated tag, `close/<YYYY-MM>`, on the book's latest version. Re
 
 ### Install and updates
 
-Velopack: a per-user install with no admin prompt, delta updates, and a feed of plain files on a GitLab release.
+Inno Setup (`tools/windows/branchbooks.iss`): a per-user install with no admin prompt into `%LOCALAPPDATA%\Programs\BranchBooks`, an
+uninstaller that asks about the books, and a feed of plain files on a GitLab release. Chosen over Velopack, whose uninstall deletes its
+install folder without asking and can't be made to ask; Inno Setup is what VS Code and Zed use.
 
 - **Consent.** The download is automatic; the restart is the person's. The button is disabled during a sync, since restarting ends the process.
-  An update not restarted into applies at the next start.
+  Restarting runs the installer with `/VERYSILENT` and exits; the installer closes anything left, installs, and starts the new version. An
+  update not restarted into is found already downloaded at the next start, and offered again.
+- **Whole installers.** Each update downloads the whole installer; there are no delta packages.
+- **Not as administrator.** Setup refuses to run elevated: it could then be another account (over-the-shoulder elevation) installing
+  into its own profile, and the uninstaller would ask for admin.
+- **Uninstalling** removes the app, its WebView2 data and crash log, then asks whether to delete the books and settings (`BranchBooks Data`,
+  and `%APPDATA%\BranchBooks` if it was never moved). No is the default, and a silent uninstall never deletes them.
+- **Dev installs.** `build.ps1 -Channel dev -Installer` builds "BranchBooks Dev": its own app id, exe (`BranchBooksDev.exe`, so its own
+  WebView2 data), install folder and books (`BranchBooks-dev`, as a debug build uses). It has no update feed.
 - **Failures are silent.** Offline is normal, and a failed check is tried at the next start.
-- **Feed.** `HttpSource` on `https://branchbooks.dev/updates`, an address on the project's own domain. The website forwards each file there
+- **Feed.** `latest.txt` on `https://branchbooks.dev/updates`, an address on the project's own domain: one line, the version, the
+  installer's SHA-256 and its file name (a plain `.exe` name, so the feed can't point the download elsewhere). The website forwards each file there
   (`static/_redirects`) to `/-/releases/permalink/latest/downloads/<file>` on GitLab, which serves the newest release's copy from the package
   registry. Moving hosts changes the forwarding, not the app. It needs a public project: a token in an installed app would be readable by anyone.
-  Velopack adds the local version, the app id and a random id it keeps to the feed's URL.
-- **Trust.** HTTPS from branchbooks.dev and GitLab. The feed's checksums come from the same place as the packages, and nothing is code-signed yet,
+- **Trust.** HTTPS from branchbooks.dev and GitLab. The feed's SHA-256 comes from the same place as the installer, and nothing is code-signed yet,
   so release rights can ship code to every install. That is why a release's compile job holds no write token. Code signing is the fix, and also
   ends the SmartScreen warning.
 - **Provenance.** Every published file has a Sigstore bundle (`<file>.sigstore.json`), signed by the release pipeline's own GitLab identity, so
   anyone can check it was built by `.gitlab-ci.yml` at a version tag of this project, with `cosign verify-blob` (the README has the command).
   Windows and the updater don't read it; it is for people checking a download.
-- **Folders.** WebView2's data is in `%LOCALAPPDATA%\<exe name>`, also where Velopack installs, outside `current`, so updates keep it. Setup and
-  uninstall can empty that folder. Books are in `%APPDATA%`, which neither touches.
+- **Folders.** The app is in `%LOCALAPPDATA%\Programs\BranchBooks`. WebView2's data and the crash log are in `%LOCALAPPDATA%\<exe name>`,
+  which uninstalling removes. Books are in `%LOCALAPPDATA%\BranchBooks Data`, not roaming, which only the uninstall question touches.
 
 ## Checks and supply chain
 

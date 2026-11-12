@@ -246,7 +246,7 @@ fn invalid_targets_are_flagged_and_change_nothing() {
     let cases = [
         (
             "2026-01-01 custom \"target\" Income:Salary 10.00 USD\n",
-            "Income:Salary is not a budgeted category",
+            "Income:Salary is not a budgeted category or liability",
         ),
         (
             "2026-01-01 custom \"target\" Expenses:Housing:Rent 10.00 EUR\n",
@@ -358,4 +358,134 @@ fn the_target_fixture_and_its_scenario() {
     let mar = month(&mut branch, "2026-03");
     eq(cat(&mar, "CarFund").target_allocated, 420); // 4,200 over March to December
     eq(mar.unassigned, 3180);
+}
+
+/// A car loan on budget with 10,000 owed, a 300.00 monthly payment target, and its interest in a
+/// category with its own 25.00 target (the loan example in docs/BUDGET-RULES.md).
+fn loan(paycheck_amount: &str) -> Vec<String> {
+    vec![
+        "2026-01-01 open Liabilities:Loans:Car USD\n  budget: \"on\"\n".into(),
+        "2026-01-01 open Liabilities:Loans:Old USD\n  budget: \"off\"\n".into(),
+        "2026-01-01 open Expenses:Loan-Interest USD\n".into(),
+        "2026-01-01 open Equity:Opening-Balances USD\n".into(),
+        "2026-11-01 * \"Car loan\"\n  Liabilities:Loans:Car  -10000.00 USD\n  Equity:Opening-Balances\n".into(),
+        paycheck("2026-11-01", paycheck_amount),
+        "2026-11-01 custom \"target\" Liabilities:Loans:Car 300.00 USD\n".into(),
+        "2026-11-01 custom \"target\" Expenses:Loan-Interest 25.00 USD\n".into(),
+    ]
+}
+
+const LOAN_PAYMENT: &str = "2026-11-25 * \"Car loan payment\"\n  Liabilities:Loans:Car  300.00 USD\n  Expenses:Loan-Interest  25.00 USD\n  Assets:Checking\n";
+
+#[test]
+fn a_liability_target_sets_its_monthly_payment_aside() {
+    let mut parts = loan("1000.00");
+    parts.push(LOAN_PAYMENT.into());
+    let mut b = book(&refs(&parts));
+    assert_eq!(b.errors(), vec![]);
+    let v = b.budget(m("2026-11"), Some(d("2026-11-30")));
+    let car = liability_named(&v, "Liabilities:Loans:Car");
+    assert_eq!(car.target.as_ref().map(|t| t.amount), Some(dec("300")));
+    eq(car.target_allocated, 300);
+    eq(car.available, 0);
+    eq(car.owed, 9700);
+    eq(car.underfunded, 0); // the target's shortfall, not the 9,700 still owed
+    eq(cat(&v, "Loan-Interest").available, 0);
+    eq(v.unassigned, 675);
+    assert!(v.shortfalls.is_empty());
+    // December sets the next payment aside: last month's money is not this month's payment.
+    let dec_view = b.budget(m("2026-12"), Some(d("2026-12-01")));
+    eq(
+        liability_named(&dec_view, "Liabilities:Loans:Car").target_allocated,
+        300,
+    );
+    eq(
+        liability_named(&dec_view, "Liabilities:Loans:Car").available,
+        300,
+    );
+    // Viewed after a later month, from its snapshot, November is the same.
+    assert_eq!(b.budget(m("2026-11"), Some(d("2026-11-30"))), v);
+}
+
+#[test]
+fn a_loan_switched_on_budget_keeps_its_earlier_months() {
+    let mut b = book(&[
+        "2026-01-01 open Liabilities:Mortgage USD\n  budget: \"on\"\n  budget-from: 2026-11-01\n",
+        "2026-01-01 open Equity:Opening-Balances USD\n",
+        "2026-01-01 * \"Mortgage\"\n  Liabilities:Mortgage  -10000.00 USD\n  Equity:Opening-Balances\n",
+        &paycheck("2026-10-01", "1000.00"),
+        // Before the switch: an off-budget transfer, charged to its category: line (rule 8).
+        "2026-10-15 * \"Mortgage\"\n  category: \"Expenses:Housing:Rent\"\n  Liabilities:Mortgage  300.00 USD\n  Assets:Checking\n",
+        "2026-11-01 custom \"target\" Liabilities:Mortgage 300.00 USD\n",
+        "2026-11-15 * \"Mortgage\"\n  Liabilities:Mortgage  300.00 USD\n  Assets:Checking\n",
+    ]);
+    assert_eq!(b.errors(), vec![]);
+    let oct = b.budget(m("2026-10"), Some(d("2026-10-31")));
+    eq(cat(&oct, "Rent").activity, -300);
+    assert!(oct.liabilities.is_empty());
+    let nov = b.budget(m("2026-11"), Some(d("2026-11-30")));
+    let loan = liability_named(&nov, "Liabilities:Mortgage");
+    eq(loan.owed, 9400); // what it owed at the switch counts, as debt from before the budget
+    eq(loan.target_allocated, 300);
+    eq(loan.available, 0);
+    eq(loan.underfunded, 0);
+    eq(nov.unassigned, 400);
+}
+
+#[test]
+fn a_liability_target_unassigned_cannot_fund_is_its_underfunded() {
+    let mut b = book(&refs(&loan("100.00")));
+    let v = b.budget(m("2026-11"), Some(d("2026-11-30")));
+    // By due month, then name: Expenses:Loan-Interest takes 25, the loan the other 75.
+    let car = liability_named(&v, "Liabilities:Loans:Car");
+    eq(car.target_allocated, 75);
+    eq(car.underfunded, 225);
+    eq(v.unassigned, 0);
+    assert_eq!(
+        v.shortfalls
+            .iter()
+            .map(|s| s.category.as_str())
+            .collect::<Vec<_>>(),
+        ["Liabilities:Loans:Car"]
+    );
+}
+
+#[test]
+fn ending_a_liability_target_pays_it_in_full_again() {
+    let mut parts = loan("1000.00");
+    parts.push(LOAN_PAYMENT.into());
+    parts.push("2026-12-01 custom \"target\" Liabilities:Loans:Car 0.00 USD\n".into());
+    let mut b = book(&refs(&parts));
+    let v = b.budget(m("2026-12"), Some(d("2026-12-01")));
+    let car = liability_named(&v, "Liabilities:Loans:Car");
+    assert!(car.target.is_none());
+    eq(car.available, 0);
+    eq(car.underfunded, 9700);
+}
+
+#[test]
+fn a_target_on_an_off_budget_liability_or_with_a_due_date_is_flagged() {
+    let cases = [
+        (
+            "2026-11-01 custom \"target\" Liabilities:Loans:Old 300.00 USD\n",
+            "Liabilities:Loans:Old is not a budgeted category or liability",
+        ),
+        (
+            "2026-11-01 custom \"target\" Liabilities:Loans:Car 300.00 USD\n  due: 2027-06-01\n",
+            "a liability's target is monthly: it takes no due date",
+        ),
+    ];
+    for (entry, message) in cases {
+        let mut parts = loan("1000.00");
+        parts.retain(|p| !p.contains("custom \"target\" Liabilities"));
+        parts.push(entry.into());
+        let mut b = book(&refs(&parts));
+        let d = b.budget_diagnostics();
+        assert!(
+            d.iter()
+                .any(|d| d.code == "envelope" && d.message == message),
+            "{entry}: {d:?}"
+        );
+        eq(b.budget(m("2026-11"), None).unassigned, 975);
+    }
 }

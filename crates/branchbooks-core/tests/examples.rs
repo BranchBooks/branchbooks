@@ -44,14 +44,14 @@ fn example_3_cash_and_card_spending_card_payment() {
 
     let v = book_of_with(&step2, &up_to(2)).budget(m("2026-10"), None);
     eq(cat(&v, "Dining").available, 155);
-    eq(card(&v).owed, 45);
-    eq(card(&v).available, 45);
+    eq(liability(&v).owed, 45);
+    eq(liability(&v).available, 45);
     eq(v.unassigned, 1600);
 
     let mut book = book_of_with("", &up_to(3));
     let v = book.budget(m("2026-10"), None);
     eq(balance(&mut book, "Assets:Checking"), 3735);
-    eq(card(&v).available, 0);
+    eq(liability(&v).available, 0);
     eq(v.unassigned, 1600);
 }
 
@@ -128,9 +128,9 @@ fn example_6_credit_overspending() {
     eq(cat(&v, "Dining").available, -45);
     eq(cat(&v, "Dining").cash_overspent, 0);
     eq(cat(&v, "Dining").credit_overspent, 45);
-    eq(card(&v).available, 155);
-    eq(card(&v).owed, 200);
-    eq(card(&v).underfunded, 0);
+    eq(liability(&v).available, 155);
+    eq(liability(&v).owed, 200);
+    eq(liability(&v).underfunded, 0);
     assert_eq!(
         waiting(&v),
         [("Expenses:Food:Dining".to_owned(), "45".to_owned())]
@@ -140,14 +140,14 @@ fn example_6_credit_overspending() {
     let v = book_of(&(ex6.clone() + &assign("2026-11-05", "Expenses:Food:Dining", "45.00")))
         .budget(m("2026-11"), None);
     eq(cat(&v, "Dining").available, 0);
-    eq(card(&v).available, 200);
+    eq(liability(&v).available, 200);
     assert!(waiting(&v).is_empty());
     eq(v.unassigned, 1035);
 
     let v = book_of(&ex6).budget(m("2026-12"), None);
     eq(cat(&v, "Dining").available, 0);
-    eq(card(&v).available, 200);
-    eq(card(&v).underfunded, 0);
+    eq(liability(&v).available, 200);
+    eq(liability(&v).underfunded, 0);
     eq(v.unassigned, 1035);
 }
 
@@ -156,13 +156,13 @@ fn example_7_card_refund() {
     let v = book_of(&dining("2026-11-08", "60.00", "Liabilities:CreditCard"))
         .budget(m("2026-11"), None);
     eq(cat(&v, "Dining").available, 95);
-    eq(card(&v).available, 60);
+    eq(liability(&v).available, 60);
     eq(v.unassigned, 1080);
 
     let v = fixture("scenarios/ex07-card-refund.bean").budget(m("2026-11"), None);
     eq(cat(&v, "Dining").available, 120);
-    eq(card(&v).available, 35);
-    eq(card(&v).owed, 35);
+    eq(liability(&v).available, 35);
+    eq(liability(&v).owed, 35);
     eq(v.unassigned, 1080);
 }
 
@@ -193,8 +193,8 @@ fn example_9_mixed_overspending() {
     eq(cat(&v, "Dining").cash_overspent, 30);
     eq(cat(&v, "Dining").credit_overspent, 45);
     eq(balance(&mut book, "Assets:Checking"), 2705);
-    eq(card(&v).available, 155);
-    eq(card(&v).underfunded, 0);
+    eq(liability(&v).available, 155);
+    eq(liability(&v).underfunded, 0);
     eq(v.unassigned, 1080);
 
     let v = with_assign("20.00", "2026-11-07").budget(m("2026-11"), None);
@@ -206,30 +206,30 @@ fn example_9_mixed_overspending() {
     let v = book.budget(m("2026-11"), None);
     eq(cat(&v, "Dining").cash_overspent, 0);
     eq(cat(&v, "Dining").credit_overspent, 35);
-    eq(card(&v).available, 165);
+    eq(liability(&v).available, 165);
     eq(v.unassigned, 1040);
     let dec = book.budget(m("2026-12"), None);
     eq(cat(&dec, "Dining").available, 0);
-    eq(card(&dec).available, 200);
-    eq(card(&dec).underfunded, 0);
+    eq(liability(&dec).available, 200);
+    eq(liability(&dec).underfunded, 0);
     eq(dec.unassigned, 1005);
 
     let v = with_assign("75.00", "2026-11-07").budget(m("2026-11"), None);
     eq(cat(&v, "Dining").available, 0);
-    eq(card(&v).available, 200);
+    eq(liability(&v).available, 200);
     eq(v.unassigned, 1005);
 
     let v = book_of(&ex9).budget(m("2026-12"), None);
     eq(cat(&v, "Dining").available, 0);
-    eq(card(&v).available, 200);
-    eq(card(&v).underfunded, 0);
+    eq(liability(&v).available, 200);
+    eq(liability(&v).underfunded, 0);
     eq(v.unassigned, 1005);
 
     // The same 40 assigned on Nov 1, before the purchases
     let v = with_assign("40.00", "2026-11-01").budget(m("2026-11"), None);
     eq(cat(&v, "Dining").cash_overspent, 30);
     eq(cat(&v, "Dining").credit_overspent, 5);
-    eq(card(&v).available, 195);
+    eq(liability(&v).available, 195);
     eq(v.unassigned, 1040);
     assert!(v.warnings.iter().all(|w| !w.message.contains("Dining")));
 }
@@ -262,7 +262,7 @@ fn example_12_same_day_order() {
         eq(cat(&v, "Dining").available, -35);
         eq(cat(&v, "Dining").cash_overspent, 0);
         eq(cat(&v, "Dining").credit_overspent, 35);
-        eq(card(&v).available, 165);
+        eq(liability(&v).available, 165);
         eq(v.unassigned, 1040);
     }
     // sim5: assign applies before move on the same day
@@ -279,7 +279,7 @@ fn overspending(date: &str, category: &str, how: &str) -> String {
 
 /// The card's credit overspending still in categories, as plain numbers.
 fn waiting(v: &branchbooks_core::budget::MonthView) -> Vec<(String, String)> {
-    card(v)
+    liability(v)
         .in_categories
         .iter()
         .map(|(c, x)| (c.clone(), plain(*x)))
@@ -314,9 +314,9 @@ fn example_16_rollover_overspending_carries_both_portions() {
     eq(cat(&v, "Dining").cash_overspent, 30);
     eq(cat(&v, "Dining").credit_overspent, 45);
     eq(cat(&v, "Dining").activity, 0);
-    eq(card(&v).available, 155);
-    eq(card(&v).owed, 200);
-    eq(card(&v).underfunded, 0);
+    eq(liability(&v).available, 155);
+    eq(liability(&v).owed, 200);
+    eq(liability(&v).underfunded, 0);
     assert_eq!(
         waiting(&v),
         [("Expenses:Food:Dining".to_owned(), "45".to_owned())]
@@ -331,7 +331,7 @@ fn example_16_rollover_overspending_carries_both_portions() {
     eq(cat(&v, "Dining").available, -35);
     eq(cat(&v, "Dining").cash_overspent, 0);
     eq(cat(&v, "Dining").credit_overspent, 35);
-    eq(card(&v).available, 165);
+    eq(liability(&v).available, 165);
     eq(v.unassigned, 1040);
     assert_eq!(v.warnings, vec![]);
 }
@@ -352,27 +352,27 @@ fn example_18_set_aside_twice_is_overfunded() {
     let ex6 = dining("2026-11-05", "200.00", "Liabilities:CreditCard");
     let on_card = ex6.clone() + &assign("2026-11-06", "Liabilities:CreditCard", "45.00");
     let v = book_of(&on_card).budget(m("2026-11"), None);
-    eq(card(&v).available, 200);
-    eq(card(&v).underfunded, 0);
-    eq(card(&v).overfunded, 45);
+    eq(liability(&v).available, 200);
+    eq(liability(&v).underfunded, 0);
+    eq(liability(&v).overfunded, 45);
     eq(v.unassigned, 1035);
 
     let both = on_card.clone() + &assign("2026-11-07", "Expenses:Food:Dining", "45.00");
     let v = book_of(&both).budget(m("2026-11"), None);
-    eq(card(&v).available, 245);
-    eq(card(&v).overfunded, 45);
+    eq(liability(&v).available, 245);
+    eq(liability(&v).overfunded, 45);
     eq(v.unassigned, 990);
 
     let back = both + &assign("2026-11-08", "Liabilities:CreditCard", "-45.00");
     let v = book_of(&back).budget(m("2026-11"), None);
-    eq(card(&v).available, 200);
-    eq(card(&v).overfunded, 0);
+    eq(liability(&v).available, 200);
+    eq(liability(&v).overfunded, 0);
     eq(v.unassigned, 1035);
 
     // Funded once, in Dining: nothing is flagged.
     let v = book_of(&(ex6 + &assign("2026-11-07", "Expenses:Food:Dining", "45.00")))
         .budget(m("2026-11"), None);
-    eq(card(&v).overfunded, 0);
+    eq(liability(&v).overfunded, 0);
 }
 
 #[test]
@@ -458,7 +458,7 @@ fn purchase_order_does_not_matter_at_ledger_level() {
         let v = book_of_with(&text, minimal).budget(m("2026-12"), None);
         eq(cat(&v, "Dining").cash_overspent, 30);
         eq(cat(&v, "Dining").credit_overspent, 0);
-        eq(card(&v).available, 70);
+        eq(liability(&v).available, 70);
         eq(v.unassigned, 4900);
     }
 }

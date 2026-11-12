@@ -9,14 +9,14 @@ use super::*;
 pub struct Spend {
     pub category: String,
     pub amount: Decimal,
-    pub card: Option<String>,
+    pub liability: Option<String>,
 }
 
 /// What a transaction does to the budget.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct TxEffect {
     pub cash: Decimal,
-    pub card_delta: Vec<(String, Decimal)>,
+    pub liability_delta: Vec<(String, Decimal)>,
     pub spends: Vec<Spend>,
     pub payments: Vec<(String, Decimal)>,
     pub flags: Vec<Diagnostic>,
@@ -85,7 +85,7 @@ pub enum EventKind {
     Assign {
         category: String,
         amount: Decimal,
-        card: bool,
+        liability: bool,
     },
     Move {
         from: String,
@@ -165,9 +165,11 @@ pub fn compare_events(a: &BudgetEvent, b: &BudgetEvent) -> Ordering {
 pub fn tx_event(e: &Entry, cfg: &BudgetConfig, id: u64) -> Option<BudgetEvent> {
     let t = e.txn()?;
     let mut cash = ZERO;
-    let mut cards: IndexMap<&str, Decimal> = IndexMap::new();
+    let mut liabilities: IndexMap<&str, Decimal> = IndexMap::new();
     let mut category_postings: Vec<(String, Decimal)> = Vec::new();
     let mut off_out = ZERO;
+    // A liability before its `budget-from:` date: off-budget, but what it owes still counts.
+    let mut owed_before: Vec<(String, Decimal)> = Vec::new();
     let mut flags = Vec::new();
     let mut flag =
         |code: &str, message: String| flags.push(Diagnostic::new(&e.file, e.line, code, message));
@@ -178,20 +180,27 @@ pub fn tx_event(e: &Entry, cfg: &BudgetConfig, id: u64) -> Option<BudgetEvent> {
             continue; // rule 13
         }
         let n = units.number;
-        match cfg.role(&p.account) {
+        match cfg.role_on(&p.account, e.date) {
             Some(AccountRole::Cash) => cash += n,
-            Some(AccountRole::Card) => *cards.entry(p.account.as_str()).or_insert(ZERO) += n,
+            Some(AccountRole::Liability) => {
+                *liabilities.entry(p.account.as_str()).or_insert(ZERO) += n;
+            }
             Some(AccountRole::Category) => category_postings.push((p.account.clone(), n)),
-            Some(AccountRole::OffBudget) => off_out += n,
+            Some(AccountRole::OffBudget) => {
+                off_out += n;
+                if cfg.on_from.contains_key(&p.account) {
+                    owed_before.push((p.account.clone(), n));
+                }
+            }
             _ => {}
         }
     }
-    let cards_touched: Vec<(String, Decimal)> = cards
+    let liabilities_touched: Vec<(String, Decimal)> = liabilities
         .into_iter()
         .filter(|(_, v)| !v.is_zero())
         .map(|(c, v)| (c.to_owned(), v))
         .collect();
-    let on_budget_touched = !cash.is_zero() || !cards_touched.is_empty();
+    let on_budget_touched = !cash.is_zero() || !liabilities_touched.is_empty();
     let mut on_placeholders: Vec<&str> = t
         .postings
         .iter()
@@ -200,7 +209,11 @@ pub fn tx_event(e: &Entry, cfg: &BudgetConfig, id: u64) -> Option<BudgetEvent> {
         .collect();
     on_placeholders.sort_unstable();
     on_placeholders.dedup();
-    if !on_budget_touched && category_postings.is_empty() && on_placeholders.is_empty() {
+    if !on_budget_touched
+        && category_postings.is_empty()
+        && on_placeholders.is_empty()
+        && owed_before.is_empty()
+    {
         return None;
     }
     // A hand edit or an import can post to a placeholder. It still counts, so no money goes missing,
@@ -216,9 +229,9 @@ pub fn tx_event(e: &Entry, cfg: &BudgetConfig, id: u64) -> Option<BudgetEvent> {
     // the off-budget amount that on-budget money paid for counts: what left cash and cards, less
     // what the same transaction spent in categories. Money that reaches an off-budget account from
     // income (a 401k contribution in a paycheck) is not a transfer.
-    let card_sum: Decimal = cards_touched.iter().map(|(_, v)| *v).sum();
+    let liability_sum: Decimal = liabilities_touched.iter().map(|(_, v)| *v).sum();
     let spent: Decimal = category_postings.iter().map(|(_, n)| *n).sum();
-    let paid_off = off_out.min((-(cash + card_sum) - spent).max(ZERO));
+    let paid_off = off_out.min((-(cash + liability_sum) - spent).max(ZERO));
     if paid_off > ZERO {
         let meta = e
             .meta
@@ -246,9 +259,9 @@ pub fn tx_event(e: &Entry, cfg: &BudgetConfig, id: u64) -> Option<BudgetEvent> {
     let mut spends = Vec::new();
     let mut payments = Vec::new();
     if on_budget_touched {
-        let funded = fund_spends(&category_postings, cash, &cards_touched);
+        let funded = fund_spends(&category_postings, cash, &liabilities_touched);
         spends = funded.spends;
-        payments = card_payments(funded.card_inflow, funded.card_outflow);
+        payments = liability_payments(funded.liability_inflow, funded.liability_outflow);
     } else if !category_postings.is_empty() {
         flag(
             "unfunded",
@@ -260,7 +273,8 @@ pub fn tx_event(e: &Entry, cfg: &BudgetConfig, id: u64) -> Option<BudgetEvent> {
         base: EventBase::of(e, id),
         kind: EventKind::Tx(TxEffect {
             cash,
-            card_delta: cards_touched,
+            // Only what is owed comes from this, so the loan's balance before the switch counts.
+            liability_delta: liabilities_touched.into_iter().chain(owed_before).collect(),
             spends,
             payments,
             flags,
@@ -272,25 +286,25 @@ pub fn tx_event(e: &Entry, cfg: &BudgetConfig, id: u64) -> Option<BudgetEvent> {
 struct Funded {
     spends: Vec<Spend>,
     /// Money arriving on each card that no refund used.
-    card_inflow: Vec<(String, Decimal)>,
+    liability_inflow: Vec<(String, Decimal)>,
     /// Money charged to each card that no spending used.
-    card_outflow: Vec<(String, Decimal)>,
+    liability_outflow: Vec<(String, Decimal)>,
 }
 
 /// Money arriving on a card is a payment against its payment envelope. What came from another card
 /// in the same transaction (a balance transfer) moves that much into the charged card's envelope, as
 /// a negative payment, so Unassigned does not change (docs/DESIGN.md, decision 8).
-fn card_payments(
+fn liability_payments(
     inflow: Vec<(String, Decimal)>,
     outflow: Vec<(String, Decimal)>,
 ) -> Vec<(String, Decimal)> {
     let mut left: Decimal = inflow.iter().map(|(_, v)| *v).sum();
     let mut payments = inflow;
-    for (card, charged) in outflow {
+    for (liability, charged) in outflow {
         let moved = left.min(charged);
         if moved > ZERO {
             left -= moved;
-            payments.push((card, -moved));
+            payments.push((liability, -moved));
         }
     }
     payments.retain(|(_, v)| !v.is_zero());
@@ -304,10 +318,10 @@ fn card_payments(
 fn fund_spends(
     postings: &[(String, Decimal)],
     cash: Decimal,
-    cards: &[(String, Decimal)],
+    liabilities: &[(String, Decimal)],
 ) -> Funded {
     let mut out = Vec::new();
-    let mut sorted: Vec<&(String, Decimal)> = cards.iter().collect();
+    let mut sorted: Vec<&(String, Decimal)> = liabilities.iter().collect();
     sorted.sort_by(|(a, _), (b, _)| a.cmp(b));
     // pools[0] is cash; outflow pools serve spending, inflow pools serve refunds.
     let pools = |sign: Decimal| -> Vec<(Option<String>, Decimal)> {
@@ -326,7 +340,7 @@ fn fund_spends(
         let pools = if spending { &mut outflow } else { &mut inflow };
         let signed = |v: Decimal| if spending { v } else { -v };
         let mut left = amount.abs();
-        for (card, pool) in pools.iter_mut() {
+        for (liability, pool) in pools.iter_mut() {
             if left.is_zero() {
                 break;
             }
@@ -339,27 +353,27 @@ fn fund_spends(
             out.push(Spend {
                 category: category.clone(),
                 amount: signed(take),
-                card: card.clone(),
+                liability: liability.clone(),
             });
         }
         if left > ZERO {
             out.push(Spend {
                 category: category.clone(),
                 amount: signed(left),
-                card: None,
+                liability: None,
             });
         }
     }
-    let cards_only = |pools: Vec<(Option<String>, Decimal)>| {
+    let liabilities_only = |pools: Vec<(Option<String>, Decimal)>| {
         pools
             .into_iter()
-            .filter_map(|(card, left)| Some((card?, left)))
+            .filter_map(|(liability, left)| Some((liability?, left)))
             .collect()
     };
     Funded {
         spends: out,
-        card_inflow: cards_only(inflow),
-        card_outflow: cards_only(outflow),
+        liability_inflow: liabilities_only(inflow),
+        liability_outflow: liabilities_only(outflow),
     }
 }
 
@@ -398,9 +412,9 @@ pub fn custom_event(
                 return bad("envelope-assign takes an account and an amount".to_owned());
             };
             // A card takes assignments too: money set aside to pay what it already owes (decision 7).
-            let card = cfg.role(acct) == Some(AccountRole::Card);
-            if !cfg.is_category(acct) && !card {
-                return bad(not_budgeted(cfg, acct, "category or card"));
+            let liability = cfg.role(acct) == Some(AccountRole::Liability);
+            if !cfg.is_category(acct) && !liability {
+                return bad(not_budgeted(cfg, acct, "category or liability"));
             }
             let Some(amount) = amount_of(c.values.get(1)) else {
                 return bad(format!(
@@ -411,7 +425,7 @@ pub fn custom_event(
             event(EventKind::Assign {
                 category: acct.clone(),
                 amount,
-                card,
+                liability,
             })
         }
         "envelope-move" => {
@@ -479,8 +493,14 @@ fn target_of(e: &Entry, c: &Custom, cfg: &BudgetConfig) -> Result<(String, Targe
     let (Some(CustomValue::Account(category)), 2) = (c.values.first(), c.values.len()) else {
         return Err("target takes a category and an amount".to_owned());
     };
-    if !cfg.is_category(category) {
-        return Err(not_budgeted(cfg, category, "category"));
+    // A liability's target is its monthly payment (T7).
+    let liability =
+        cfg.role(category) == Some(AccountRole::Liability) && !cfg.is_placeholder(category);
+    if !cfg.is_category(category) && !liability {
+        return Err(not_budgeted(cfg, category, "category or liability"));
+    }
+    if liability && e.meta.get("due").is_some() {
+        return Err("a liability's target is monthly: it takes no due date".to_owned());
     }
     let Some(CustomValue::Amount(amount)) = c
         .values

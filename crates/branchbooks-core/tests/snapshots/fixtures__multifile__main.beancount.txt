@@ -50,70 +50,70 @@ month 2025-12 USD today 2025-12-01 unassigned 0 future 0 cash 1250
   category Expenses:Food:Groceries 0 250 0 -80.25 169.75 0 0
   category Expenses:Housing:Rent 0 1000 0 0 1000 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 80.25 80.25 0
+  liability Liabilities:Visa 80.25 80.25 0
 month 2026-01 USD today 2026-01-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 1000 0 0 -1000 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-02 USD today 2026-02-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-03 USD today 2026-03-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-04 USD today 2026-04-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-05 USD today 2026-05-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-06 USD today 2026-06-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-07 USD today 2026-07-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-08 USD today 2026-08-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-09 USD today 2026-09-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-10 USD today 2026-10-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-11 USD today 2026-11-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2026-12 USD today 2026-12-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 month 2027-01 USD today 2027-01-01 unassigned 2000 future 0 cash 2169.75
   category Expenses:Food:Groceries 169.75 0 0 0 169.75 0 0
   category Expenses:Housing:Rent 0 0 0 0 0 0 0
   category Expenses:Old:Category 0 0 0 0 0 0 0
-  card Liabilities:Visa 0 0 0
+  liability Liabilities:Visa 0 0 0
 unassigned-at 2027-01-15 2000

@@ -279,16 +279,17 @@ pub fn Overview(
         .map(|r| (r.category.clone(), r.cash_overspent + r.credit_overspent))
         .collect();
     let underfunded: Vec<(String, Decimal)> = view
-        .cards
+        .liabilities
         .iter()
-        .filter(|c| c.underfunded > Decimal::ZERO)
-        .map(|c| (c.card.clone(), c.underfunded))
+        // One with a monthly payment shows its shortfall below, with the targets.
+        .filter(|c| c.underfunded > Decimal::ZERO && c.target.is_none())
+        .map(|c| (c.account.clone(), c.underfunded))
         .collect();
     let overfunded: Vec<(String, Decimal)> = view
-        .cards
+        .liabilities
         .iter()
         .filter(|c| c.overfunded > Decimal::ZERO)
-        .map(|c| (c.card.clone(), c.overfunded))
+        .map(|c| (c.account.clone(), c.overfunded))
         .collect();
     let attention = errors > 0
         || !overspent.is_empty()
@@ -376,15 +377,15 @@ pub fn Overview(
                             " is overspent by {fmt(amount)}"
                         }
                     }
-                    for (card, amount) in underfunded {
-                        li { key: "{card}",
-                            button { r#type: "button", class: "link", onclick: move |_| onopen.call("budget"), {short(&card)} }
-                            " payment is underfunded by {fmt(amount)}"
+                    for (account, amount) in underfunded {
+                        li { key: "{account}",
+                            button { r#type: "button", class: "link", onclick: move |_| onopen.call("budget"), {short(&account)} }
+                            " still needs {fmt(amount)} set aside to pay it off"
                         }
                     }
-                    for (card, amount) in overfunded {
-                        li { key: "{card}-over",
-                            button { r#type: "button", class: "link", onclick: move |_| onopen.call("budget"), {short(&card)} }
+                    for (account, amount) in overfunded {
+                        li { key: "{account}-over",
+                            button { r#type: "button", class: "link", onclick: move |_| onopen.call("budget"), {short(&account)} }
                             " has {fmt(amount)} more set aside than it owes"
                         }
                     }

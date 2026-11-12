@@ -62,20 +62,73 @@ impl Backend {
     }
 }
 
-/// Where this device keeps its books, one git repository each: `%APPDATA%\BranchBooks\books` on
-/// Windows, the app's own folder on Android, `~/.local/share/branchbooks/books` elsewhere.
+/// Whether this is a dev build: a debug build, or one built with `BRANCHBOOKS_CHANNEL=dev`, which installs beside
+/// the release with its own books.
+fn dev() -> bool {
+    cfg!(debug_assertions) || option_env!("BRANCHBOOKS_CHANNEL") == Some("dev")
+}
+
+/// Where this device keeps its books, one git repository each: `BRANCHBOOKS_BOOKS` when set, else
+/// `%LOCALAPPDATA%\BranchBooks Data\books` on Windows (not roaming, and beside the install folder
+/// rather than in it, so uninstalling never takes them unasked), the app's own folder on Android,
+/// `~/.local/share/branchbooks/books` elsewhere. A dev build (`dev`) uses
+/// `%LOCALAPPDATA%\BranchBooks-dev\books` (`branchbooks-dev` elsewhere), so trying a change never
+/// touches real books.
 pub fn books_dir() -> PathBuf {
+    if let Some(dir) = std::env::var_os("BRANCHBOOKS_BOOKS").filter(|d| !d.is_empty()) {
+        return PathBuf::from(dir);
+    }
     if cfg!(target_os = "android") {
         // shortcut: the main user's folder, and Dioxus.toml's identifier repeated; ask Android.
         return PathBuf::from("/data/data/dev.branchbooks.app/files/books");
     }
-    std::env::var_os("APPDATA")
-        .map(|d| PathBuf::from(d).join("BranchBooks"))
-        .or_else(|| {
-            std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share/branchbooks"))
-        })
+    let data = data_dir();
+    // Books from before the move stay in the roaming folder while it could not be moved.
+    match roaming_dir() {
+        Some(old) if old.exists() && !data.exists() => old,
+        _ => data,
+    }
+    .join("books")
+}
+
+/// The app's own folder: its books and this device's settings.
+fn data_dir() -> PathBuf {
+    let (windows, unix) = if dev() {
+        ("BranchBooks-dev", ".local/share/branchbooks-dev")
+    } else {
+        ("BranchBooks Data", ".local/share/branchbooks")
+    };
+    std::env::var_os("LOCALAPPDATA")
+        .map(|d| PathBuf::from(d).join(windows))
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(unix)))
         .unwrap_or_else(|| PathBuf::from("branchbooks"))
-        .join("books")
+}
+
+/// Where a release kept its data before it moved out of the roaming profile.
+fn roaming_dir() -> Option<PathBuf> {
+    if dev() || std::env::var_os("BRANCHBOOKS_BOOKS").is_some() {
+        return None;
+    }
+    std::env::var_os("APPDATA").map(|d| PathBuf::from(d).join("BranchBooks"))
+}
+
+/// Moves the books and settings out of the roaming profile, once, at startup: a rename, so nothing
+/// is copied twice or half moved. When it cannot (`AppData` redirected to another drive, a file
+/// held open), they stay where they were and `books_dir` keeps using them.
+pub fn move_out_of_roaming() {
+    if let Some(old) = roaming_dir() {
+        move_once(&old, &data_dir());
+    }
+}
+
+/// Renames `old` to `new` when only `old` exists.
+fn move_once(old: &Path, new: &Path) {
+    if old.exists() && !new.exists() {
+        if let Some(parent) = new.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let _ = std::fs::rename(old, new);
+    }
 }
 
 /// Who commits to the book in `dir`: git's identity (the book's own config, which Book settings
@@ -109,4 +162,40 @@ pub fn local_today() -> Date {
         .to_string()
         .parse()
         .expect("chrono writes real dates")
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn the_data_folder_moves_once_and_never_over_another() {
+        let root = std::env::temp_dir().join(format!("branchbooks-move-{}", std::process::id()));
+        let (old, new) = (
+            root.join("Roaming/BranchBooks"),
+            root.join("Local/BranchBooks Data"),
+        );
+        std::fs::create_dir_all(old.join("books/a")).unwrap();
+        super::move_once(&old, &new);
+        assert!(new.join("books/a").exists() && !old.exists());
+        // Already moved: an old folder that turns up again is left alone, not merged.
+        std::fs::create_dir_all(old.join("books/b")).unwrap();
+        super::move_once(&old, &new);
+        assert!(old.join("books/b").exists() && !new.join("books/b").exists());
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn a_debug_build_never_opens_the_real_books() {
+        if std::env::var_os("BRANCHBOOKS_BOOKS").is_some() {
+            return;
+        }
+        let dir = super::books_dir();
+        let dev = dir
+            .parent()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str());
+        assert!(
+            matches!(dev, Some("BranchBooks-dev" | "branchbooks-dev")),
+            "{dir:?}"
+        );
+    }
 }

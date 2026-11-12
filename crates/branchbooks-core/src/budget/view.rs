@@ -26,16 +26,21 @@ pub struct CategoryRow {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CardRow {
-    pub card: String,
+pub struct LiabilityRow {
+    pub account: String,
     /// Payment envelope Available: money set aside for this card.
     pub available: Decimal,
     pub owed: Decimal,
     /// Credit overspending on this card still in categories, by category (rule 7): to cover
     /// there, so it is not counted in `underfunded`.
     pub in_categories: Vec<(String, Decimal)>,
-    /// What the card owes beyond its envelope and `in_categories`: debt from before the budget.
+    /// Paid in full (no target): what it owes beyond its envelope and `in_categories`, debt from
+    /// before the budget. Paid monthly (a target): what this month's payment could not be funded.
     pub underfunded: Decimal,
+    /// The monthly payment target in force this month, if any.
+    pub target: Option<Target>,
+    /// Allocated by the target this month (virtual).
+    pub target_allocated: Decimal,
     /// What the envelope and `in_categories` hold beyond what the card owes (rule 7a): money set
     /// aside twice, which can go back to Unassigned.
     pub overfunded: Decimal,
@@ -53,7 +58,7 @@ pub struct MonthView {
     pub assigned_to_future: Decimal,
     pub cash: Decimal,
     pub categories: Vec<CategoryRow>,
-    pub cards: Vec<CardRow>,
+    pub liabilities: Vec<LiabilityRow>,
     /// Rule 15 warnings: never change the numbers.
     pub warnings: Vec<Diagnostic>,
     /// Flags in this month: uncategorized off-budget transfers, unfunded categories, blocked
@@ -68,7 +73,7 @@ impl MonthView {
         self.categories.iter().find(|c| c.category == name)
     }
 
-    pub fn card(&self, name: &str) -> Option<&CardRow> {
-        self.cards.iter().find(|c| c.card == name)
+    pub fn liability(&self, name: &str) -> Option<&LiabilityRow> {
+        self.liabilities.iter().find(|c| c.account == name)
     }
 }

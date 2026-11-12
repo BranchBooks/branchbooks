@@ -5,9 +5,10 @@
 use std::str::FromStr;
 
 use branchbooks_core::date::Date;
-use branchbooks_core::types::Entry;
+use branchbooks_core::types::{Entry, MetaValue};
 use branchbooks_core::write::render::{
-    BudgetFlag, CloseInput, EntryInput, OpenInput, PostingInput, TransactionInput, is_account,
+    BudgetFlag, CloseInput, EntryInput, MetaInputValue, OpenInput, PostingInput, TransactionInput,
+    is_account,
 };
 use branchbooks_core::write::workspace::{Operation, ReconcileInput};
 use dioxus::prelude::*;
@@ -587,6 +588,9 @@ fn OpenEditor(
     let mut date = use_signal(|| open.date.to_string());
     let mut currencies = use_signal(|| o.currencies.join(", "));
     let mut budget = use_signal(|| flag.clone());
+    let liability = o.account.starts_with("Liabilities:");
+    let was_loan = open.meta.str("kind") == Some("loan");
+    let mut loan = use_signal(|| was_loan);
     let mut closed_on = use_signal(|| {
         close
             .as_ref()
@@ -604,9 +608,23 @@ fn OpenEditor(
                     .map(|c| c.trim().to_owned())
                     .filter(|c| !c.is_empty())
                     .collect();
-                let fields_changed = *date.peek() != open.date.to_string() || list != o.currencies || *budget.peek() != flag;
+                let fields_changed = *date.peek() != open.date.to_string() || list != o.currencies || *budget.peek() != flag
+                    || *loan.peek() != was_loan;
                 let mut kept = meta(&open.meta);
-                kept.retain(|(k, _)| k != "budget");
+                let on = *budget.peek() == "on";
+                kept.retain(|(k, _)| {
+                    k != "budget" && (!liability || k != "kind") && (on || k != "budget-from")
+                });
+                if liability {
+                    kept.extend(kind_meta(if *loan.peek() { "loan" } else { "card" }));
+                    // Switched on from today: earlier months keep their numbers (decision 7b).
+                    if on && flag != "on" {
+                        kept.push((
+                            "budget-from".to_owned(),
+                            MetaInputValue::Value(MetaValue::Date(crate::store::local_today())),
+                        ));
+                    }
+                }
                 let close_date = close
                     .as_ref()
                     .filter(|c| *closed_on.peek() != c.date.to_string())
@@ -638,10 +656,18 @@ fn OpenEditor(
                 label { "Budget"
                     select { value: "{budget}", onchange: move |e| budget.set(e.value()),
                         option { value: "", "category (expenses) / no flag" }
-                        option { value: "on", "on budget (cash or card)" }
+                        option { value: "on", "on budget (cash, card or loan)" }
                         option { value: "off", "off budget (tracking)" }
                         option { value: "excluded", "excluded expense" }
                         option { value: "placeholder", "placeholder (groups its sub-accounts)" }
+                    }
+                }
+                if liability {
+                    label { "This is a"
+                        select { value: if loan() { "loan" } else { "card" }, onchange: move |e| loan.set(e.value() == "loan"),
+                            option { value: "card", selected: !loan(), "Credit card" }
+                            option { value: "loan", selected: loan(), "Loan or mortgage" }
+                        }
                     }
                 }
                 if close.is_some() {
@@ -848,8 +874,8 @@ const KINDS: [Kind; 7] = [
         id: "loan",
         label: "Loan or mortgage",
         root: "Liabilities",
-        flag: Some(BudgetFlag::Off),
-        effect: "off budget: tracked, not budgeted",
+        flag: Some(BudgetFlag::On),
+        effect: "on budget: set aside its payment each month",
         holds_money: true,
     },
     Kind {
@@ -877,6 +903,21 @@ const KINDS: [Kind; 7] = [
         holds_money: false,
     },
 ];
+
+/// The liabilities marked `kind: "loan"`, so the budget shows them as loans. A liability with no
+/// `kind:` is a credit card.
+pub fn loans(book: &mut branchbooks_core::book::Book) -> Vec<String> {
+    book.account_info()
+        .iter()
+        .filter(|(_, i)| i.open.meta.str("kind") == Some("loan"))
+        .map(|(a, _)| a.clone())
+        .collect()
+}
+
+/// `kind:` metadata for a liability's open: "loan" or "card", which the budget groups by.
+fn kind_meta(kind: &str) -> Vec<(String, MetaInputValue)> {
+    vec![("kind".to_owned(), MetaInputValue::Text(kind.to_owned()))]
+}
 
 /// Where opening balances come from, as `GnuCash` names it.
 const OPENING: &str = "Equity:Opening-Balances";
@@ -919,6 +960,7 @@ fn AddAccount(
     let mut date = use_today_date(today);
     let mut error = use_signal(|| None::<String>);
     let Kind {
+        id: kind_id,
         label,
         root,
         flag,
@@ -984,6 +1026,11 @@ fn AddAccount(
                 date: opened_on.clone(),
                 account: account.clone(),
                 budget: flag,
+                meta: if ["loan", "card"].contains(&kind_id) {
+                    kind_meta(kind_id)
+                } else {
+                    Vec::new()
+                },
                 ..Default::default()
             };
             let typed = balance.peek().trim().to_owned();

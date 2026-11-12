@@ -97,10 +97,10 @@ fn book_lines(book: &mut Book, lines: &mut Vec<String>) {
             ];
             lines.push(format!("  category {} {}", c.category, nums(&values)));
         }
-        for c in &v.cards {
+        for c in &v.liabilities {
             lines.push(format!(
-                "  card {} {}",
-                c.card,
+                "  liability {} {}",
+                c.account,
                 nums(&[c.available, c.owed, c.underfunded])
             ));
             if !c.overfunded.is_zero() {

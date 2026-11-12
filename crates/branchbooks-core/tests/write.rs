@@ -572,8 +572,8 @@ fn editing_the_date_moves_the_entry_and_closes_the_old_gap() {
     let at = text.find("\"Card payment\"").unwrap();
     assert!(at > text.find("\"Bulk grocery run\"").unwrap());
     assert!(at < text.find("; Example 5").unwrap());
-    eq(card(&ws.book().budget(m("2026-10"), None)).owed, 45);
-    eq(card(&ws.book().budget(m("2026-11"), None)).owed, 0);
+    eq(liability(&ws.book().budget(m("2026-10"), None)).owed, 45);
+    eq(liability(&ws.book().budget(m("2026-11"), None)).owed, 0);
     assert_eq!(ws.book().errors(), vec![]);
 }
 
@@ -660,7 +660,7 @@ fn an_assignment_to_a_card_sets_money_aside_carries_over_and_can_be_taken_back_t
     let card_available = |ws: &mut Ws, m: &str, today: &str| {
         ws.book()
             .budget(m.parse().unwrap(), Some(today.parse().unwrap()))
-            .card(card_name)
+            .liability(card_name)
             .unwrap()
             .available
     };

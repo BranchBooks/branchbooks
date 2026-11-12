@@ -10,7 +10,7 @@ Expenses:Fun                       0.00         0.00         0.00         0.00  
 Expenses:Housing:Rent              0.00     1,500.00         0.00         0.00     1,500.00
 Expenses:Savings:Investing         0.00         0.00         0.00         0.00         0.00
 
-Card payment envelope         Available         Owed  Underfunded
+Liability payment envelope    Available         Owed  Underfunded
 Liabilities:CreditCard             0.00         0.00         0.00
 
 Assigned to future months        550.00

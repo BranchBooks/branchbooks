@@ -8,9 +8,10 @@ sync over HTTPS to any git host you choose. There is no BranchBooks server and n
 
 ## Install on Windows
 
-Run `BranchBooks-win-Setup.exe` from the [latest release](https://gitlab.com/branchbooks/branchbooks/-/releases/permalink/latest).
-It installs for your user alone, with no admin prompt, in `%LOCALAPPDATA%\BranchBooks`, and installs
-Microsoft's WebView2 runtime if Windows doesn't already have it.
+Run `BranchBooks-setup.exe` from the [latest release](https://gitlab.com/branchbooks/branchbooks/-/releases/permalink/latest).
+It installs for your user alone, with no admin prompt, in `%LOCALAPPDATA%\Programs\BranchBooks`; run it
+normally, not as administrator, which it refuses. It needs Microsoft's WebView2 runtime, which Windows 11
+and an up-to-date Windows 10 already have; if it is missing, Setup says where to get it.
 
 **Windows will warn you.** The app isn't code-signed yet, so Microsoft Defender SmartScreen may say
 it is unrecognized when you first open it. If you got it from this repository, choose More info,
@@ -19,26 +20,28 @@ pipeline that built it. To check a download was built from this repository, down
 `.sigstore.json` beside it and run [cosign](https://docs.sigstore.dev/cosign/system_config/installation/):
 
 ```sh
-cosign verify-blob BranchBooks-win-Setup.exe --bundle BranchBooks-win-Setup.exe.sigstore.json \
+cosign verify-blob BranchBooks-setup.exe --bundle BranchBooks-setup.exe.sigstore.json \
   --certificate-oidc-issuer https://gitlab.com \
   --certificate-identity-regexp '^https://gitlab.com/branchbooks/branchbooks//\.gitlab-ci\.yml@refs/tags/v'
 ```
 
-**Updates.** Each time it starts, the app asks `branchbooks.dev/updates` for a newer release, which
-forwards to the latest release on GitLab, and downloads it in the background. "Restart to update"
-then appears beside the book switcher; if you ignore it, the update applies the next time you open
-the app. That request, to `branchbooks.dev` and then `gitlab.com`, is the only network traffic
-BranchBooks makes apart from syncing books with the remote you chose. It carries the app's version and a random id
-that the updater keeps on your device. Offline, the app just runs as it is.
+**Updates.** Each time it starts, the app reads `branchbooks.dev/updates/latest.txt`, which forwards
+to the latest release on GitLab, and downloads a newer installer in the background, checking its
+SHA-256 against that file. "Restart to update" then appears beside the book switcher: it runs the
+installer silently and reopens the app. If you ignore it, the button is back the next time you open
+the app, without downloading again. Those requests, to `branchbooks.dev` and then `gitlab.com`, are
+the only network traffic BranchBooks makes apart from syncing books with the remote you chose, and
+they carry nothing about you or your books. Offline, the app just runs as it is.
 
-**Uninstalling** (Windows' Installed apps) removes the app. Your books stay in
-`%APPDATA%\BranchBooks\books`.
+**Uninstalling** (Windows' Installed apps) removes the app, then asks whether to delete your books
+and settings too, in `%LOCALAPPDATA%\BranchBooks Data`; the answer is No unless you choose Yes. Books
+you sync to a remote are still there either way.
 
 ## What it does
 
 **The Windows app** (`crates/branchbooks-ui`):
 
-- **Books:** each one a git repository in `%APPDATA%\BranchBooks\books`, local only or a clone of
+- **Books:** each one a git repository in `%LOCALAPPDATA%\BranchBooks Data\books`, local only or a clone of
   a remote. A switcher, and Add book: open a book from git, to use one book on several devices (a
   clone over HTTPS with a token, kept in Windows Credential Manager, never in a file), or start a
   new one, empty, the sample ledger or a GnuCash file (compressed XML, full history). A new device
@@ -46,7 +49,7 @@ that the updater keeps on your device. Offline, the app just runs as it is.
 - **Sync:** fetch, then push, fast-forward, or merge in one commit. It stops with nothing pushed on
   a text conflict or new ledger errors. It runs when a book opens, after each save, and by button;
   scenarios, closed months and what was set aside travel too.
-- **Views:** Budget (Assigned, targets, card payments, moving money, the month's entries and notes,
+- **Views:** Budget (Assigned, targets, paying off loans and cards, moving money, the month's entries and notes,
   target shortfalls, the ledger's errors), Journal (add, edit, delete, filtered by an account or
   category), Accounts (add by kind, with today's balance; edit, rename everywhere, reconcile, close,
   reopen, delete), Overview,
@@ -96,9 +99,13 @@ Tools with its "Desktop development with C++" workload, then work on a Dev Drive
 thousands of small files.
 
 ```powershell
-dx serve -p branchbooks-ui --platform desktop   # run the app, with live UI reloading; your real books
+dx serve -p branchbooks-ui --platform desktop   # run the app, with live UI reloading; its own books
 tools\windows\build.ps1                         # the release app, into dist\windows
 ```
+
+A dev build (a debug build such as `dx serve`, or one built with `BRANCHBOOKS_CHANNEL=dev`) keeps its books in
+`%LOCALAPPDATA%\BranchBooks-dev\books`, never your real ones;
+set `BRANCHBOOKS_BOOKS` to a folder to use that instead, in either build.
 
 `dx` is the Dioxus CLI, at the same version as `dioxus` in `crates/branchbooks-ui/Cargo.toml`. You only
 need it for `dx serve`.
@@ -126,10 +133,10 @@ the reference simulations, as it does weekly from a pipeline schedule. `deny.tom
 crates are allowed, and Renovate (`renovate.json`) proposes updates weekly.
 
 To release, set `version` in the root `Cargo.toml`, merge, then push a matching tag on `main`
-(`git tag v0.1.0 && git push origin v0.1.0`). The tag's pipeline runs the same checks, packages the app
-with [Velopack](https://velopack.io), signs every file, and publishes Setup, the update packages and the
-feed as a GitLab release. Installed apps read that feed through `branchbooks.dev/updates`, which the
-website forwards to the latest release. Run the pipeline by hand first to rehearse: it builds and packs,
+(`git tag v0.1.0 && git push origin v0.1.0`). The tag's pipeline runs the same checks, builds the
+installer with [Inno Setup](https://jrsoftware.org/isinfo.php) (`tools/windows/branchbooks.iss`), signs
+every file, and publishes `BranchBooks-setup.exe` and `latest.txt` as a GitLab release. Installed apps
+read `latest.txt` through `branchbooks.dev/updates`, which the website forwards to the latest release. Run the pipeline by hand first to rehearse: it builds and packs,
 keeps the result as a download from the job, and publishes nothing.
 
 The repository lives on [GitLab](https://gitlab.com/branchbooks/branchbooks); GitHub has a read-only
@@ -160,7 +167,7 @@ Expenses:Food:Groceries            0.00         0.00         0.00         0.00  
 Expenses:Housing:Rent          1,500.00         0.00         0.00         0.00     1,500.00
 Expenses:Savings:Investing         0.00       500.00         0.00      -500.00         0.00
 
-Card payment envelope         Available         Owed  Underfunded
+Liability payment envelope    Available         Owed  Underfunded
 Liabilities:CreditCard           155.00       200.00         0.00
   45.00 overspent in Expenses:Food:Dining: cover it there
 
@@ -171,7 +178,7 @@ Unassigned                     1,080.00
 `--today` defaults to the local date. Unassigned is computed for today's month and is the same
 on every month view (docs/DESIGN.md, decision 6). A ledger with targets gets a Target column (what target
 funding put in that month) and a `shortfall:` line for each target that month could not fully fund.
-Card overspending still in a category is named under its card, to cover there (docs/BUDGET-RULES.md,
+Card overspending still in a category is named under its liability, to cover there (docs/BUDGET-RULES.md,
 rule 7).
 
 `branchbooks check <file> [--json]` prints ledger errors and account balances, in the same shape

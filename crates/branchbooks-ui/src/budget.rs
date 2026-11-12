@@ -19,7 +19,7 @@ use rust_decimal::Decimal;
 
 use crate::accounts::Accounts;
 use crate::envelopes::{
-    CardPayments, MonthClose, MonthEntries, MoveForm, Notes, OverspendingSwitch, Shortfalls,
+    LiabilityPayments, MonthClose, MonthEntries, MoveForm, Notes, OverspendingSwitch, Shortfalls,
     TargetForm, envelope_text, target_rule,
 };
 use crate::files::Files;
@@ -346,6 +346,7 @@ pub fn Screen(
     // Under T1 a past month's rules never change, so targets are set from this month on.
     let can_target = shown >= this_month;
     let categories: Vec<String> = view.categories.iter().map(|c| c.category.clone()).collect();
+    let loans = crate::accounts::loans(core.borrow_mut().book());
     let mut entries: Vec<(Entry, String)> = core
         .borrow()
         .entries()
@@ -551,7 +552,7 @@ pub fn Screen(
                                                 if target_for() == Some(c.category.clone()) {
                                                     tr { key: "{c.category}-target", class: "editing",
                                                         td { colspan: 5,
-                                                            TargetForm { row: c.clone(), notice,
+                                                            TargetForm { account: c.category.clone(), target: c.target.clone(), notice,
                                                                 oncancel: move |()| target_for.set(None),
                                                                 onsave: {
                                                                     let (cat, date) = (c.category.clone(), env_date.clone());
@@ -600,13 +601,25 @@ pub fn Screen(
                                 "Target: what the category's target put in this month, from Unassigned."
                             }
                         }
-                        CardPayments { cards: view.cards.clone(), notice,
+                        LiabilityPayments { liabilities: view.liabilities.clone(), loans: loans.clone(), can_target, notice,
                             onsetaside: {
                                 let date = env_date.clone();
-                                move |(card, amount): (String, String)| {
-                                    let done = format!("Set aside {amount} more for {}.", short(&card));
-                                    let input = AssignInput { date: date.clone(), category: card, amount, currency: None };
+                                move |(account, amount): (String, String)| {
+                                    let done = format!("Set aside {amount} more for {}.", short(&account));
+                                    let input = AssignInput { date: date.clone(), category: account, amount, currency: None };
                                     save((Operation::Add(EntryInput::Assign(input)), done));
+                                }
+                            },
+                            ontarget: {
+                                let date = env_date.clone();
+                                move |(account, amount): (String, String)| {
+                                    let done = if amount == "0.00" {
+                                        format!("{} has no monthly payment now.", short(&account))
+                                    } else {
+                                        format!("{} now sets aside {amount} a month.", short(&account))
+                                    };
+                                    let input = TargetInput { date: date.clone(), category: account, amount, ..Default::default() };
+                                    save((Operation::Add(EntryInput::Target(input)), done));
                                 }
                             },
                         }

@@ -8,7 +8,7 @@ use super::*;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AccountRole {
     Cash,
-    Card,
+    Liability,
     OffBudget,
     Category,
     Excluded,
@@ -21,7 +21,7 @@ impl AccountRole {
     pub fn name(self) -> &'static str {
         match self {
             AccountRole::Cash => "cash",
-            AccountRole::Card => "card",
+            AccountRole::Liability => "liability",
             AccountRole::OffBudget => "off-budget",
             AccountRole::Category => "category",
             AccountRole::Excluded => "excluded",
@@ -37,7 +37,10 @@ pub struct BudgetConfig {
     /// Every account's role, in account-name order.
     pub roles: IndexMap<String, AccountRole>,
     pub categories: Vec<String>,
-    pub cards: Vec<String>,
+    pub liabilities: Vec<String>,
+    /// A liability switched on budget later (`budget-from:` on its open): before this date it is
+    /// off-budget, and what it owed then is debt from before the budget (decision 7b).
+    pub on_from: std::collections::HashMap<String, Date>,
     /// Accounts that only group their sub-accounts. Each keeps a role, so anything posted to one by
     /// hand still counts, and is flagged.
     pub placeholders: std::collections::HashSet<String>,
@@ -47,6 +50,14 @@ pub struct BudgetConfig {
 impl BudgetConfig {
     pub fn role(&self, account: &str) -> Option<AccountRole> {
         self.roles.get(account).copied()
+    }
+
+    /// The role on `date`: a liability is off-budget before its `budget-from:` date.
+    pub(super) fn role_on(&self, account: &str, date: Date) -> Option<AccountRole> {
+        match self.on_from.get(account) {
+            Some(from) if date < *from => Some(AccountRole::OffBudget),
+            _ => self.role(account),
+        }
     }
 
     pub fn is_placeholder(&self, account: &str) -> bool {
@@ -66,6 +77,7 @@ pub fn classify_accounts(accounts: &Accounts, options: &Options) -> BudgetConfig
         .unwrap_or_else(|| "USD".to_owned());
     let mut roles = IndexMap::new();
     let mut placeholders = std::collections::HashSet::new();
+    let mut on_from = std::collections::HashMap::new();
     let mut diagnostics = Vec::new();
 
     let mut sorted: Vec<_> = accounts.iter().collect();
@@ -97,7 +109,10 @@ pub fn classify_accounts(accounts: &Accounts, options: &Options) -> BudgetConfig
                     if root == "Assets" {
                         AccountRole::Cash
                     } else {
-                        AccountRole::Card
+                        if let Some(MetaValue::Date(d)) = info.open.meta.get("budget-from") {
+                            on_from.insert(name.clone(), *d);
+                        }
+                        AccountRole::Liability
                     }
                 } else {
                     match flag {
@@ -143,12 +158,13 @@ pub fn classify_accounts(accounts: &Accounts, options: &Options) -> BudgetConfig
     };
     let mut categories: Vec<String> = pick(AccountRole::Category);
     categories.retain(|c| !placeholders.contains(c));
-    let cards = pick(AccountRole::Card);
+    let liabilities = pick(AccountRole::Liability);
     BudgetConfig {
         currency,
         roles,
         categories,
-        cards,
+        liabilities,
+        on_from,
         placeholders,
         diagnostics,
     }

@@ -431,6 +431,8 @@ fn AddTransaction(
     let mut memo = use_signal(String::new);
     let mut outflow = use_signal(String::new);
     let mut inflow = use_signal(String::new);
+    let mut interest = use_signal(String::new);
+    let mut interest_category = use_signal(String::new);
     let mut problem = use_signal(String::new);
     let mut splitting = use_signal(|| None::<Entry>);
     let off_budget = {
@@ -439,6 +441,22 @@ fn AddTransaction(
             let mut c = core.0.borrow_mut();
             c.book().account_info()[a].open.meta.str("budget") != Some("on")
         }
+    };
+    // A payment to a loan or card on budget can split off its interest into a category.
+    let paying = category().starts_with("Liabilities:")
+        && targets.contains(&category())
+        && !off_budget(&category());
+    let interest_categories: Vec<String> = targets
+        .iter()
+        .filter(|t| t.starts_with("Expenses:"))
+        .cloned()
+        .collect();
+    let interest_cat = if !interest_category().is_empty() {
+        interest_category()
+    } else if paying {
+        last_interest(&core.0.borrow(), &category()).unwrap_or_default()
+    } else {
+        String::new()
     };
     if let Some(entry) = splitting() {
         return rsx! {
@@ -467,9 +485,11 @@ fn AddTransaction(
                     let (targets, funding, backend, core) = (targets.clone(), funding.clone(), backend.clone(), core.clone());
                     move |e: FormEvent| {
                         e.prevent_default();
+                        let typed_interest = if paying { interest.peek().clone() } else { String::new() };
                         let entry = match quick_entry(
                             &targets, &funding, &date.peek(), &payee.peek(), &category.peek(),
                             &account.peek(), &memo.peek(), &outflow.peek(), &inflow.peek(),
+                            (&interest_cat, &typed_interest),
                         ) {
                             Ok(entry) => entry,
                             Err(p) => return problem.set(p.to_owned()),
@@ -479,7 +499,7 @@ fn AddTransaction(
                         let op = Operation::Add(entry);
                         if run(backend, core, op, "Transaction added.", version, notice) {
                             last_account.set(account.peek().clone());
-                            for mut s in [payee, category, memo, outflow, inflow] {
+                            for mut s in [payee, category, memo, outflow, inflow, interest, interest_category] {
                                 s.set(String::new());
                             }
                         }
@@ -522,6 +542,21 @@ fn AddTransaction(
                     input { class: "amount", value: "{inflow}", inputmode: "decimal", oninput: move |e| inflow.set(e.value()) }
                 }
                 button { r#type: "submit", class: "f-add", "Add" }
+                if paying {
+                    label { class: "f-interest-cat", "Interest category"
+                        select { value: "{interest_cat}", onchange: move |e| interest_category.set(e.value()),
+                            option { value: "", selected: interest_cat.is_empty(), "No interest" }
+                            for c in interest_categories.iter() {
+                                option { key: "{c}", value: "{c}", selected: *c == interest_cat, {short(c)} }
+                            }
+                        }
+                    }
+                    label { class: "f-interest", "Interest"
+                        input { class: "amount", value: "{interest}", inputmode: "decimal", placeholder: "0.00",
+                            oninput: move |e| interest.set(e.value()),
+                        }
+                    }
+                }
                 button { r#type: "button", class: "link", title: "Several categories or accounts in one transaction",
                     onclick: {
                         let core = core.clone();
@@ -543,7 +578,29 @@ fn AddTransaction(
     }
 }
 
-/// The quick row's transaction, or what is missing from it.
+/// The category the interest went to in the latest payment to `liability`: money arriving on it
+/// beside a posting to an expense category.
+fn last_interest(core: &WorkspaceCore, liability: &str) -> Option<String> {
+    core.entries()
+        .filter_map(|(_, e)| Some((e.date, e.txn()?)))
+        .filter(|(_, t)| {
+            t.postings.iter().any(|p| {
+                p.account == liability && p.units.as_ref().is_some_and(|u| u.number > Decimal::ZERO)
+            })
+        })
+        .filter_map(|(date, t)| {
+            let p = t
+                .postings
+                .iter()
+                .find(|p| p.account.starts_with("Expenses:"))?;
+            Some((date, p.account.clone()))
+        })
+        .max_by_key(|(date, _)| *date)
+        .map(|(_, a)| a)
+}
+
+/// The quick row's transaction, or what is missing from it. `interest` (category, amount) splits a
+/// payment to a loan or card: the interest goes to its category, the rest pays down what is owed.
 #[allow(clippy::too_many_arguments)]
 fn quick_entry(
     targets: &[String],
@@ -555,6 +612,7 @@ fn quick_entry(
     memo: &str,
     outflow: &str,
     inflow: &str,
+    interest: (&str, &str),
 ) -> Result<EntryInput, &'static str> {
     if !targets.iter().any(|t| t == category) {
         return Err("Pick a category or account from the list.");
@@ -568,6 +626,33 @@ fn quick_entry(
         return Err("Enter an outflow or an inflow.");
     }
     let n = norm_amount(if out.is_empty() { inn } else { out });
+    let interest_amount = Some(norm_amount(interest.1.trim().trim_start_matches('-')))
+        .filter(|a| Decimal::from_str_exact(a).is_ok_and(|d| !d.is_zero()));
+    let mut principal = if out.is_empty() { format!("-{n}") } else { n };
+    let mut interest_posting = None;
+    if let Some(i) = interest_amount {
+        if out.is_empty() {
+            return Err("Interest goes with a payment: enter the payment as an outflow.");
+        }
+        if !interest.0.starts_with("Expenses:") || !targets.iter().any(|t| t == interest.0) {
+            return Err("Pick the category the interest comes from.");
+        }
+        let (Ok(total), Ok(part)) = (
+            Decimal::from_str_exact(&principal),
+            Decimal::from_str_exact(&i),
+        ) else {
+            return Err("Enter the payment and the interest as amounts, such as 25.00.");
+        };
+        if part > total {
+            return Err("The interest can't be more than the payment.");
+        }
+        principal = (total - part).to_string();
+        interest_posting = Some(PostingInput {
+            account: interest.0.to_owned(),
+            amount: Some(i),
+            ..Default::default()
+        });
+    }
     let (p, m) = (payee.trim(), memo.trim());
     // Beancount's payee and narration: both only when there is a memo, else one string.
     let narration = [m, p, short(category)]
@@ -578,17 +663,21 @@ fn quick_entry(
         date: date.to_owned(),
         payee: (!p.is_empty() && !m.is_empty()).then(|| p.to_owned()),
         narration: narration.to_owned(),
-        postings: vec![
-            PostingInput {
+        postings: [
+            Some(PostingInput {
                 account: category.to_owned(),
-                amount: Some(if out.is_empty() { format!("-{n}") } else { n }),
+                amount: Some(principal),
                 ..Default::default()
-            },
-            PostingInput {
+            }),
+            interest_posting,
+            Some(PostingInput {
                 account: account.to_owned(),
                 ..Default::default()
-            },
-        ],
+            }),
+        ]
+        .into_iter()
+        .flatten()
+        .collect(),
         ..Default::default()
     }))
 }
@@ -666,6 +755,7 @@ mod tests {
                 memo,
                 out,
                 inn,
+                ("", ""),
             )
         };
         let Ok(EntryInput::Txn(t)) = entry("Cafe", "Expenses:Food:Dining", "", "12.5", "") else {
@@ -685,6 +775,55 @@ mod tests {
         assert!(entry("", "Expenses:Nope", "", "1", "").is_err());
         assert!(entry("", "Expenses:Food:Dining", "", "1", "2").is_err());
         assert!(entry("", "Expenses:Food:Dining", "", "", "").is_err());
+    }
+
+    #[test]
+    fn a_loan_payment_splits_off_its_interest() {
+        let targets = [
+            "Expenses:Loan-Interest".to_owned(),
+            "Liabilities:Car-Loan".to_owned(),
+        ];
+        let funding = ["Assets:Checking".to_owned()];
+        let pay = |out: &str, interest: (&str, &str)| {
+            quick_entry(
+                &targets,
+                &funding,
+                "2026-11-25",
+                "Lender",
+                "Liabilities:Car-Loan",
+                "Assets:Checking",
+                "",
+                out,
+                "",
+                interest,
+            )
+        };
+        let Ok(EntryInput::Txn(t)) = pay("325.00", ("Expenses:Loan-Interest", "25")) else {
+            panic!("refused")
+        };
+        let postings: Vec<(&str, Option<&str>)> = t
+            .postings
+            .iter()
+            .map(|p| (p.account.as_str(), p.amount.as_deref()))
+            .collect();
+        assert_eq!(
+            postings,
+            [
+                ("Liabilities:Car-Loan", Some("300.00")),
+                ("Expenses:Loan-Interest", Some("25.00")),
+                ("Assets:Checking", None),
+            ]
+        );
+        // No interest (empty or zero) is the plain two-posting payment.
+        for none in [("", ""), ("Expenses:Loan-Interest", "0")] {
+            let Ok(EntryInput::Txn(t)) = pay("325.00", none) else {
+                panic!("refused")
+            };
+            assert_eq!(t.postings.len(), 2);
+        }
+        assert!(pay("25.00", ("Expenses:Loan-Interest", "30")).is_err());
+        assert!(pay("325.00", ("", "25")).is_err());
+        assert!(pay("325.00", ("Liabilities:Car-Loan", "25")).is_err());
     }
 
     #[test]

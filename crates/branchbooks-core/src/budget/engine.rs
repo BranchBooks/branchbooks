@@ -230,11 +230,11 @@ impl BudgetEngine {
                     category: name.clone(),
                     // Carried card overspending (rule 6a) is carried too, so Available is
                     // still Carried + Assigned + Moved + Activity.
-                    carried_in: c.carried_in - c.carried_card.values().sum::<Decimal>(),
+                    carried_in: c.carried_in - c.carried_liability.values().sum::<Decimal>(),
                     assigned: c.assigned,
                     target_allocated: c.target_allocated,
                     moved: c.moved,
-                    activity: -(c.cash + c.card_total()),
+                    activity: -(c.cash + c.liability_total()),
                     available: c.available(),
                     cash_overspent: s.cash,
                     credit_overspent: s.credit,
@@ -244,29 +244,49 @@ impl BudgetEngine {
                 }
             })
             .collect();
-        let card_names: IndexSet<&String> = self.config.cards.iter().chain(pay.keys()).collect();
-        let cards = sorted(card_names.into_iter())
+        // A liability switched on later has no row before its month.
+        let liability_names: IndexSet<&String> = self
+            .config
+            .liabilities
+            .iter()
+            .chain(pay.keys())
+            .filter(|l| {
+                self.config
+                    .on_from
+                    .get(*l)
+                    .is_none_or(|d| d.month() <= month)
+            })
+            .collect();
+        let liabilities = sorted(liability_names.into_iter())
             .into_iter()
-            .map(|card| {
-                let available = pay.get(card).copied().unwrap_or(ZERO);
-                let owed = state.owed.get(card).copied().unwrap_or(ZERO);
+            .map(|liability| {
+                let available = pay.get(liability).copied().unwrap_or(ZERO);
+                let owed = state.owed.get(liability).copied().unwrap_or(ZERO);
                 let in_categories: Vec<(String, Decimal)> = sorted(state.cats.keys())
                     .into_iter()
                     .filter_map(|name| {
                         let c = &state.cats[name];
-                        let v = credit_by_card(c, split_of(c).credit)
-                            .get(card.as_str())
+                        let v = credit_by_liability(c, split_of(c).credit)
+                            .get(liability.as_str())
                             .copied()
                             .unwrap_or(ZERO);
                         (v > ZERO).then(|| (name.clone(), v))
                     })
                     .collect();
                 let waiting: Decimal = in_categories.iter().map(|(_, v)| *v).sum();
-                CardRow {
-                    card: card.clone(),
+                let target = state.targets.get(liability.as_str()).cloned();
+                LiabilityRow {
+                    account: liability.clone(),
                     available,
                     owed,
-                    underfunded: (owed - available - waiting).max(ZERO),
+                    // Paid monthly: what this month's payment still needs. Paid in full: all it owes.
+                    underfunded: if target.is_some() {
+                        state.pay_shortfall.get(liability).copied().unwrap_or(ZERO)
+                    } else {
+                        (owed - available - waiting).max(ZERO)
+                    },
+                    target,
+                    target_allocated: state.pay_target.get(liability).copied().unwrap_or(ZERO),
                     // A card in credit owes nothing, so all of its envelope is spare.
                     overfunded: (available + waiting - owed.max(ZERO)).max(ZERO),
                     in_categories,
@@ -291,7 +311,7 @@ impl BudgetEngine {
             assigned_to_future,
             cash: state.cash,
             categories,
-            cards,
+            liabilities,
             warnings: state.warnings,
             flags,
             shortfalls: state.shortfalls,

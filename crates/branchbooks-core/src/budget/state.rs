@@ -15,10 +15,10 @@ pub struct CategoryState {
     /// c: cash spending this month, net of cash refunds.
     pub cash: Decimal,
     /// k per card: card spending this month, net of card refunds.
-    pub card: IndexMap<String, Decimal>,
+    pub liability: IndexMap<String, Decimal>,
     /// Card overspending carried in by a category with rollover overspending (rule 6a), per card.
     /// A claim on the card like this month's spending, but not part of Activity.
-    pub carried_card: IndexMap<String, Decimal>,
+    pub carried_liability: IndexMap<String, Decimal>,
     /// Cash overspend corrected this month.
     pub cured: Decimal,
     /// Date of the last spending in this category this month.
@@ -30,15 +30,15 @@ pub struct CategoryState {
 }
 
 impl CategoryState {
-    pub fn card_total(&self) -> Decimal {
-        self.card.values().sum()
+    pub fn liability_total(&self) -> Decimal {
+        self.liability.values().sum()
     }
 
     /// What the category owes each card: this month's spending plus carried card overspending.
-    fn card_claims(&self) -> IndexMap<&str, Decimal> {
+    fn liability_claims(&self) -> IndexMap<&str, Decimal> {
         let mut out: IndexMap<&str, Decimal> = IndexMap::new();
-        for (card, v) in self.card.iter().chain(&self.carried_card) {
-            *out.entry(card.as_str()).or_insert(ZERO) += *v;
+        for (liability, v) in self.liability.iter().chain(&self.carried_liability) {
+            *out.entry(liability.as_str()).or_insert(ZERO) += *v;
         }
         out
     }
@@ -46,8 +46,8 @@ impl CategoryState {
     pub fn available(&self) -> Decimal {
         self.carried_in + self.assigned + self.target_allocated + self.moved
             - self.cash
-            - self.card_total()
-            - self.carried_card.values().sum::<Decimal>()
+            - self.liability_total()
+            - self.carried_liability.values().sum::<Decimal>()
     }
 }
 
@@ -66,6 +66,10 @@ pub struct BudgetState {
     pub payments: IndexMap<String, Decimal>,
     /// Assigned straight to a card's payment envelope this month (decision 7).
     pub pay_assigned: IndexMap<String, Decimal>,
+    /// Allocated this month by a liability's monthly target (T3, T5): virtual, never in the ledger.
+    pub pay_target: IndexMap<String, Decimal>,
+    /// What a liability's target needed this month and Unassigned could not fund (T5).
+    pub pay_shortfall: IndexMap<String, Decimal>,
     pub cats: IndexMap<String, CategoryState>,
     pub warnings: Vec<Diagnostic>,
     /// Envelope entries skipped this month because they would overspend a category.
@@ -115,6 +119,8 @@ impl BudgetState {
             pay_carried: IndexMap::new(),
             payments: IndexMap::new(),
             pay_assigned: IndexMap::new(),
+            pay_target: IndexMap::new(),
+            pay_shortfall: IndexMap::new(),
             cats: IndexMap::new(),
             warnings: Vec::new(),
             blocked: Vec::new(),
@@ -146,27 +152,27 @@ impl BudgetState {
     /// Payment envelope Available per card (sim4 `pay`).
     pub fn pay(&self) -> IndexMap<String, Decimal> {
         let mut out = IndexMap::new();
-        for (card, v) in &self.pay_carried {
-            add_to(&mut out, card, *v);
+        for (liability, v) in &self.pay_carried {
+            add_to(&mut out, liability, *v);
         }
-        for (card, v) in &self.pay_assigned {
-            add_to(&mut out, card, *v);
+        for (liability, v) in self.pay_assigned.iter().chain(&self.pay_target) {
+            add_to(&mut out, liability, *v);
         }
-        for (card, v) in &self.payments {
-            add_to(&mut out, card, -*v);
+        for (liability, v) in &self.payments {
+            add_to(&mut out, liability, -*v);
         }
         for c in self.cats.values() {
-            let by_card = credit_by_card(c, split_of(c).credit);
-            for (card, k) in c.card_claims() {
+            let by_liability = credit_by_liability(c, split_of(c).credit);
+            for (liability, k) in c.liability_claims() {
                 add_to(
                     &mut out,
-                    card,
-                    k - by_card.get(card).copied().unwrap_or(ZERO),
+                    liability,
+                    k - by_liability.get(liability).copied().unwrap_or(ZERO),
                 );
             }
         }
-        for card in self.owed.keys() {
-            out.entry(card.clone()).or_insert(ZERO);
+        for liability in self.owed.keys() {
+            out.entry(liability.clone()).or_insert(ZERO);
         }
         out
     }
@@ -262,19 +268,19 @@ impl BudgetState {
     /// Sets money aside in a card's payment envelope (decision 7), which Unassigned pays for.
     /// A negative assignment takes it back, but never below zero, like a negative category
     /// assignment.
-    pub fn assign_card(&mut self, card: &str, x: Decimal, ev: Option<&EventBase>) {
+    pub fn assign_liability(&mut self, liability: &str, x: Decimal, ev: Option<&EventBase>) {
         if x < ZERO {
-            let after = self.pay().get(card).copied().unwrap_or(ZERO) + x;
+            let after = self.pay().get(liability).copied().unwrap_or(ZERO) + x;
             if after < ZERO {
                 let message = format!(
-                    "envelope-assign skipped: it would leave {card}'s payment envelope at {}",
+                    "envelope-assign skipped: it would leave {liability}'s payment envelope at {}",
                     fixed(after, 2)
                 );
                 self.blocked_at(ev, message);
                 return;
             }
         }
-        add_to(&mut self.pay_assigned, card, x);
+        add_to(&mut self.pay_assigned, liability, x);
     }
 
     pub fn move_(&mut self, from: &str, to: &str, x: Decimal, ev: Option<&EventBase>) {
@@ -291,21 +297,21 @@ impl BudgetState {
 
     pub fn apply_tx(&mut self, e: &TxEffect, date: Date) {
         self.cash += e.cash;
-        for (card, d) in &e.card_delta {
-            add_to(&mut self.owed, card, -*d);
+        for (liability, d) in &e.liability_delta {
+            add_to(&mut self.owed, liability, -*d);
         }
         for s in &e.spends {
             let c = self.cat(&s.category);
-            match &s.card {
+            match &s.liability {
                 None => c.cash += s.amount,
-                Some(card) => add_to(&mut c.card, card, s.amount),
+                Some(liability) => add_to(&mut c.liability, liability, s.amount),
             }
             if s.amount > ZERO {
                 c.last_spend = Some(date);
             }
         }
-        for (card, v) in &e.payments {
-            add_to(&mut self.payments, card, *v);
+        for (liability, v) in &e.payments {
+            add_to(&mut self.payments, liability, *v);
         }
     }
 
@@ -316,12 +322,12 @@ impl BudgetState {
             EventKind::Assign {
                 category,
                 amount,
-                card: true,
-            } => self.assign_card(category, *amount, ev),
+                liability: true,
+            } => self.assign_liability(category, *amount, ev),
             EventKind::Assign {
                 category,
                 amount,
-                card: false,
+                liability: false,
             } => self.assign(category, *amount, ev),
             EventKind::Move { from, to, amount } => self.move_(from, to, *amount, ev),
             EventKind::Target { category, target } => self.set_target(category, target),
@@ -348,6 +354,16 @@ impl BudgetState {
     /// What a category's target asks for this month, before funding (T3). "Put in" is the money
     /// the category has been given, before this month's spending: carried in, assigned, moved.
     pub fn target_need(&self, category: &str, t: &Target) -> Decimal {
+        if is_liability(category) {
+            // A payment is due every month: set the amount aside each month, less what was
+            // assigned by hand. What is carried in is last month's money, not this month's.
+            let assigned = self.pay_assigned.get(category).copied().unwrap_or(ZERO);
+            let debt = match t.rollover {
+                Rollover::CarryShortfall => self.target_debt.get(category).copied().unwrap_or(ZERO),
+                Rollover::Reset => ZERO,
+            };
+            return (t.amount + debt - assigned).max(ZERO);
+        }
         let empty = CategoryState::default();
         let c = self.cats.get(category).unwrap_or(&empty);
         let put_in = c.carried_in + c.assigned + c.moved;
@@ -402,15 +418,20 @@ impl BudgetState {
         for (category, t) in order {
             let need = self.target_need(&category, &t);
             let funded = need.min(self.unassigned(ZERO).max(ZERO));
-            if funded > ZERO {
-                // Like an assignment, it covers a cash overspend first (rule 5).
-                let s = self.split(&category);
-                let c = self.cat(&category);
-                c.cured += funded.min(s.cash);
-                c.target_allocated += funded;
-            }
             let short = need - funded;
-            self.cat(&category).shortfall = short;
+            if is_liability(&category) {
+                add_to(&mut self.pay_target, &category, funded);
+                self.pay_shortfall.insert(category.clone(), short);
+            } else {
+                if funded > ZERO {
+                    // Like an assignment, it covers a cash overspend first (rule 5).
+                    let s = self.split(&category);
+                    let c = self.cat(&category);
+                    c.cured += funded.min(s.cash);
+                    c.target_allocated += funded;
+                }
+                self.cat(&category).shortfall = short;
+            }
             if t.rollover == Rollover::CarryShortfall
                 && t.recurrence == Recurrence::Monthly
                 && short > ZERO
@@ -453,17 +474,17 @@ impl BudgetState {
                 next.carried_in = av;
             } else {
                 let split = split_of(c);
-                let by_card: Vec<(String, Decimal)> = credit_by_card(c, split.credit)
+                let by_liability: Vec<(String, Decimal)> = credit_by_liability(c, split.credit)
                     .into_iter()
                     .filter(|(_, v)| *v > ZERO)
-                    .map(|(card, v)| (card.to_owned(), v))
+                    .map(|(liability, v)| (liability.to_owned(), v))
                     .collect();
                 if self.rollover_overspending.contains(name) {
                     next.carried_in = -split.cash;
-                    next.carried_card = by_card.into_iter().collect();
+                    next.carried_liability = by_liability.into_iter().collect();
                 } else {
-                    for (card, v) in by_card {
-                        add_to(&mut pay_now, &card, v);
+                    for (liability, v) in by_liability {
+                        add_to(&mut pay_now, &liability, v);
                     }
                 }
             }
@@ -472,12 +493,20 @@ impl BudgetState {
         self.pay_carried = pay_now;
         self.payments.clear();
         self.pay_assigned.clear();
+        self.pay_target.clear();
+        self.pay_shortfall.clear();
         self.warnings.clear();
         self.blocked.clear();
         self.shortfalls.clear();
         self.funded = false;
         self.month = self.month.next();
     }
+}
+
+/// Whether a target names a liability's payment envelope rather than a category: only on-budget
+/// liabilities and categories pass `target_of` (T7), and categories are never under `Liabilities`.
+pub(super) fn is_liability(account: &str) -> bool {
+    account.starts_with("Liabilities:")
 }
 
 pub(super) fn split_of(c: &CategoryState) -> Split {
@@ -487,8 +516,8 @@ pub(super) fn split_of(c: &CategoryState) -> Split {
     }
     let claims = ((-c.carried_in).max(ZERO) + c.cash - c.cured).max(ZERO);
     let cash_first = over.min(claims);
-    let card_spend: Decimal = c.card_claims().values().filter(|v| **v > ZERO).sum();
-    let credit = (over - cash_first).min(card_spend);
+    let liability_spend: Decimal = c.liability_claims().values().filter(|v| **v > ZERO).sum();
+    let credit = (over - cash_first).min(liability_spend);
     Split {
         cash: over - credit,
         credit,
@@ -496,18 +525,18 @@ pub(super) fn split_of(c: &CategoryState) -> Split {
 }
 
 /// Credit portion of a category charged to each card, in card name order (decision 3).
-pub(super) fn credit_by_card(c: &CategoryState, credit: Decimal) -> IndexMap<&str, Decimal> {
-    let claims = c.card_claims();
-    let mut cards: Vec<&str> = claims.keys().copied().collect();
-    cards.sort_unstable();
+pub(super) fn credit_by_liability(c: &CategoryState, credit: Decimal) -> IndexMap<&str, Decimal> {
+    let claims = c.liability_claims();
+    let mut liabilities: Vec<&str> = claims.keys().copied().collect();
+    liabilities.sort_unstable();
     let mut out = IndexMap::new();
     let mut left = credit;
-    for card in cards {
+    for liability in liabilities {
         if left <= ZERO {
             break;
         }
-        let take = left.min(claims[card].max(ZERO));
-        out.insert(card, take);
+        let take = left.min(claims[liability].max(ZERO));
+        out.insert(liability, take);
         left -= take;
     }
     out

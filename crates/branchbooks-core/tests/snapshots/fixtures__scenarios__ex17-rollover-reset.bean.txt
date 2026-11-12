@@ -68,17 +68,17 @@ month 2026-10 USD today 2026-10-01 unassigned 1100 future 500 cash 3235
   category Expenses:Food:Groceries 0 600 0 -620 -20 20 0
   category Expenses:Housing:Rent 0 1500 0 0 1500 0 0
   category Expenses:Savings:Investing 0 0 0 0 0 0 0
-  card Liabilities:CreditCard 0 0 0
+  liability Liabilities:CreditCard 0 0 0
 month 2026-11 USD today 2026-11-01 unassigned 1100 future 0 cash 2735
   category Expenses:Food:Dining 155 0 0 0 155 0 0
   category Expenses:Food:Groceries -20 0 0 0 -20 20 0
   category Expenses:Housing:Rent 1500 0 0 0 1500 0 0
   category Expenses:Savings:Investing 0 500 0 -500 0 0 0
-  card Liabilities:CreditCard 0 0 0
+  liability Liabilities:CreditCard 0 0 0
 month 2026-12 USD today 2026-12-01 unassigned 1080 future 0 cash 2735
   category Expenses:Food:Dining 155 0 0 0 155 0 0
   category Expenses:Food:Groceries 0 0 0 0 0 0 0
   category Expenses:Housing:Rent 1500 0 0 0 1500 0 0
   category Expenses:Savings:Investing 0 0 0 0 0 0 0
-  card Liabilities:CreditCard 0 0 0
+  liability Liabilities:CreditCard 0 0 0
 unassigned-at 2026-12-15 1080

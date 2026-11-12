@@ -67,11 +67,17 @@ fn enqueue(waiting: &mut Vec<String>, id: String) {
     }
 }
 
-/// Where a panic's message goes: a release build on Windows has no console to show it in.
+/// Where a panic's message goes: a release build on Windows has no console to show it in. Beside
+/// `WebView2`'s data, in `%LOCALAPPDATA%\<exe name>`, so each install keeps its own and uninstalling
+/// removes it.
 pub(crate) fn crash_log() -> std::path::PathBuf {
+    let name = std::env::current_exe()
+        .ok()
+        .and_then(|e| Some(e.file_stem()?.to_string_lossy().into_owned()))
+        .unwrap_or_else(|| "BranchBooks".to_owned());
     std::env::var_os("LOCALAPPDATA")
         .map_or_else(std::env::temp_dir, std::path::PathBuf::from)
-        .join("BranchBooks")
+        .join(name)
         .join("crash.log")
 }
 

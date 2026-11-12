@@ -41,10 +41,10 @@ variables:
   GITLAB_ADVANCED_SAST_ENABLED: "true"
   # Run the scanners in merge request pipelines too, not only on branches.
   AST_ENABLE_MR_PIPELINES: "true"
-  # The Velopack CLI, the same version as the crate in crates/branchbooks-ui/Cargo.toml (checked below).
-  VPK_VERSION: 1.3.39-g8d2844f
-  # Where installed apps read updates: forwarded to this project's latest release.
-  UPDATE_FEED: https://branchbooks.dev/updates
+  # Inno Setup, which builds the installer (tools/windows/branchbooks.iss), from its GitHub release
+  # (Chocolatey stops at 6). Bump both together: the SHA-256 is of innosetup-<version>-x64.exe.
+  INNO_SETUP_VERSION: 7.1.1
+  INNO_SETUP_SHA256: 8A5A6711C3766A6E5FB74F280BA0E3551E719CE94538D901FDBD1F8F9920B3F0
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
   CARGO_PROFILE_DEV_DEBUG: "0"
   CACHE_POLICY: pull
@@ -115,14 +115,6 @@ rust:
     - |
       # No npm (CLAUDE.md).
       if git ls-files | grep -E '(^|/)(package\.json|package-lock\.json|node_modules/)'; then exit 1; fi
-    - |
-      # Velopack's crate and CLI versions match: kept in two files, and nothing else fails when they drift until a release.
-      cli=$(sed -n 's/^  VPK_VERSION: //p' .gitlab-ci.yml)
-      crate=$(sed -n 's/^velopack = "=\(.*\)"/\1/p' crates/branchbooks-ui/Cargo.toml)
-      if test -z "$cli" || test "$cli" != "$crate"; then
-        echo "VPK_VERSION in .gitlab-ci.yml is '$cli', velopack in branchbooks-ui is '$crate'. Change them to match."
-        exit 1
-      fi
     - sh tools/ci/install-cargo-deny.sh
     - cargo fmt --check
     - cargo clippy --all-targets --locked -- -D warnings
@@ -176,8 +168,9 @@ slow-checks:
     - python3 -I reference/sim5.py
     - cargo bench --locked -p branchbooks-core
 
-# The Windows app, packed for release (tools/windows/build.ps1, then Velopack). No cache: what ships is
-# compiled here, from source. The previous release goes in the folder so the pack can build a delta from it.
+# The Windows app and its installer, for release (tools/windows/build.ps1 -Installer, Inno Setup), and
+# latest.txt, which installed apps read through https://branchbooks.dev/updates/latest.txt to update
+# (src/update.rs). No cache: what ships is compiled here, from source.
 package:
   extends: [.windows]
   stage: deploy
@@ -203,28 +196,18 @@ package:
         git merge-base --is-ancestor HEAD origin/main
         if ($LASTEXITCODE -ne 0) { throw "Tag $env:CI_COMMIT_TAG is not on main" }
       }
-    - tools/windows/build.ps1
     - |
-      if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
-        Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
-        ./dotnet-install.ps1 -Channel 8.0 -InstallDir "$env:USERPROFILE\.dotnet"
-        $env:PATH = "$env:USERPROFILE\.dotnet;$env:PATH"
-      }
-    - dotnet tool install -g vpk --version $env:VPK_VERSION
-    - $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
-    # The newest release from the feed, for the delta package. 0.1.0 is the first, with nothing to read.
+      $tag = 'is-' + $env:INNO_SETUP_VERSION.Replace('.', '_')
+      Invoke-WebRequest "https://github.com/jrsoftware/issrc/releases/download/$tag/innosetup-$env:INNO_SETUP_VERSION-x64.exe" -OutFile innosetup.exe
+      if ((Get-FileHash innosetup.exe).Hash -ne $env:INNO_SETUP_SHA256) { throw 'Inno Setup download: SHA-256 mismatch' }
+      Start-Process -Wait .\innosetup.exe '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CURRENTUSER'
+      Remove-Item innosetup.exe
+    - tools/windows/build.ps1 -Installer -OutputDir releases
     - |
-      vpk download http --url $env:UPDATE_FEED -c win -o releases
-      if ($LASTEXITCODE -ne 0) {
-        if ($version -ne "0.1.0") { throw "Could not read the update feed $env:UPDATE_FEED" }
-        Write-Host "0.1.0 is the first release: no earlier one to make a delta from."
-        $global:LASTEXITCODE = 0
-      }
-    - |
-      vpk pack -u BranchBooks -v $version -p dist/windows -e BranchBooks.exe -r win-x64 `
-        --packTitle BranchBooks --packAuthors BranchBooks -f webview2 -c win -o releases `
-        --icon crates/branchbooks-ui/icons/icon.ico --splashImage crates/branchbooks-ui/icons/splash.png
-      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # One line: the version, the installer's SHA-256 and its file name (src/update.rs, parse_latest).
+      $setup = "BranchBooks-setup.exe"
+      $sha = (Get-FileHash -Algorithm SHA256 "releases/$setup").Hash.ToLower()
+      Set-Content -NoNewline -Path releases/latest.txt -Value "$version $sha $setup"
     - Set-Content -NoNewline -Path releases/VERSION -Value $version
   artifacts:
     name: BranchBooks-$CI_COMMIT_REF_SLUG

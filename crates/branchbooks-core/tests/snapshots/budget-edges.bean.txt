@@ -167,8 +167,8 @@ budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 15
 budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 17 budget-flag "Assets:Number: budget flag must be \"on\" or \"off\""
 budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 28 budget-flag "Income:Odd: the only budget flag for income accounts is \"excluded\""
 budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 35 budget-flag "Expenses:Strange: the only budget flag for expense accounts is \"excluded\""
-budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 130 envelope "Expenses:Unknown is not a budgeted category or card"
-budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 131 envelope "Assets:Checking is not a budgeted category or card"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 130 envelope "Expenses:Unknown is not a budgeted category or liability"
+budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 131 envelope "Assets:Checking is not a budgeted category or liability"
 budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 132 envelope "envelope-assign amount must be in USD"
 budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 133 envelope "envelope-assign amount must be in USD"
 budget-diagnostic "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 134 envelope "envelope-assign takes an account and an amount"
@@ -186,8 +186,8 @@ month 2026-01 USD today 2026-01-01 unassigned 11070 future -9285 cash 2085
   category Expenses:Fun 0 150 60 -510 -300 300 0
   category Expenses:Rent 0 500 -60 -100 340 0 0
   category Expenses:Strange 0 0 0 0 0 0 0
-  card Liabilities:CardA 70 320 250
-  card Liabilities:CardB 210 210 0
+  liability Liabilities:CardA 70 320 250
+  liability Liabilities:CardB 210 210 0
   warning "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 78 late-correction "2026-01-09 envelope-assign into Expenses:Food corrects an overspend from spending on 2026-01-06"
   warning "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 79 late-correction "2026-01-09 envelope-move into Expenses:Fun corrects an overspend from spending on 2026-01-06"
   warning "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 146 late-correction "2026-01-26 envelope-assign into Expenses:Fun corrects an overspend from spending on 2026-01-25"
@@ -205,9 +205,9 @@ month 2026-02 USD today 2026-02-01 unassigned 10750 future -9850 cash 2055
   category Expenses:Fun 0 200 0 0 200 0 0
   category Expenses:Rent 340 300 0 0 640 0 0
   category Expenses:Strange 0 0 0 0 0 0 0
-  card Liabilities:CardA 80 820 250
+  liability Liabilities:CardA 80 820 250
     waiting Expenses:Food 490
-  card Liabilities:CardB 235 210 0
+  liability Liabilities:CardB 235 210 0
     overfunded 25
   warning "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 158 late-correction "2026-02-04 envelope-assign into Expenses:Food corrects an overspend from spending on 2026-02-03"
 month 2026-03 USD today 2026-03-01 unassigned 10260 future -9850 cash 2055
@@ -215,16 +215,16 @@ month 2026-03 USD today 2026-03-01 unassigned 10260 future -9850 cash 2055
   category Expenses:Fun 200 0 0 0 200 0 0
   category Expenses:Rent 640 0 0 0 640 0 0
   category Expenses:Strange 0 0 0 0 0 0 0
-  card Liabilities:CardA 510 760 250
-  card Liabilities:CardB 235 210 0
+  liability Liabilities:CardA 510 760 250
+  liability Liabilities:CardB 235 210 0
     overfunded 25
 month 2026-04 USD today 2026-04-01 unassigned 260 future 0 cash 2055
   category Expenses:Food 60 150 0 0 210 0 0
   category Expenses:Fun 200 0 0 0 200 0 0
   category Expenses:Rent 640 0 0 0 640 0 0
   category Expenses:Strange 0 0 0 0 0 0 0
-  card Liabilities:CardA 510 760 250
-  card Liabilities:CardB 235 210 0
+  liability Liabilities:CardA 510 760 250
+  liability Liabilities:CardB 235 210 0
     overfunded 25
   flag "crates/branchbooks-core/tests/snapshots/budget-edges.bean" 162 blocked "2026-04-01 envelope-assign skipped: it would leave Expenses:Fun at -9800.00"
 month 2026-05 USD today 2026-05-01 unassigned 260 future 0 cash 2055
@@ -232,7 +232,7 @@ month 2026-05 USD today 2026-05-01 unassigned 260 future 0 cash 2055
   category Expenses:Fun 200 0 0 0 200 0 0
   category Expenses:Rent 640 0 0 0 640 0 0
   category Expenses:Strange 0 0 0 0 0 0 0
-  card Liabilities:CardA 510 760 250
-  card Liabilities:CardB 235 210 0
+  liability Liabilities:CardA 510 760 250
+  liability Liabilities:CardB 235 210 0
     overfunded 25
 unassigned-at 2026-05-15 260

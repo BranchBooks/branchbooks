@@ -3,7 +3,7 @@
 // shortcut: closing a month shows no "changed since closed" yet, and the write path does not warn
 // about an edit dated in a closed month; add both when closes are used in earnest.
 
-use branchbooks_core::budget::{CardRow, CategoryRow, Target};
+use branchbooks_core::budget::{CategoryRow, LiabilityRow, Target};
 use branchbooks_core::types::{CustomValue, Diagnostic, Entry, MetaValue};
 use branchbooks_core::write::render::{AssignInput, EntryInput, MoveInput};
 use dioxus::prelude::*;
@@ -40,15 +40,18 @@ pub fn Shortfalls(items: Vec<(String, Decimal)>) -> Element {
 
 /// Sets, changes or ends a category's target. "Every month" refills it to the amount each month;
 /// "by" saves the amount by the end of that month. Rollover keeps the defaults (T2).
-/// `onsave`: the amount and the due date (`None`: monthly); 0.00 ends the target.
+/// `onsave`: the amount and the due date (`None`: monthly); 0.00 ends the target. A liability's
+/// target is its monthly payment (`payment`): no "by", and worded as a payment.
 #[component]
 pub fn TargetForm(
-    row: CategoryRow,
+    account: String,
+    target: Option<Target>,
+    #[props(default)] payment: bool,
     onsave: EventHandler<(String, Option<String>)>,
     oncancel: EventHandler<()>,
     mut notice: Signal<Option<(bool, String)>>,
 ) -> Element {
-    let t = row.target.clone();
+    let t = target.clone();
     let mut amount = use_signal(|| {
         t.as_ref()
             .map(|t| format!("{:.2}", t.amount))
@@ -59,9 +62,20 @@ pub fn TargetForm(
             .and_then(|t| t.due)
             .map(|d| d.month().to_string())
     });
-    let name = short(&row.category).to_owned();
+    let name = short(&account).to_owned();
+    let (end, zero) = if payment {
+        (
+            "Stop the monthly payment",
+            "A monthly payment needs an amount above zero.",
+        )
+    } else {
+        (
+            "End target",
+            "A target needs an amount above zero. To remove one, use End target.",
+        )
+    };
     rsx! {
-        form { class: "inline-form target-form", "aria-label": "Target for {name}",
+        form { class: "inline-form target-form", "aria-label": if payment { "Monthly payment for {name}" } else { "Target for {name}" },
             onsubmit: move |e: FormEvent| {
                 e.prevent_default();
                 let value = match parse_amount(&amount.peek()) {
@@ -69,23 +83,24 @@ pub fn TargetForm(
                     Err(m) => return notice.set(Some((false, m))),
                 };
                 if value <= Decimal::ZERO {
-                    let m = "A target needs an amount above zero. To remove one, use End target.";
-                    return notice.set(Some((false, m.to_owned())));
+                    return notice.set(Some((false, zero.to_owned())));
                 }
                 let due = by.peek().as_deref().and_then(|m| m.parse::<Month>().ok()).map(|m| m.first_day().to_string());
                 onsave.call((format!("{value:.2}"), due));
             },
-            label { "Amount"
+            label { if payment { "Monthly payment" } else { "Amount" }
                 input { class: "amount", value: "{amount}", inputmode: "decimal", required: true,
                     oninput: move |e| amount.set(e.value()),
                     onmounted: move |e| async move { let _ = e.set_focus(true).await; },
                 }
             }
-            label {
-                select { "aria-label": "How often", value: if by().is_some() { "by" } else { "monthly" },
-                    onchange: move |e| by.set((e.value() == "by").then(String::new)),
-                    option { value: "monthly", "every month" }
-                    option { value: "by", "by" }
+            if !payment {
+                label {
+                    select { "aria-label": "How often", value: if by().is_some() { "by" } else { "monthly" },
+                        onchange: move |e| by.set((e.value() == "by").then(String::new)),
+                        option { value: "monthly", "every month" }
+                        option { value: "by", "by" }
+                    }
                 }
             }
             if let Some(m) = by() {
@@ -95,7 +110,7 @@ pub fn TargetForm(
             }
             button { r#type: "submit", "Save" }
             if t.is_some() {
-                button { r#type: "button", class: "danger", onclick: move |_| onsave.call(("0.00".into(), None)), "End target" }
+                button { r#type: "button", class: "danger", onclick: move |_| onsave.call(("0.00".into(), None)), "{end}" }
             }
             button { r#type: "button", class: "link", onclick: move |_| oncancel.call(()), "Cancel" }
         }
@@ -121,95 +136,56 @@ pub fn OverspendingSwitch(row: CategoryRow, onsave: EventHandler<bool>) -> Eleme
     }
 }
 
-/// Card payment envelopes. Set aside is editable like Assigned: a new total writes an
-/// envelope-assign to the card for the difference. "Cover" sets aside what is underfunded.
+/// What is owed on liabilities and the money set aside to pay it, in three groups: loans, credit
+/// cards paid in full, and credit cards paid down monthly (a target). Set aside is editable like
+/// Assigned: a new total writes an envelope-assign for the difference. `loans` are the accounts
+/// marked `kind: "loan"`; `ontarget` gets the account and the monthly payment, 0.00 to stop it.
 #[component]
-pub fn CardPayments(
-    cards: Vec<CardRow>,
+pub fn LiabilityPayments(
+    liabilities: Vec<LiabilityRow>,
+    loans: Vec<String>,
+    can_target: bool,
     onsetaside: EventHandler<(String, String)>,
-    mut notice: Signal<Option<(bool, String)>>,
+    ontarget: EventHandler<(String, String)>,
+    notice: Signal<Option<(bool, String)>>,
 ) -> Element {
-    let mut editing = use_signal(|| None::<String>);
-    let mut value = use_signal(String::new);
+    let (loan_rows, cards): (Vec<LiabilityRow>, Vec<LiabilityRow>) = liabilities
+        .into_iter()
+        .partition(|l| loans.contains(&l.account));
+    let (paying_down, in_full): (Vec<LiabilityRow>, Vec<LiabilityRow>) =
+        cards.into_iter().partition(|l| l.target.is_some());
+    let groups = [
+        (
+            "Loans",
+            "Set aside each month's payment. Interest goes to its own category when you enter the payment.",
+            loan_rows,
+        ),
+        (
+            "Credit cards",
+            "Paid in full each month: what you spend on the card is set aside to pay it.",
+            in_full,
+        ),
+        (
+            "Credit cards you're paying down",
+            "Paying the balance down a set amount each month.",
+            paying_down,
+        ),
+    ];
     rsx! {
-        if !cards.is_empty() {
-            section { "aria-label": "Credit card payments",
-                h2 { "Credit card payments" }
-                table {
-                    thead { tr { th { "Card" } th { class: "num", "Set aside" } th { class: "num", "Owed" } th { class: "num", "Underfunded" } } }
-                    tbody {
-                        for c in cards {
-                            tr { key: "{c.card}", "data-card": "{c.card}",
-                                td { {short(&c.card)} }
-                                td { class: "num",
-                                    if editing() == Some(c.card.clone()) {
-                                        form {
-                                            onsubmit: {
-                                                let (card, available) = (c.card.clone(), c.available);
-                                                move |e: FormEvent| {
-                                                    e.prevent_default();
-                                                    let total = match parse_amount(&value.peek()) {
-                                                        Ok(total) => total,
-                                                        Err(m) => return notice.set(Some((false, m))),
-                                                    };
-                                                    let delta = total - available;
-                                                    if !delta.is_zero() {
-                                                        onsetaside.call((card.clone(), format!("{delta:.2}")));
-                                                    }
-                                                    editing.set(None);
-                                                }
-                                            },
-                                            input { class: "amount", "aria-label": "Set aside for {short(&c.card)}", inputmode: "decimal",
-                                                value: "{value}", oninput: move |e| value.set(e.value()),
-                                                onkeydown: move |e| if e.key() == Key::Escape { editing.set(None) },
-                                                onmounted: move |e| async move { let _ = e.set_focus(true).await; },
-                                            }
-                                        }
-                                    } else {
-                                        button { r#type: "button", class: "cell", "aria-label": "Edit set aside for {short(&c.card)}",
-                                            onclick: {
-                                                let (card, available) = (c.card.clone(), c.available);
-                                                move |_| {
-                                                    value.set(format!("{available:.2}"));
-                                                    editing.set(Some(card.clone()));
-                                                }
-                                            },
-                                            {fmt(c.available)}
-                                        }
-                                    }
-                                }
-                                td { class: "num", {fmt(c.owed)} }
-                                td { class: if c.underfunded > Decimal::ZERO { "num warn" } else { "num" },
-                                    {fmt(c.underfunded)}
-                                    if c.underfunded > Decimal::ZERO {
-                                        " "
-                                        button { r#type: "button", class: "link", "aria-label": "Cover {short(&c.card)}",
-                                            onclick: {
-                                                let (card, under) = (c.card.clone(), c.underfunded);
-                                                move |_| onsetaside.call((card.clone(), format!("{under:.2}")))
-                                            },
-                                            "Cover"
-                                        }
-                                    }
-                                    if c.overfunded > Decimal::ZERO {
-                                        span { class: "waiting warn",
-                                            "{fmt(c.overfunded)} more than it owes "
-                                            // Only what the envelope holds can go back now; the rest
-                                            // is overspending still in categories.
-                                            if c.available > Decimal::ZERO {
-                                                button { r#type: "button", class: "link", "aria-label": "Return the extra for {short(&c.card)}",
-                                                    onclick: {
-                                                        let (card, back) = (c.card.clone(), c.overfunded.min(c.available));
-                                                        move |_| onsetaside.call((card.clone(), format!("{:.2}", -back)))
-                                                    },
-                                                    "Return {fmt(c.overfunded.min(c.available))}"
-                                                }
-                                            }
-                                        }
-                                    }
-                                    for (category, amount) in c.in_categories.iter() {
-                                        span { class: "waiting", key: "{category}",
-                                            "{fmt(*amount)} overspent in {short(category)}: cover it there"
+        if groups.iter().any(|(_, _, rows)| !rows.is_empty()) {
+            section { class: "liabilities", "aria-label": "Paying off what you owe",
+                h2 { "Paying off what you owe" }
+                for (title, help, rows) in groups {
+                    if !rows.is_empty() {
+                        div { key: "{title}", class: "liability-group",
+                            h3 { "{title}" }
+                            p { class: "muted small", "{help}" }
+                            table {
+                                thead { tr { th { "Account" } th { class: "num", "Set aside" } th { class: "num", "Balance owed" } th { class: "num", "Still needed" } } }
+                                tbody {
+                                    for l in rows {
+                                        PaymentRow { key: "{l.account}", loan: loans.contains(&l.account), row: l,
+                                            can_target, onsetaside, ontarget, notice,
                                         }
                                     }
                                 }
@@ -218,6 +194,149 @@ pub fn CardPayments(
                     }
                 }
                 p { class: "muted small", "Click Set aside to change it: the difference comes from Unassigned, or goes back to it." }
+            }
+        }
+    }
+}
+
+/// One liability: its set aside (editable), balance owed and what is still needed, with the
+/// monthly payment's links and form.
+#[component]
+fn PaymentRow(
+    row: LiabilityRow,
+    loan: bool,
+    can_target: bool,
+    onsetaside: EventHandler<(String, String)>,
+    ontarget: EventHandler<(String, String)>,
+    mut notice: Signal<Option<(bool, String)>>,
+) -> Element {
+    let mut editing = use_signal(|| false);
+    let mut targeting = use_signal(|| false);
+    let mut value = use_signal(String::new);
+    let l = row;
+    let name = short(&l.account).to_owned();
+    let account = l.account.clone();
+    let set_aside = move |amount: Decimal| {
+        let account = account.clone();
+        move |_| onsetaside.call((account.clone(), format!("{amount:.2}")))
+    };
+    rsx! {
+        tr { "data-liability": "{l.account}",
+            td {
+                "{name}"
+                if can_target {
+                    span { class: "payment-plan small",
+                        match (&l.target, loan) {
+                            (Some(t), _) => rsx! {
+                                " {target_rule(t)} "
+                                button { r#type: "button", class: "link", "aria-label": "Change the monthly payment for {name}",
+                                    onclick: move |_| targeting.set(true), "Change" }
+                                if !loan {
+                                    " · "
+                                    button { r#type: "button", class: "link",
+                                        onclick: { let a = l.account.clone(); move |_| ontarget.call((a.clone(), "0.00".into())) },
+                                        "Pay in full instead"
+                                    }
+                                }
+                            },
+                            (None, true) => rsx! {
+                                " "
+                                button { r#type: "button", class: "link", onclick: move |_| targeting.set(true), "Set the monthly payment" }
+                            },
+                            (None, false) => rsx! {
+                                " "
+                                button { r#type: "button", class: "link", onclick: move |_| targeting.set(true), "Pay it down monthly instead" }
+                            },
+                        }
+                    }
+                }
+            }
+            td { class: "num",
+                if editing() {
+                    form {
+                        onsubmit: {
+                            let (account, available) = (l.account.clone(), l.available);
+                            move |e: FormEvent| {
+                                e.prevent_default();
+                                let total = match parse_amount(&value.peek()) {
+                                    Ok(total) => total,
+                                    Err(m) => return notice.set(Some((false, m))),
+                                };
+                                let delta = total - available;
+                                if !delta.is_zero() {
+                                    onsetaside.call((account.clone(), format!("{delta:.2}")));
+                                }
+                                editing.set(false);
+                            }
+                        },
+                        input { class: "amount", "aria-label": "Set aside for {name}", inputmode: "decimal",
+                            value: "{value}", oninput: move |e| value.set(e.value()),
+                            onkeydown: move |e| if e.key() == Key::Escape { editing.set(false) },
+                            onmounted: move |e| async move { let _ = e.set_focus(true).await; },
+                        }
+                    }
+                } else {
+                    button { r#type: "button", class: "cell", "aria-label": "Edit set aside for {name}",
+                        onclick: {
+                            let available = l.available;
+                            move |_| {
+                                value.set(format!("{available:.2}"));
+                                editing.set(true);
+                            }
+                        },
+                        {fmt(l.available)}
+                    }
+                }
+            }
+            td { class: "num", {fmt(l.owed)} }
+            td { class: if l.underfunded > Decimal::ZERO { "num warn" } else { "num" },
+                title: if l.target.is_none() { "Owed beyond what's set aside" },
+                if l.target.is_some() && l.underfunded > Decimal::ZERO {
+                    "{fmt(l.underfunded)} short this month"
+                } else {
+                    {fmt(l.underfunded)}
+                }
+                // A monthly payment is short only when Unassigned is: more money, not a button, fixes it.
+                if l.underfunded > Decimal::ZERO && l.target.is_none() {
+                    " "
+                    button { r#type: "button", class: "link", "aria-label": "Set aside the rest for {name}",
+                        onclick: set_aside(l.underfunded), "Set aside the rest"
+                    }
+                }
+                if l.overfunded > Decimal::ZERO {
+                    span { class: "waiting warn",
+                        "{fmt(l.overfunded)} more than it owes "
+                        // Only what the envelope holds can go back now; the rest is overspending
+                        // still in categories.
+                        if l.available > Decimal::ZERO {
+                            button { r#type: "button", class: "link", "aria-label": "Give back the extra for {name}",
+                                onclick: set_aside(-l.overfunded.min(l.available)),
+                                "Give back {fmt(l.overfunded.min(l.available))}"
+                            }
+                        }
+                    }
+                }
+                for (category, amount) in l.in_categories.iter() {
+                    span { class: "waiting", key: "{category}",
+                        "{fmt(*amount)} overspent in {short(category)}: cover it there"
+                    }
+                }
+            }
+        }
+        if targeting() {
+            tr { class: "editing",
+                td { colspan: 4,
+                    TargetForm { account: l.account.clone(), target: l.target.clone(), payment: true, notice,
+                        oncancel: move |()| targeting.set(false),
+                        onsave: {
+                            let a = l.account.clone();
+                            move |(amount, _): (String, Option<String>)| {
+                                ontarget.call((a.clone(), amount));
+                                targeting.set(false);
+                            }
+                        },
+                    }
+                }
             }
         }
     }

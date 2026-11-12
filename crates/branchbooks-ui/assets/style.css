@@ -188,6 +188,10 @@ tr.category td:first-child { padding-left: 26px; }
 .small-inline { font-size: 0.8rem; font-weight: 400; }
 .waiting { display: block; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
 .overspending-switch { margin: 6px 0 0; }
+.liability-group + .liability-group { margin-top: 14px; }
+.liability-group h3 { font-size: 0.9rem; margin: 0; }
+.liability-group > p.small { margin: 2px 0 6px; }
+.payment-plan { display: block; margin: 0; color: var(--muted); }
 
 /* ---------- Overview ---------- */
 .cards { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: var(--gap); }
@@ -228,6 +232,9 @@ table.recent td { border-bottom-color: var(--line); }
 .quick-add label { display: grid; gap: 3px; font-size: 0.8rem; color: var(--muted); }
 .quick-add input, .quick-add select { width: 100%; }
 .quick-add input.amount { width: 100%; }
+/* A loan or card payment's interest: a second row, under Category to Memo and under Outflow. */
+.quick-add .f-interest-cat { grid-column: 3 / 6; }
+.quick-add .f-interest { grid-column: 6; }
 .register { list-style: none; margin: 0; padding: 0; }
 .register > li { border-bottom: 1px solid var(--line); padding: 10px 0; }
 .register > li:last-child { border-bottom: none; }
@@ -273,6 +280,8 @@ form.add-account { display: grid; gap: 12px; background: var(--surface); border:
 table.accounts { table-layout: auto; }
 table.accounts td { vertical-align: middle; padding: 4px 8px; }
 table.accounts td:first-child { padding-left: 12px; max-width: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* An editor row spans the table: it wraps to the row's width instead of clipping like a name. */
+table.accounts tr.editing td { overflow: visible; white-space: normal; padding-right: 12px; }
 table.accounts tr:last-child td { border-bottom: 0; }
 /* One ⋯ per row, shown on hover or focus; always where there is no hover. */
 td.menu-cell { width: 1%; padding-right: 8px; text-align: right; }
@@ -334,6 +343,7 @@ pre.ledger { overflow: auto; max-height: 420px; background: var(--surface-2); pa
 @media (max-width: 1320px) {
   .quick-add { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
   .quick-add .f-add { justify-self: start; }
+  .quick-add .f-interest-cat, .quick-add .f-interest { grid-column: auto; }
 }
 @media (max-width: 760px) {
   .app, .app[data-collapsed="true"] { grid-template-columns: 1fr; --sidebar-w: 248px; }
